@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Invitation Created — Invitely</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body class="form-page">
+{% include '_nav.html' %}
+<div class="form-wrap" style="max-width:600px;">
+
+  <div class="created-icon">✦</div>
+  <h1 class="form-title" style="text-align:center;">Your invitation is ready!</h1>
+  <p class="form-sub" style="text-align:center;">
+    RSVP notifications go to <strong style="color:#e8d5a3;">{{ event.host_email }}</strong> instantly.
+    A daily summary lands at 5 PM.
+  </p>
+
+  <div class="created-card">
+    <div class="created-card-label">Shareable invite link</div>
+    <div class="link-box">
+      <span id="inv-link">{{ invite_url }}</span>
+      <button onclick="copyText('inv-link','copy-btn')" class="copy-btn" id="copy-btn">Copy</button>
+    </div>
+    <div class="share-row">
+      <a class="share-btn wa" id="wa-btn" target="_blank">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.524 5.847L0 24l6.324-1.501A11.936 11.936 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.806 9.806 0 01-5.001-1.371l-.36-.214-3.724.883.934-3.62-.236-.372A9.797 9.797 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/></svg>
+        Share on WhatsApp
+      </a>
+      <button class="share-btn copy-link" onclick="copyText('inv-link','copy-btn2')" id="copy-btn2">📋 Copy link</button>
+    </div>
+  </div>
+
+  <div class="created-card">
+    <div class="created-card-label">QR code — screenshot &amp; share anywhere</div>
+    <div id="qr-wrap" style="display:flex;justify-content:center;padding:16px 0;background:#080808;border-radius:8px;margin-bottom:10px;"></div>
+    <button onclick="downloadQR()" class="share-btn copy-link" style="width:100%;justify-content:center;">⬇ Download QR code</button>
+  </div>
+
+  <div class="created-card">
+    <div class="created-card-label">Your private management page</div>
+    <p style="font-size:.78rem;color:#555;margin-bottom:10px;line-height:1.5;">Bookmark this — view all RSVPs in a table. PIN: <strong style="color:#e8d5a3;">{{ host_pin }}</strong></p>
+    <div class="link-box" style="border-color:#ffffff10;">
+      <span id="manage-link" style="color:#666;font-size:.76rem;">{{ manage_url }}</span>
+      <button onclick="copyText('manage-link','copy-manage')" class="copy-btn" id="copy-manage" style="background:#1a1a1a;color:#666;">Copy</button>
+    </div>
+  </div>
+
+  <div class="created-card">
+    <div class="created-card-label">Personalised links — same event, different name per guest</div>
+    <p class="field-note" style="margin-bottom:12px;">Each person sees their name on the reveal: "You're invited, Sipho ✦"</p>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="plink-name" placeholder="Guest name e.g. Sipho"
+             style="flex:1;background:#080808;border:.5px solid #ffffff18;border-radius:8px;padding:10px 13px;color:#e0e0e0;font-size:.85rem;outline:none;font-family:inherit;"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();createPLink();}"/>
+      <button onclick="createPLink()" class="copy-btn">Generate</button>
+    </div>
+    <div id="plinks-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+
+  <div class="created-actions">
+    <a href="{{ invite_url }}" target="_blank" class="btn-primary">Preview invitation</a>
+    <a href="{{ url_for('create') }}" class="btn-secondary">Create another</a>
+  </div>
+
+  <div class="summary-trigger">
+    <p class="field-note" style="text-align:center;">Need the RSVP list right now?</p>
+    <button onclick="sendSummary('{{ event.token }}')" class="btn-ghost" id="summary-btn">Send summary to {{ event.host_email }}</button>
+    <p id="summary-msg" class="hidden" style="text-align:center;font-size:.82rem;color:#1d9e75;margin-top:8px;"></p>
+  </div>
+</div>
+
+<script>
+var INVITE_URL = '{{ invite_url }}';
+var TOKEN = '{{ event.token }}';
+var CSRF = '{{ csrf_token() }}';
+function jsonHeaders(){
+  return {'Content-Type':'application/json','X-CSRFToken':CSRF};
+}
+
+new QRCode(document.getElementById('qr-wrap'), {
+  text: INVITE_URL, width:180, height:180,
+  colorDark:'#e8d5a3', colorLight:'#080808',
+  correctLevel: QRCode.CorrectLevel.H
+});
+
+document.getElementById('wa-btn').href =
+  'https://wa.me/?text='+encodeURIComponent("You're invited! 🎉\nOpen here:\n"+INVITE_URL);
+
+function downloadQR() {
+  var canvas = document.querySelector('#qr-wrap canvas');
+  if(!canvas){ alert('QR not ready'); return; }
+  var a = document.createElement('a');
+  a.download='invitation-qr.png'; a.href=canvas.toDataURL(); a.click();
+}
+
+function copyText(spanId, btnId) {
+  navigator.clipboard.writeText(document.getElementById(spanId).textContent.trim()).then(function(){
+    var b=document.getElementById(btnId), o=b.textContent;
+    b.textContent='Copied!'; setTimeout(function(){ b.textContent=o; },2000);
+  });
+}
+
+function sendSummary(token) {
+  var btn=document.getElementById('summary-btn');
+  btn.textContent='Sending...'; btn.disabled=true;
+  fetch('/api/send-summary/'+token,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({})})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var m=document.getElementById('summary-msg');
+      m.textContent=d.message; m.classList.remove('hidden');
+      btn.textContent='Sent!';
+    }).catch(function(){ btn.textContent='Failed'; btn.disabled=false; });
+}
+
+function createPLink() {
+  var name=document.getElementById('plink-name').value.trim();
+  if(!name){ document.getElementById('plink-name').focus(); return; }
+  fetch('/api/create-link/'+TOKEN,{
+    method:'POST',headers:jsonHeaders(),
+    body:JSON.stringify({guest_name:name})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(d.status==='ok'){ addPlinkRow(d.guest_name,d.url); document.getElementById('plink-name').value=''; }
+  });
+}
+
+function addPlinkRow(name, url) {
+  var list=document.getElementById('plinks-list');
+  var row=document.createElement('div');
+  row.style.cssText='background:#080808;border:.5px solid #ffffff0d;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;';
+  row.innerHTML=
+    '<div style="flex:1;min-width:0;">'+
+      '<div style="font-size:.8rem;color:#e8d5a3;">'+name+'</div>'+
+      '<div style="font-size:.68rem;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+url+'</div>'+
+    '</div>'+
+    '<button onclick="navigator.clipboard.writeText(\''+url+'\').then(function(){ this.textContent=\'✓\'; }.bind(this))" '+
+      'style="padding:6px 10px;background:#e8d5a3;border:none;border-radius:6px;font-size:.7rem;font-weight:500;cursor:pointer;color:#080808;flex-shrink:0;">Copy</button>'+
+    '<a href="https://wa.me/?text='+encodeURIComponent("You're invited! 🎉\n"+url)+'" target="_blank" '+
+      'style="padding:6px 10px;background:#25d366;border-radius:6px;font-size:.7rem;color:#fff;text-decoration:none;flex-shrink:0;">WA</a>';
+  list.appendChild(row);
+}
+</script>
+
+<style>
+.created-card{background:#0f0f0f;border:.5px solid #ffffff10;border-radius:10px;padding:20px;margin-bottom:14px;}
+.created-card-label{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:#444;margin-bottom:12px;}
+.share-row{display:flex;gap:8px;margin-top:10px;}
+.share-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:8px;font-size:.78rem;cursor:pointer;text-decoration:none;transition:opacity .2s;border:none;font-family:inherit;flex:1;}
+.share-btn.wa{background:#25d366;color:#fff;}
+.share-btn.wa:hover{opacity:.85;}
+.share-btn.copy-link{background:#1a1a1a;color:#888;border:.5px solid #ffffff12;}
+.share-btn.copy-link:hover{color:#e0e0e0;}
+</style>
+</body>
+</html>

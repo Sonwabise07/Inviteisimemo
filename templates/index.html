@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Invitely — Beautiful Digital Invitations</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+{% include '_nav.html' %}
+<div class="landing">
+  <div class="landing-inner">
+    <div class="brand">Invitely</div>
+    <h1 class="landing-title">Invitations that feel like an <span>experience</span></h1>
+    <p class="landing-sub">Cinematic digital invitations for birthdays, graduations, umgidi, umemulo, weddings and every celebration worth remembering.</p>
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('create') }}" class="btn-primary">Create an invitation</a>
+      <a href="{{ url_for('dashboard') }}" style="display:inline-block;margin-left:12px;color:#e8d5a3;font-size:.85rem;text-decoration:none;opacity:.7;">My events →</a>
+    {% else %}
+      <a href="{{ url_for('register') }}" class="btn-primary">Get started — it's free</a>
+      <a href="{{ url_for('login') }}" style="display:inline-block;margin-left:12px;color:#e8d5a3;font-size:.85rem;text-decoration:none;opacity:.7;">Sign in →</a>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin — Invitely</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    .adm{max-width:1100px;margin:0 auto;padding:1.5rem 1.5rem 3rem;}
+    .adm-hdr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1.8rem;}
+    .adm-title{font-family:Georgia,serif;font-size:1.7rem;color:#fff;}
+    .adm-sub{color:#444;font-size:.78rem;margin-top:.2rem;}
+    .adm-actions{display:flex;gap:8px;}
+
+    /* Stat grid */
+    .stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:1.8rem;}
+    .stat-box{background:#111;border:.5px solid rgba(255,255,255,0.07);border-radius:10px;padding:1.1rem;text-align:center;}
+    .stat-box .n{font-family:'DM Mono',monospace;font-size:1.9rem;font-weight:500;line-height:1;}
+    .stat-box .l{font-size:.62rem;color:#444;margin-top:.3rem;text-transform:uppercase;letter-spacing:.08em;}
+    .stat-box.gold .n{color:#e8d5a3;}
+    .stat-box.green .n{color:#1d9e75;}
+    .stat-box.blue .n{color:#7dd3fc;}
+    .stat-box.amber .n{color:#fcd34d;}
+    .stat-box.red .n{color:#f87171;}
+    .stat-box.purple .n{color:#c084fc;}
+
+    /* Panels */
+    .panel{background:#111;border:.5px solid rgba(255,255,255,0.07);border-radius:12px;padding:1.3rem;margin-bottom:1.2rem;overflow:hidden;}
+    .panel-title{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:#555;margin-bottom:1rem;}
+    .panel-title.accent{color:#e8d5a3;}
+
+    /* Bar chart */
+    .bar-row{display:grid;grid-template-columns:120px 1fr 36px;gap:8px;align-items:center;margin:7px 0;font-size:.76rem;color:#ccc;}
+    .bar-track{height:7px;background:#080808;border-radius:20px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:20px;transition:width .6s ease;}
+    .bar-fill.gold{background:#e8d5a3;}
+    .bar-fill.green{background:#1d9e75;}
+    .bar-fill.blue{background:#7dd3fc;}
+    .bar-fill.purple{background:#c084fc;}
+
+    /* Tables */
+    .tbl-wrap{overflow:auto;}
+    table{width:100%;border-collapse:collapse;font-size:.79rem;}
+    th{padding:7px 10px;text-align:left;font-size:.62rem;text-transform:uppercase;letter-spacing:.1em;color:#444;font-weight:500;border-bottom:.5px solid rgba(255,255,255,0.06);}
+    td{padding:9px 10px;border-bottom:.5px solid rgba(255,255,255,0.04);color:#ccc;vertical-align:top;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(255,255,255,0.02);}
+    .badge{display:inline-block;font-size:.6rem;font-weight:600;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+    .b-gold{background:rgba(232,213,163,0.12);color:#e8d5a3;}
+    .b-green{background:rgba(29,158,117,0.12);color:#1d9e75;}
+    .b-red{background:rgba(248,113,113,0.12);color:#f87171;}
+    .b-blue{background:rgba(125,211,252,0.12);color:#7dd3fc;}
+    .b-purple{background:rgba(192,132,252,0.12);color:#c084fc;}
+
+    /* Tabs */
+    .adm-tabs{display:flex;gap:4px;border-bottom:.5px solid rgba(255,255,255,0.07);margin-bottom:1.5rem;overflow-x:auto;}
+    .adm-tab{padding:8px 16px;border:none;background:none;color:#444;font-size:.75rem;font-weight:500;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;transition:all .2s;}
+    .adm-tab:hover{color:#aaa;}
+    .adm-tab.active{color:#e8d5a3;border-bottom-color:#e8d5a3;}
+    .adm-section{display:none;}
+    .adm-section.active{display:block;}
+
+    /* Action btns */
+    .btn-xs{font-size:.68rem;padding:4px 10px;border-radius:6px;border:none;cursor:pointer;text-decoration:none;display:inline-block;transition:all .15s;}
+    .btn-xs-edit{background:rgba(232,213,163,0.1);color:#e8d5a3;border:1px solid rgba(232,213,163,0.2);}
+    .btn-xs-edit:hover{background:rgba(232,213,163,0.2);}
+    .btn-xs-del{background:rgba(248,113,113,0.08);color:#f87171;border:1px solid transparent;}
+    .btn-xs-del:hover{border-color:rgba(248,113,113,0.3);}
+    .btn-xs-view{background:rgba(255,255,255,0.05);color:#888;}
+    .btn-xs-view:hover{color:#ccc;}
+
+    /* Search */
+    .search-bar{display:flex;gap:8px;margin-bottom:1rem;}
+    .search-bar input{flex:1;background:#080808;border:.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:.6rem 1rem;color:#e0e0e0;font-size:.82rem;outline:none;}
+    .search-bar input:focus{border-color:rgba(232,213,163,0.3);}
+
+    /* Flash */
+    .flash{border-radius:8px;padding:.65rem 1rem;margin-bottom:1rem;font-size:.8rem;}
+    .flash.success{background:rgba(29,158,117,0.1);color:#1d9e75;border:1px solid rgba(29,158,117,0.2);}
+    .flash.error{background:rgba(248,113,113,0.1);color:#f87171;border:1px solid rgba(248,113,113,0.2);}
+
+    /* Two-col layout */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    @media(max-width:700px){.two-col{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body class="form-page">
+{% include '_nav.html' %}
+<div class="adm">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="adm-hdr">
+    <div>
+      <div class="adm-title">Admin Dashboard</div>
+      <div class="adm-sub">Signed in as {{ current_user.name }} · {{ current_user.email }}</div>
+    </div>
+    <div class="adm-actions">
+      <a href="{{ url_for('admin_users') }}" class="btn-ghost" style="font-size:.78rem;padding:8px 16px;">View all users</a>
+      <a href="{{ url_for('create') }}" class="btn-ghost" style="font-size:.78rem;padding:8px 16px;">+ New event</a>
+    </div>
+  </div>
+
+  <!-- TOP STATS -->
+  <div class="stat-grid">
+    <div class="stat-box gold"><div class="n">{{ total_events }}</div><div class="l">Total Events</div></div>
+    <div class="stat-box green"><div class="n">{{ total_rsvps }}</div><div class="l">Total RSVPs</div></div>
+    <div class="stat-box blue"><div class="n">{{ total_views }}</div><div class="l">Total Views</div></div>
+    <div class="stat-box amber"><div class="n">{{ total_users }}</div><div class="l">Registered Users</div></div>
+    <div class="stat-box purple"><div class="n">{{ total_links }}</div><div class="l">Personal Links</div></div>
+    <div class="stat-box green"><div class="n">{{ link_open_rate }}%</div><div class="l">Link Open Rate</div></div>
+    <div class="stat-box gold"><div class="n">{{ conversion_rate }}%</div><div class="l">RSVP Rate</div></div>
+    <div class="stat-box red"><div class="n">{{ yes_rsvps }}</div><div class="l">Confirmed Yes</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="adm-tabs">
+    <button class="adm-tab active" onclick="admTab('events',this)">All Events</button>
+    <button class="adm-tab" onclick="admTab('analytics',this)">Analytics</button>
+    <button class="adm-tab" onclick="admTab('rsvps',this)">Recent RSVPs</button>
+    <button class="adm-tab" onclick="admTab('audit',this)">Audit Log</button>
+  </div>
+
+  <!-- EVENTS TAB -->
+  <div class="adm-section active" id="adm-events">
+    <div class="search-bar">
+      <input type="text" id="event-search" placeholder="Search by title, host email, event type..." oninput="filterEvents()"/>
+    </div>
+    <div class="panel" style="padding:0;">
+      <div class="tbl-wrap">
+        <table id="events-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Host</th>
+              <th>Date</th>
+              <th>RSVPs</th>
+              <th>Views</th>
+              <th>Links</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in events %}
+            {% set yes_c = e.rsvps | selectattr('attending','eq','yes') | selectattr('waitlist','eq',false) | list | length %}
+            {% set is_past = e.event_date_iso and e.event_date_iso < today_str %}
+            <tr data-search="{{ (e.event_title ~ ' ' ~ e.host_email ~ ' ' ~ e.event_type) | lower }}">
+              <td>
+                <div style="font-weight:500;color:#e0e0e0;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ e.event_title }}</div>
+                <div style="font-size:.68rem;color:#555;">{{ e.event_type }} · {{ e.design }}</div>
+              </td>
+              <td style="color:#888;font-size:.76rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;">{{ e.host_email }}</td>
+              <td style="font-size:.74rem;white-space:nowrap;color:{% if is_past %}#444{% else %}#aaa{% endif %};">{{ e.event_date }}</td>
+              <td style="text-align:center;">
+                <span style="color:#1d9e75;font-weight:600;">{{ yes_c }}</span>
+                {% if e.rsvps | selectattr('waitlist') | list | length > 0 %}
+                  <span style="color:#555;font-size:.68rem;"> +{{ e.rsvps | selectattr('waitlist') | list | length }}w</span>
+                {% endif %}
+              </td>
+              <td style="text-align:center;color:#e8d5a3;">{{ e.view_count or 0 }}</td>
+              <td style="text-align:center;color:#c084fc;">{{ e.links | length }}</td>
+              <td>
+                {% if e.is_archived %}<span class="badge b-red">Archived</span>
+                {% elif is_past %}<span class="badge" style="background:rgba(255,255,255,0.05);color:#555;">Past</span>
+                {% else %}<span class="badge b-green">Active</span>{% endif %}
+              </td>
+              <td style="white-space:nowrap;">
+                <a href="{{ url_for('invitation', token=e.token) }}" target="_blank" class="btn-xs btn-xs-view">View</a>
+                <a href="{{ url_for('admin_edit_event', token=e.token) }}" class="btn-xs btn-xs-edit">Edit</a>
+                <form method="POST" action="{{ url_for('admin_delete_event', token=e.token) }}" style="display:inline;" onsubmit="return confirm('Delete {{ e.event_title | replace(\"'\",\"\\\\'\") }}? This cannot be undone.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn-xs btn-xs-del">Del</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div class="adm-section" id="adm-analytics">
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-title">Popular designs</div>
+        {% for d in popular_designs %}
+        <div class="bar-row">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ d.label }}</span>
+          <div class="bar-track"><div class="bar-fill gold" style="width:{{ d.pct }}%;"></div></div>
+          <span style="color:#555;text-align:right;">{{ d.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="panel">
+        <div class="panel-title">Popular event types</div>
+        {% for t in popular_types %}
+        <div class="bar-row">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ t.label }}</span>
+          <div class="bar-track"><div class="bar-fill green" style="width:{{ t.pct }}%;"></div></div>
+          <span style="color:#555;text-align:right;">{{ t.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="panel">
+        <div class="panel-title">Popular patterns</div>
+        {% for p in popular_patterns %}
+        <div class="bar-row">
+          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ p.label }}</span>
+          <div class="bar-track"><div class="bar-fill blue" style="width:{{ p.pct }}%;"></div></div>
+          <span style="color:#555;text-align:right;">{{ p.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="panel">
+        <div class="panel-title">Popular accent colours</div>
+        {% for c in popular_colours %}
+        <div class="bar-row">
+          <span style="display:flex;align-items:center;gap:6px;overflow:hidden;"><span style="width:10px;height:10px;border-radius:50%;background:{{ c.label }};flex-shrink:0;border:.5px solid rgba(255,255,255,.2);"></span><span style="overflow:hidden;text-overflow:ellipsis;">{{ c.label }}</span></span>
+          <div class="bar-track"><div class="bar-fill" style="width:{{ c.pct }}%;background:{{ c.label }};"></div></div>
+          <span style="color:#555;text-align:right;">{{ c.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Top events by views</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Event</th><th>Host</th><th>Views</th><th>RSVPs</th><th>Links</th></tr></thead>
+          <tbody>
+            {% for e in top_events %}
+            {% set yes_c = e.rsvps | selectattr('attending','eq','yes') | selectattr('waitlist','eq',false) | list | length %}
+            <tr>
+              <td><a href="{{ url_for('invitation', token=e.token) }}" target="_blank" style="color:#e8d5a3;text-decoration:none;">{{ e.event_title }}</a></td>
+              <td style="color:#555;font-size:.74rem;">{{ e.host_email }}</td>
+              <td style="color:#7dd3fc;font-weight:600;">{{ e.view_count or 0 }}</td>
+              <td style="color:#1d9e75;">{{ yes_c }}</td>
+              <td style="color:#c084fc;">{{ e.links | length }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RSVPS TAB -->
+  <div class="adm-section" id="adm-rsvps">
+    <div class="panel" style="padding:0;">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Guest</th><th>Email</th><th>Event</th><th>Status</th><th>Dietary</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for r in recent_rsvps %}
+            <tr>
+              <td style="font-weight:500;color:#e0e0e0;">{{ r.name }}</td>
+              <td style="color:#555;font-size:.74rem;">{{ r.email or '—' }}</td>
+              <td style="color:#888;font-size:.74rem;">{{ r.event.event_title if r.event else '—' }}</td>
+              <td>
+                {% if r.waitlist %}<span class="badge b-blue">Waitlist</span>
+                {% elif r.attending == 'yes' %}<span class="badge b-green">Yes</span>
+                {% else %}<span class="badge b-red">No</span>{% endif %}
+              </td>
+              <td style="color:#555;font-size:.74rem;">{{ r.dietary or '—' }}</td>
+              <td style="color:#444;font-size:.72rem;white-space:nowrap;">{{ r.timestamp.strftime('%d %b %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUDIT TAB -->
+  <div class="adm-section" id="adm-audit">
+    <div class="panel" style="padding:0;">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Action</th><th>User</th><th>Detail</th><th>IP</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for log in recent_audit %}
+            <tr>
+              <td>
+                <span class="badge {% if 'delete' in log.action %}b-red{% elif 'login' in log.action %}b-green{% elif 'admin' in log.action %}b-purple{% else %}b-blue{% endif %}">{{ log.action }}</span>
+              </td>
+              <td style="color:#888;font-size:.74rem;">{% if log.user %}{{ log.user.email }}{% else %}<span style="color:#333;">—</span>{% endif %}</td>
+              <td style="color:#555;font-size:.72rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;">{{ log.detail or '—' }}</td>
+              <td style="color:#333;font-size:.72rem;">{{ log.ip_addr or '—' }}</td>
+              <td style="color:#444;font-size:.72rem;white-space:nowrap;">{{ log.timestamp.strftime('%d %b %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var today_str = '{{ date.today().isoformat() if date else "" }}';
+
+function admTab(id, btn) {
+  document.querySelectorAll('.adm-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.adm-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('adm-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function filterEvents() {
+  var q = document.getElementById('event-search').value.toLowerCase();
+  document.querySelectorAll('#events-table tbody tr').forEach(function(row) {
+    row.style.display = (!q || row.dataset.search.includes(q)) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

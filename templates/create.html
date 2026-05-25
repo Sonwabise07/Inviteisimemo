@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{% if edit_mode %}Edit{% else %}Create{% endif %} Invitation — Invitely</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"/>
+  <style>
+    /* Flatpickr dark theme overrides */
+    .flatpickr-calendar{background:#0f0f0f!important;border:.5px solid rgba(255,255,255,.12)!important;border-radius:10px!important;box-shadow:0 8px 32px rgba(0,0,0,.5)!important;}
+    .flatpickr-day{color:#e0e0e0!important;border-radius:6px!important;}
+    .flatpickr-day:hover,.flatpickr-day.inRange{background:rgba(232,213,163,.15)!important;border-color:transparent!important;}
+    .flatpickr-day.selected,.flatpickr-day.selected:hover{background:#e8d5a3!important;color:#080808!important;border-color:#e8d5a3!important;}
+    .flatpickr-day.today{border-color:#e8d5a360!important;}
+    .flatpickr-months,.flatpickr-month{background:#0f0f0f!important;color:#e8d5a3!important;fill:#e8d5a3!important;}
+    .flatpickr-current-month,.flatpickr-monthDropdown-months,.flatpickr-year{color:#e8d5a3!important;font-size:.85rem!important;}
+    .flatpickr-weekday{color:#555!important;font-size:.7rem!important;}
+    .flatpickr-prev-month,.flatpickr-next-month{fill:#e8d5a3!important;}
+    .flatpickr-prev-month:hover svg,.flatpickr-next-month:hover svg{fill:#fff!important;}
+    .numInputWrapper:hover,.numInput{background:#080808!important;color:#e8d5a3!important;}
+    .flatpickr-time{background:#0f0f0f!important;border-top:.5px solid rgba(255,255,255,.08)!important;}
+    .flatpickr-time input,.flatpickr-am-pm{color:#e0e0e0!important;background:#080808!important;}
+    .flatpickr-time .flatpickr-time-separator{color:#444!important;}
+    
+    /* Photo compression indicator */
+    .photo-compress-msg{font-size:.68rem;color:#1d9e75;margin-top:4px;display:none;}
+    .photo-compress-err{font-size:.68rem;color:#f87171;margin-top:4px;display:none;}
+  </style>
+</head>
+<body class="form-page">
+{% include '_nav.html' %}
+<div class="form-wrap">
+  <a href="{{ url_for('index') }}" class="brand-sm">Invitely</a>
+  <h1 class="form-title">{% if edit_mode %}Edit your invitation{% else %}Create your invitation{% endif %}</h1>
+  <p class="form-sub">{% if edit_mode %}Update any details — your existing share links stay the same.{% else %}Fill in the sections below. Each one expands when you click it.{% endif %}</p>
+  <div class="create-actions">
+    {% if edit_mode %}
+    <a href="{{ url_for('invitation', token=event.token) }}" target="_blank" class="btn-secondary" style="padding:10px 18px;font-size:.75rem;">Preview invitation</a>
+    {% else %}
+    <button type="button" class="btn-secondary" style="padding:10px 18px;font-size:.75rem;" onclick="focusStylePreview()">Preview style</button>
+    {% endif %}
+  </div>
+
+  <div class="form-progress" id="progress-bar">
+    {% for i in range(6) %}<div class="fp-step {% if i==0 %}active{% endif %}" id="fp-{{i}}"></div>{% endfor %}
+  </div>
+
+  <form action="{% if edit_mode %}{{ url_for('edit_event', token=event.token, pin=pin) }}{% else %}{{ url_for('create') }}{% endif %}"
+        method="POST" enctype="multipart/form-data" class="inv-form" id="main-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <div class="form-section">
+      <div class="fsec-header open" onclick="toggleSection(this)" data-step="0">
+        <span><span class="fsec-step">1</span><span class="fsec-label">Host details</span></span>
+        <span class="fsec-chevron">▲</span>
+      </div>
+      <div class="fsec-body open">
+        <div class="field-row">
+          <div class="field">
+            <label>Your name</label>
+            <input type="text" name="host_name" value="{{ event.host_name if event else '' }}" placeholder="Thembi Dlamini" required/>
+          </div>
+          <div class="field">
+            <label>Your email <span class="hint">— RSVP summaries here</span></label>
+            <input type="email" name="host_email" value="{{ event.host_email if event else '' }}" placeholder="thembi@email.com" required/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Guest's name <span class="hint">— on reveal screen (optional)</span></label>
+            <input type="text" name="guest_name" value="{{ event.guest_name if event else '' }}" placeholder="Lethabo"/>
+          </div>
+          <div class="field">
+            <label>Management PIN</label>
+            <input type="text" name="host_pin" value="{{ event.host_pin if event else '' }}" placeholder="Auto-generated if blank" maxlength="8" inputmode="numeric"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="1">
+        <span><span class="fsec-step">2</span><span class="fsec-label">Event details</span></span>
+        <span class="fsec-chevron">▼</span>
+      </div>
+      <div class="fsec-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Event type</label>
+            <select name="event_type">
+              {% for et in event_types %}<option value="{{ et }}" {% if event and event.event_type==et %}selected{% endif %}>{{ et }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Event title</label>
+            <input type="text" name="event_title" value="{{ event.event_title if event else '' }}" placeholder="Zara's 30th Birthday" required/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Date</label>
+            <input type="text" name="event_date" id="event_date" value="{{ event.event_date_iso if event else '' }}" placeholder="Select Date" required/>
+          </div>
+          <div class="field">
+            <label>Time</label>
+            <input type="text" name="event_time" id="event_time" value="{{ event.event_time[:5] if event and event.event_time else '' }}" placeholder="Select Time" required/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>RSVP deadline <span class="hint">— optional</span></label>
+            <input type="text" name="rsvp_deadline" id="rsvp_deadline" value="{{ event.rsvp_deadline if event else '' }}" placeholder="Select Deadline"/>
+          </div>
+          <div class="field">
+            <label>Guest capacity <span class="hint">— 0 = unlimited</span></label>
+            <input type="number" name="capacity" value="{{ event.capacity if event else 0 }}" min="0" placeholder="0"/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Dress code</label>
+            <select name="dress_code" id="sel-dress" onchange="toggleCustom('dress')">
+              {% for dc in dress_codes %}<option value="{{ dc }}" {% if event and event.dress_code==dc %}selected{% endif %}>{{ dc }}</option>{% endfor %}
+            </select>
+            <input type="text" name="dress_code_custom" id="custom-dress" class="custom-input hidden" value="{{ event.dress_code if event and event.dress_code not in dress_codes else '' }}" placeholder="Type dress code..."/>
+          </div>
+          <div class="field">
+            <label>Theme</label>
+            <select name="theme" id="sel-theme" onchange="toggleCustom('theme')">
+              {% for t in themes %}<option value="{{ t }}" {% if event and event.theme==t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+            </select>
+            <input type="text" name="theme_custom" id="custom-theme" class="custom-input hidden" value="{{ event.theme if event and event.theme not in themes else '' }}" placeholder="Type theme..."/>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Colour palette</label>
+            <select name="colour_palette" id="sel-palette" onchange="toggleCustom('palette')">
+              {% for cp in colour_palettes %}<option value="{{ cp }}" {% if event and event.colour_palette==cp %}selected{% endif %}>{{ cp }}</option>{% endfor %}
+            </select>
+            <input type="text" name="palette_custom" id="custom-palette" class="custom-input hidden" value="{{ event.colour_palette if event and event.colour_palette not in colour_palettes else '' }}" placeholder="Type palette..."/>
+          </div>
+          <div class="field">
+            <label>Extra notes <span class="hint">— optional</span></label>
+            <input type="text" name="extra_notes" value="{{ event.extra_notes if event else '' }}" placeholder="Parking info, special requests..."/>
+          </div>
+        </div>
+        <div class="field" style="margin-top:4px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" name="save_the_date" {% if event and event.save_the_date %}checked{% endif %} style="width:auto;"/>
+            <span>Save the date mode <span class="hint">— hides full details, shows date & venue only</span></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="2">
+        <span><span class="fsec-step">3</span><span class="fsec-label">Design & style</span></span>
+        <span class="fsec-chevron">▼</span>
+      </div>
+      <div class="fsec-body">
+        <div class="design-picker">
+          {% for key, name, desc in designs %}
+          <label class="design-opt{% if (event and event.design==key) or (not event and key=='classic_dark') %} selected{% endif %}" data-design="{{ key }}">
+            <input type="radio" name="design" value="{{ key }}" {% if (event and event.design==key) or (not event and key=='classic_dark') %}checked{% endif %}/>
+            <div class="design-thumb design-{{ key }}"><div class="dt-tag">{{ name }}</div></div>
+            <div class="design-meta"><div class="design-name">{{ name }}</div><div class="design-desc">{{ desc }}</div></div>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="field-row" style="margin-top:14px;">
+          <div class="field">
+            <label>Typography</label>
+            <select name="font">
+              {% for name, _ in fonts %}<option value="{{ name }}" {% if event and event.font==name %}selected{% endif %}>{{ name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Background pattern</label>
+            <div class="pattern-picker" id="pattern-picker" style="--p-accent:{{ event.accent_colour if event else '#e8d5a3' }}66;">
+              {% for key, label in patterns %}
+              <label class="pattern-opt{% if (event and event.pattern==key) or (not event and key=='none') %} selected{% endif %}" title="{{ label }}">
+                <input type="radio" name="pattern" value="{{ key }}" {% if (event and event.pattern==key) or (not event and key=='none') %}checked{% endif %}/>
+                <div class="pattern-thumb pat-{{ key }}"></div>
+                <div class="pattern-label">{{ label }}</div>
+              </label>
+              {% endfor %}
+            </div>
+            <div class="pattern-stage" id="pattern-stage">
+              <div class="pattern-stage-surface" id="pattern-stage-surface"></div>
+              <div class="pattern-stage-name" id="pattern-stage-name">{{ event.pattern if event else 'No Pattern' }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Decorations</label>
+            <select name="decorations">
+              {% for key, label in decorations %}<option value="{{ key }}" {% if event and event.decorations==key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Accent colour</label>
+            <div class="colour-swatches">
+              {% for hex, label in accent_colours %}
+              <label class="swatch-wrap" title="{{ label }}">
+                <input type="radio" name="accent_colour_radio" value="{{ hex }}"
+                       {% if (event and event.accent_colour==hex) or (not event and hex=='#e8d5a3') %}checked{% endif %}
+                       onchange="setAccent('{{ hex }}')"/>
+                <div class="swatch" style="background:{{ hex }};"></div>
+              </label>
+              {% endfor %}
+              <label class="swatch-wrap" title="Custom">
+                <input type="radio" name="accent_colour_radio" value="custom" id="accent-custom-radio"/>
+                <div class="swatch swatch-custom">+</div>
+              </label>
+              <input type="color" id="accent-picker" class="hidden" value="{{ event.accent_colour if event else '#e8d5a3' }}" oninput="setAccent(this.value)"/>
+            </div>
+            <input type="hidden" name="accent_colour" id="accent-hidden" value="{{ event.accent_colour if event else '#e8d5a3' }}"/>
+          </div>
+        </div>
+        <div class="live-preview" id="style-preview">
+          <div class="live-preview-head"><span>Live style preview</span><span id="preview-pattern-label">{{ event.pattern if event else 'none' }}</span></div>
+          <div class="live-card" id="live-card">
+            <div class="live-kicker" id="live-type">{{ event.event_type if event else 'Birthday' }}</div>
+            <div class="live-title" id="live-title">{{ event.event_title if event else "Your Event Title" }}</div>
+            <div class="live-meta"><span id="live-date">{{ event.event_date if event else 'Selected date' }}</span> · <span id="live-venue">{{ event.venue_name if event else 'Venue name' }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="3">
+        <span><span class="fsec-step">4</span><span class="fsec-label">Venue & location</span></span>
+        <span class="fsec-chevron">▼</span>
+      </div>
+      <div class="fsec-body">
+        <p class="field-note">Search for the venue, then click a result or click anywhere on the map to pin the exact spot.</p>
+        <div class="map-search-row">
+          <input type="text" id="venue-search-input" placeholder="Search venue or address..." oninput="debounceSearch()" autocomplete="off"/>
+          <div id="search-results" class="search-dropdown hidden"></div>
+        </div>
+        <div id="create-map"></div>
+        <input type="hidden" name="venue_name"    id="hid-venue-name"    value="{{ event.venue_name if event else '' }}"/>
+        <input type="hidden" name="venue_address" id="hid-venue-address" value="{{ event.venue_address if event else '' }}"/>
+        <input type="hidden" name="venue_lat"     id="hid-lat"           value="{{ event.venue_lat if event else '' }}"/>
+        <input type="hidden" name="venue_lng"     id="hid-lng"           value="{{ event.venue_lng if event else '' }}"/>
+        <div class="map-selected {% if not event or not event.venue_name %}hidden{% endif %}" id="map-selected">
+          <span id="map-selected-text">{{ event.venue_name if event else '' }}</span>
+          <span class="map-clear" onclick="clearPin()">✕ clear</span>
+        </div>
+        <p class="field-note" id="map-fallback-note" style="color:#e8d5a340;{% if event and event.venue_name %}display:none;{% endif %}">No pin yet — search above or click the map.</p>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="4">
+        <span><span class="fsec-step">5</span><span class="fsec-label">Music & photos</span></span>
+        <span class="fsec-chevron">▼</span>
+      </div>
+      <div class="fsec-body">
+        <p class="field-note">Paste a YouTube video link — song title is fetched automatically. Music plays when the guest opens the invitation.</p>
+        <div class="field">
+          <label>YouTube link</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="url" name="music_url" id="music-url-input" value="{{ event.music_url if event else '' }}"
+                   placeholder="https://www.youtube.com/watch?v=..." style="flex:1;" oninput="debounceYT()"/>
+            <div id="yt-status" style="font-size:.72rem;color:#555;white-space:nowrap;min-width:80px;"></div>
+          </div>
+          <div id="yt-preview" class="yt-preview hidden">
+            <div class="yt-preview-icon">♪</div>
+            <div>
+              <div id="yt-preview-title" style="font-size:.82rem;color:#e0e0e0;"></div>
+              <div id="yt-preview-author" style="font-size:.7rem;color:#555;margin-top:2px;"></div>
+            </div>
+          </div>
+          {% if event and event.music_title %}
+          <div class="yt-preview" style="margin-top:6px;">
+            <div class="yt-preview-icon">♪</div>
+            <div>
+              <div style="font-size:.82rem;color:#e0e0e0;">{{ event.music_title }}</div>
+              <div style="font-size:.7rem;color:#555;margin-top:2px;">{{ event.music_artist }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="field-note" style="margin-top:12px;">Upload up to 3 photos — they appear in the invitation hero.</div>
+        <div class="photo-row">
+          {% for i in range(1,4) %}
+          <div class="photo-slot" id="slot{{ i }}">
+            <label class="photo-label" for="img{{ i }}" id="lbl{{ i }}">
+              <div class="photo-plus">{% if edit_mode and event and event['image_'+i|string] %}✓{% else %}+{% endif %}</div>
+              <div>Photo {{ i }}</div>
+            </label>
+            <input type="file" id="img{{ i }}" name="image_{{ i }}" accept=".jpg,.jpeg,.png,.webp" onchange="compressAndPreview(this,'prev{{ i }}','lbl{{ i }}','compressed_{{ i }}','msg{{ i }}')"/>
+            <input type="hidden" id="compressed_{{ i }}" name="image_{{ i }}_compressed"/>
+            <div class="photo-compress-msg" id="msg{{ i }}"></div>
+            <img id="prev{{ i }}" class="photo-preview hidden"/>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="5">
+        <span><span class="fsec-step">6</span><span class="fsec-label">Gift ideas <span class="hint">— optional</span></span></span>
+        <span class="fsec-chevron">▼</span>
+      </div>
+      <div class="fsec-body">
+        <p class="field-note">Guests can claim gifts directly on the invitation. Add as many as you like.</p>
+        <div id="gift-rows">
+          {% if edit_mode and event and event.gifts %}
+            {% for g in event.gifts %}
+            <div class="gift-row">
+              <input type="text" name="gift_name" value="{{ g.name }}" placeholder="Gift name" class="gift-input"/>
+              <input type="text" name="gift_store" value="{{ g.store }}" placeholder="Store (optional)" class="gift-input gift-store-input"/>
+              <button type="button" class="gift-remove" onclick="this.parentNode.remove()">✕</button>
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+        <button type="button" class="add-row-btn" onclick="addGiftRow()">+ Add gift</button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary btn-submit" onclick="return prepareSubmit()">
+      {% if edit_mode %}Save changes{% else %}Generate invitation link{% endif %}
+    </button>
+  </form>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+// Initialize Flatpickr correctly for Date, Time, and Deadline
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // 1. Date Picker
+    flatpickr("#event_date", {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        altInput: true,
+        altFormat: "F j, Y",
+        disableMobile: true // Ensures custom calendar on all devices
+    });
+
+    // 2. Time Picker (No Calendar)
+    flatpickr("#event_time", {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+        time_24hr: false,
+        altInput: true,
+        altFormat: "h:i K",
+        disableMobile: true
+    });
+
+    // 3. Deadline Picker
+    flatpickr("#rsvp_deadline", {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        altInput: true,
+        altFormat: "F j, Y",
+        disableMobile: true
+    });
+});
+</script>
+<script>
+// ── Collapsible sections ──────────────────────────────────────
+function toggleSection(header) {
+  var body = header.nextElementSibling;
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  header.classList.toggle('open', !isOpen);
+  header.querySelector('.fsec-chevron').textContent = isOpen ? '▼' : '▲';
+  updateProgress();
+}
+function updateProgress() {
+  var steps = document.querySelectorAll('.fsec-header');
+  steps.forEach(function(h, i) {
+    var fp = document.getElementById('fp-'+i);
+    if(!fp) return;
+    var isOpen = h.classList.contains('open');
+    fp.className = 'fp-step ' + (isOpen ? 'active' : 'done');
+  });
+}
+
+// ── Map ──────────────────────────────────────────────────────
+var initLat = {{ event.venue_lat if event and event.venue_lat else -29.8587 }};
+var initLng = {{ event.venue_lng if event and event.venue_lng else 31.0218 }};
+var initZoom = {{ 15 if event and event.venue_lat else 11 }};
+var map = L.map('create-map',{zoomControl:true}).setView([initLat,initLng],initZoom);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:''}).addTo(map);
+var marker = null, pinned = {{ 'true' if edit_mode and event and event.venue_lat else 'false' }};
+
+{% if edit_mode and event and event.venue_lat %}
+var goldIcon = L.divIcon({html:'<div style="width:22px;height:22px;background:#e8d5a3;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #c9a96e;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',className:'',iconSize:[22,22],iconAnchor:[11,22]});
+marker = L.marker([{{ event.venue_lat }},{{ event.venue_lng }}],{icon:goldIcon}).addTo(map).bindPopup('<b>{{ event.venue_name }}</b>').openPopup();
+{% endif %}
+
+map.on('click',function(e){ placePin(e.latlng.lat,e.latlng.lng,null,null); });
+
+function placePin(lat,lng,name,address) {
+  var goldIcon2 = L.divIcon({html:'<div style="width:22px;height:22px;background:#e8d5a3;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid #c9a96e;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',className:'',iconSize:[22,22],iconAnchor:[11,22]});
+  if(marker) map.removeLayer(marker);
+  marker = L.marker([lat,lng],{icon:goldIcon2}).addTo(map);
+  map.setView([lat,lng],16);
+  pinned = true;
+  document.getElementById('hid-lat').value = lat;
+  document.getElementById('hid-lng').value = lng;
+  if(name) {
+    document.getElementById('hid-venue-name').value    = name.split(',')[0].trim();
+    document.getElementById('hid-venue-address').value = address || name;
+    document.getElementById('venue-search-input').value= name.split(',')[0].trim();
+  }
+  document.getElementById('map-selected-text').textContent = name ? name.split(',')[0] : (lat.toFixed(5)+', '+lng.toFixed(5));
+  document.getElementById('map-selected').classList.remove('hidden');
+  document.getElementById('map-fallback-note').style.display = 'none';
+  updateStylePreview();
+}
+
+function clearPin() {
+  if(marker){ map.removeLayer(marker); marker=null; }
+  pinned=false;
+  ['hid-lat','hid-lng','hid-venue-name','hid-venue-address'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('map-selected').classList.add('hidden');
+  document.getElementById('map-fallback-note').style.display='';
+}
+
+// ── Location search ───────────────────────────────────────────
+var searchTimer=null;
+function debounceSearch(){ clearTimeout(searchTimer); searchTimer=setTimeout(doSearch,420); }
+function doSearch() {
+  var q=document.getElementById('venue-search-input').value.trim();
+  if(q.length<3){ closeDropdown(); return; }
+  fetch('/api/location-search?q='+encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(results){
+      var dd=document.getElementById('search-results');
+      if(!results.length){ closeDropdown(); return; }
+      dd.innerHTML='';
+      results.forEach(function(r){
+        var item=document.createElement('div');
+        item.className='search-item';
+        item.textContent=r.display_name;
+        item.onclick=function(){ placePin(parseFloat(r.lat),parseFloat(r.lon),r.display_name,r.display_name); closeDropdown(); };
+        dd.appendChild(item);
+      });
+      dd.classList.remove('hidden');
+    });
+}
+function closeDropdown(){ document.getElementById('search-results').classList.add('hidden'); }
+document.addEventListener('click',function(e){ if(!e.target.closest('.map-search-row')) closeDropdown(); });
+
+// ── YouTube ───────────────────────────────────────────────────
+var ytTimer=null;
+function debounceYT(){ clearTimeout(ytTimer); ytTimer=setTimeout(fetchYTMeta,800); }
+function fetchYTMeta() {
+  var url=document.getElementById('music-url-input').value.trim();
+  var st=document.getElementById('yt-status');
+  if(!url){ hideYTPreview(); return; }
+  if(url.includes('/search?')||url.includes('music.youtube.com/search')) {
+    st.textContent='❌ Paste a video link, not a search URL';
+    st.style.color='#f87171'; hideYTPreview(); return;
+  }
+  st.textContent='Fetching...'; st.style.color='#555';
+  fetch('/api/yt-meta?url='+encodeURIComponent(url))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.error==='search_url'){ st.textContent='❌ Paste a video link'; st.style.color='#f87171'; hideYTPreview(); return; }
+      if(d.title) {
+        document.getElementById('yt-preview-title').textContent=d.title;
+        document.getElementById('yt-preview-author').textContent=d.author||'';
+        document.getElementById('yt-preview').classList.remove('hidden');
+        st.textContent='✓ Found'; st.style.color='#1d9e75';
+      } else { st.textContent='Not found'; st.style.color='#f87171'; hideYTPreview(); }
+    }).catch(function(){ hideYTPreview(); });
+}
+function hideYTPreview(){
+  document.getElementById('yt-preview').classList.add('hidden');
+  document.getElementById('yt-status').textContent='';
+}
+
+// ── Design picker ─────────────────────────────────────────────
+document.querySelectorAll('.design-opt input').forEach(function(r){
+  r.addEventListener('change',function(){
+    document.querySelectorAll('.design-opt').forEach(function(el){ el.classList.remove('selected'); });
+    r.closest('.design-opt').classList.add('selected');
+    updateStylePreview();
+  });
+});
+
+var patternNames = {
+  none:'No Pattern', xhosa:'Xhosa Heritage', venda:'Venda Tradition', royal:'Royal Gold Border',
+  fine_grid:'Fine Grid', dot_matrix:'Dot Matrix', ndebele:'Ndebele Chevron', soft_glow:'Soft Glow',
+  diagonal:'Diagonal Lines', cape_malay:'Cape Malay Mosaic', linen:'Linen Texture',
+  corner_frame:'Corner Frame', celestial_swirl:'Celestial Swirl', zulu_shield:'Zulu Shield Lines'
+};
+function patternBackground(pattern, accent){
+  var a = accent + '66';
+  if(pattern==='xhosa') return 'repeating-linear-gradient(135deg,'+a+' 0,'+a+' 2px,transparent 2px,transparent 18px)';
+  if(pattern==='venda') return 'linear-gradient(45deg,'+a+' 25%,transparent 25%,transparent 75%,'+a+' 75%)';
+  if(pattern==='royal') return 'linear-gradient(to bottom,'+a+' 0,transparent 14%,transparent 86%,'+a+' 100%),linear-gradient(to right,'+a+' 0,transparent 14%,transparent 86%,'+a+' 100%)';
+  if(pattern==='fine_grid') return 'repeating-linear-gradient(90deg,'+a+' 0,'+a+' 1px,transparent 1px,transparent 18px),repeating-linear-gradient(0deg,'+a+' 0,'+a+' 1px,transparent 1px,transparent 18px)';
+  if(pattern==='dot_matrix') return 'radial-gradient(circle at 9px 9px,'+a+' 2px,transparent 2px)';
+  if(pattern==='ndebele') return 'repeating-linear-gradient(60deg,'+a+' 0,'+a+' 1px,transparent 1px,transparent 12px),repeating-linear-gradient(-60deg,'+a+' 0,'+a+' 1px,transparent 1px,transparent 12px)';
+  if(pattern==='soft_glow') return 'radial-gradient(ellipse at 50% 0%,'+a+' 0,transparent 58%),radial-gradient(ellipse at 50% 100%,'+a+' 0,transparent 58%)';
+  if(pattern==='diagonal') return 'repeating-linear-gradient(45deg,transparent 0,transparent 8px,'+a+' 8px,'+a+' 9px)';
+  if(pattern==='cape_malay') return 'linear-gradient(135deg,'+a+' 25%,transparent 25%,transparent 75%,'+a+' 75%),linear-gradient(135deg,'+a+' 25%,transparent 25%,transparent 75%,'+a+' 75%)';
+  if(pattern==='linen') return 'repeating-linear-gradient(0deg,'+a+' 0,'+a+' 1px,transparent 1px,transparent 6px)';
+  if(pattern==='corner_frame') return 'linear-gradient(to right,'+a+' 0,transparent 20%,transparent 80%,'+a+' 100%),linear-gradient(to bottom,'+a+' 0,transparent 20%,transparent 80%,'+a+' 100%)';
+  if(pattern==='celestial_swirl') return 'conic-gradient(from 0deg,'+a+',transparent,'+a+')';
+  if(pattern==='zulu_shield') return 'repeating-linear-gradient(90deg,transparent 0,transparent 14px,'+a+' 14px,'+a+' 15px),repeating-linear-gradient(0deg,transparent 0,transparent 4px,'+a+' 4px,'+a+' 5px)';
+  return 'none';
+}
+document.querySelectorAll('.pattern-opt input').forEach(function(r){
+  r.addEventListener('change',function(){
+    document.querySelectorAll('.pattern-opt').forEach(function(el){ el.classList.remove('selected'); });
+    r.closest('.pattern-opt').classList.add('selected');
+    updateStylePreview();
+  });
+});
+function updateStylePreview(){
+  var accent = document.getElementById('accent-hidden').value || '#e8d5a3';
+  var patternInput = document.querySelector('input[name="pattern"]:checked');
+  var pattern = patternInput ? patternInput.value : 'none';
+  var card = document.getElementById('live-card');
+  if(card){
+    card.style.setProperty('--live-accent', accent);
+    card.style.setProperty('--live-pattern', patternBackground(pattern, accent));
+  }
+  var picker = document.getElementById('pattern-picker');
+  if(picker) picker.style.setProperty('--p-accent', accent + '66');
+  var label = document.getElementById('preview-pattern-label');
+  if(label) label.textContent = patternNames[pattern] || pattern;
+  var stage = document.getElementById('pattern-stage-surface');
+  if(stage) stage.style.background = patternBackground(pattern, accent) + ', #080808';
+  var stageName = document.getElementById('pattern-stage-name');
+  if(stageName) stageName.textContent = patternNames[pattern] || pattern;
+  var type = document.querySelector('select[name="event_type"]');
+  var title = document.querySelector('input[name="event_title"]');
+  var date = document.querySelector('input[name="event_date"]');
+  var venue = document.getElementById('hid-venue-name');
+  if(document.getElementById('live-type')) document.getElementById('live-type').textContent = type ? type.value : 'Event';
+  if(document.getElementById('live-title')) document.getElementById('live-title').textContent = title && title.value ? title.value : 'Your Event Title';
+  if(document.getElementById('live-date')) document.getElementById('live-date').textContent = date && date.value ? date.value : 'Selected date';
+  if(document.getElementById('live-venue')) document.getElementById('live-venue').textContent = venue && venue.value ? venue.value : 'Venue name';
+}
+function focusStylePreview(){
+  var el = document.getElementById('style-preview');
+  if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); updateStylePreview(); }
+}
+document.querySelectorAll('input,select').forEach(function(el){ el.addEventListener('input',updateStylePreview); el.addEventListener('change',updateStylePreview); });
+updateStylePreview();
+
+// ── Accent colour ─────────────────────────────────────────────
+function setAccent(val) {
+  document.getElementById('accent-hidden').value=val;
+  updateStylePreview();
+}
+document.getElementById('accent-custom-radio').addEventListener('click',function(){
+  document.getElementById('accent-picker').click();
+});
+
+// ── Custom dropdowns ──────────────────────────────────────────
+function toggleCustom(field) {
+  var sel=document.getElementById('sel-'+field);
+  var inp=document.getElementById('custom-'+field);
+  if(sel.value==='Custom...'){ inp.classList.remove('hidden'); inp.focus(); }
+  else { inp.classList.add('hidden'); inp.value=''; }
+}
+
+// ── Photo compression + preview ──────────────────────────────
+function compressAndPreview(input, prevId, lblId, compressedId, msgId) {
+  var file = input.files && input.files[0];
+  if(!file) return;
+  var msg = document.getElementById(msgId);
+  msg.style.display = 'block';
+  msg.className = 'photo-compress-msg';
+  msg.textContent = 'Compressing...';
+
+  var maxW = 1600, maxH = 1600, quality = 0.82;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.width, h = img.height;
+      if(w > maxW || h > maxH) {
+        var ratio = Math.min(maxW/w, maxH/h);
+        w = Math.round(w*ratio); h = Math.round(h*ratio);
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      var compressed = canvas.toDataURL('image/jpeg', quality);
+      var origKB = Math.round(file.size/1024);
+      var newKB  = Math.round(compressed.length * 0.75 / 1024);
+
+      // Show preview
+      var p = document.getElementById(prevId);
+      p.src = compressed; p.classList.remove('hidden');
+      var l = document.getElementById(lblId); if(l) l.style.display='none';
+
+      // Store compressed base64 in hidden field
+      document.getElementById(compressedId).value = compressed;
+      // Also override the file input so Flask gets the compressed version
+      input._compressedData = compressed;
+
+      msg.textContent = origKB > newKB
+        ? '✓ Compressed '+origKB+'KB → '+newKB+'KB'
+        : '✓ Loaded ('+newKB+'KB)';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Gift rows ─────────────────────────────────────────────────
+function addGiftRow(name,store){
+  var row=document.createElement('div'); row.className='gift-row';
+  row.innerHTML='<input type="text" name="gift_name" placeholder="Gift name" value="'+(name||'')+'" class="gift-input"/>'+
+    '<input type="text" name="gift_store" placeholder="Store (optional)" value="'+(store||'')+'" class="gift-input gift-store-input"/>'+
+    '<button type="button" class="gift-remove" onclick="this.parentNode.remove()">✕</button>';
+  document.getElementById('gift-rows').appendChild(row);
+}
+{% if not edit_mode %}addGiftRow();{% endif %}
+
+// ── Prepare submit ────────────────────────────────────────────
+function prepareSubmit() {
+  // Venue fallback
+  if(!pinned) {
+    var v=document.getElementById('venue-search-input').value.trim();
+    if(v&&!document.getElementById('hid-venue-name').value) {
+      document.getElementById('hid-venue-name').value=v;
+      document.getElementById('hid-venue-address').value=v;
+    }
+  }
+  // Validate required date/time
+  if(!document.getElementById('event_date').value) {
+    alert('Please select an event date.'); return false;
+  }
+  if(!document.getElementById('event_time').value) {
+    alert('Please select an event time.'); return false;
+  }
+  return true;
+}
+</script>
+</body>
+</html>

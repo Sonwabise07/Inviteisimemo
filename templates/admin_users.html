@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Users — Invitely Admin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body class="form-page">
+{% include '_nav.html' %}
+<div class="form-wrap" style="max-width:860px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:1.5rem 0 .5rem;">
+    <div>
+      <h1 class="form-title" style="margin:0;">All Users</h1>
+      <p class="form-sub" style="margin:.3rem 0 0;">{{ users|length }} registered account{{ 's' if users|length != 1 else '' }}</p>
+    </div>
+    <a href="{{ url_for('admin') }}" class="btn-ghost" style="font-size:.8rem;padding:9px 18px;">← Back to dashboard</a>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div style="background:{% if cat=='error' %}rgba(248,113,113,0.1){% else %}rgba(29,158,117,0.1){% endif %};border:1px solid {% if cat=='error' %}rgba(248,113,113,0.2){% else %}rgba(29,158,117,0.2){% endif %};border-radius:8px;padding:.7rem 1rem;margin-bottom:1rem;font-size:.83rem;color:{% if cat=='error' %}#f87171{% else %}#1d9e75{% endif %};">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div style="background:#111;border:.5px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="border-bottom:.5px solid rgba(255,255,255,0.08);">
+          <th style="padding:10px 14px;text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:500;">User</th>
+          <th style="padding:10px 14px;text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:500;">Email</th>
+          <th style="padding:10px 14px;text-align:center;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:500;">Events</th>
+          <th style="padding:10px 14px;text-align:left;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:500;">Joined</th>
+          <th style="padding:10px 14px;text-align:center;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:#555;font-weight:500;">Admin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr style="border-bottom:.5px solid rgba(255,255,255,0.04);" id="user-row-{{ u.id }}">
+          <td style="padding:11px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:30px;height:30px;border-radius:50%;background:rgba(232,213,163,0.12);border:1px solid rgba(232,213,163,0.2);display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#e8d5a3;font-weight:600;flex-shrink:0;">{{ u.name[0].upper() }}</div>
+              <span style="color:#e0e0e0;font-weight:500;">{{ u.name }}</span>
+              {% if u.id == current_user.id %}<span style="font-size:.65rem;color:#555;margin-left:4px;">(you)</span>{% endif %}
+            </div>
+          </td>
+          <td style="padding:11px 14px;color:#888;">{{ u.email }}</td>
+          <td style="padding:11px 14px;text-align:center;color:#e8d5a3;font-weight:600;">{{ u.events|length }}</td>
+          <td style="padding:11px 14px;color:#555;font-size:.78rem;">{{ u.created_at.strftime('%d %b %Y') }}</td>
+          <td style="padding:11px 14px;text-align:center;">
+            {% if u.id == current_user.id %}
+              <span style="font-size:.7rem;color:#555;">—</span>
+            {% else %}
+              <button onclick="toggleAdmin({{ u.id }}, this)"
+                style="font-size:.7rem;font-weight:600;padding:4px 12px;border-radius:20px;border:1px solid;cursor:pointer;transition:all .2s;
+                {% if u.is_admin %}background:rgba(245,158,11,0.15);color:#f59e0b;border-color:rgba(245,158,11,0.3);{% else %}background:rgba(255,255,255,0.05);color:#555;border-color:rgba(255,255,255,0.1);{% endif %}"
+                data-is-admin="{{ 'true' if u.is_admin else 'false' }}">
+                {{ 'Admin ✓' if u.is_admin else 'Make admin' }}
+              </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="padding:2rem;text-align:center;color:#555;">No users yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+const CSRF = document.querySelector('meta[name="csrf-token"]') ? document.querySelector('meta[name="csrf-token"]').content : '';
+
+function toggleAdmin(userId, btn) {
+  const isAdmin = btn.dataset.isAdmin === 'true';
+  const confirm_msg = isAdmin ? 'Remove admin access from this user?' : 'Grant admin access to this user?';
+  if (!confirm(confirm_msg)) return;
+  btn.textContent = '...'; btn.disabled = true;
+  fetch('/admin/toggle-admin/' + userId, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token() }}'}
+  }).then(r => r.json()).then(d => {
+    if (d.status === 'ok') {
+      const nowAdmin = d.is_admin;
+      btn.dataset.isAdmin = nowAdmin ? 'true' : 'false';
+      btn.textContent = nowAdmin ? 'Admin ✓' : 'Make admin';
+      btn.style.background = nowAdmin ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)';
+      btn.style.color = nowAdmin ? '#f59e0b' : '#555';
+      btn.style.borderColor = nowAdmin ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)';
+    } else {
+      alert(d.message || 'Failed.');
+      btn.textContent = isAdmin ? 'Admin ✓' : 'Make admin';
+    }
+    btn.disabled = false;
+  }).catch(() => { btn.disabled = false; alert('Request failed.'); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Manage — {{ event.event_title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body class="form-page">
+{% include '_nav.html' %}
+<div class="form-wrap" style="max-width:760px;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:1.5rem 0 1.2rem;">
+    <div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <a href="{{ invite_url }}" target="_blank" class="btn-secondary" style="padding:10px 18px;font-size:.75rem;">Preview invite</a>
+      <a href="{{ edit_url }}" class="btn-ghost" style="padding:10px 18px;font-size:.75rem;">Edit event</a>
+      <a href="{{ url_for('export_csv', token=event.token) }}" class="btn-ghost" style="padding:10px 18px;font-size:.75rem;">⬇ Export CSV</a>
+      <form method="POST" action="{{ url_for('duplicate_event', token=event.token) }}" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn-ghost" style="padding:10px 18px;font-size:.75rem;" onclick="return confirm('Duplicate this event? A copy will open in the editor.')">⧉ Duplicate</button>
+      </form>
+    </div>
+  </div>
+
+  <h1 class="form-title">{{ event.event_title }}</h1>
+  <p class="form-sub">{{ event.event_date }} · {{ event.venue_name }}</p>
+
+  <!-- Stats -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:2rem;">
+    <div class="stat-card"><div class="stat-card-num" style="color:#e8d5a3;">{{ yes_list|length }}</div><div class="stat-card-lbl">Attending</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:#f87171;">{{ no_list|length }}</div><div class="stat-card-lbl">Can't attend</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:#fcd34d;">{{ wait_list|length }}</div><div class="stat-card-lbl">Waitlist</div></div>
+    <div class="stat-card"><div class="stat-card-num" style="color:#7dd3fc;">{{ event.view_count or 0 }}</div><div class="stat-card-lbl">Link views</div></div>
+  </div>
+
+  <!-- Bulk personalised invites -->
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label">Personalised invite links</div>
+    <div class="manage-table-wrap" style="padding:14px;">
+      <label style="display:block;font-size:.72rem;color:#777;margin-bottom:8px;">Paste guests, one per line: First name, Last name, optional message</label>
+      <textarea id="bulk-guests" rows="5" placeholder="Sipho,Ndlovu,So excited to celebrate with you&#10;Lerato,Mokoena,Please bring your dancing shoes" style="width:100%;background:#080808;border:.5px solid #ffffff15;border-radius:6px;color:#e0e0e0;padding:12px;font-size:.82rem;resize:vertical;"></textarea>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+        <button type="button" onclick="generateBulkLinks()" class="btn-secondary" id="bulk-btn" style="padding:10px 18px;font-size:.75rem;">Generate links</button>
+        <p id="bulk-msg" class="hidden" style="font-size:.82rem;color:#1d9e75;align-self:center;margin:0;"></p>
+      </div>
+    </div>
+  </div>
+
+  {% if invite_links %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label">Guest link tracking ({{ invite_links|length }})</div>
+    <div class="manage-table-wrap">
+      <table class="manage-table">
+        <thead><tr><th>Guest</th><th>Opened</th><th>Created</th><th>Share</th></tr></thead>
+        <tbody>
+          {% for link in invite_links %}
+          {% set full_name = (link.guest_name ~ ' ' ~ (link.guest_surname or '')).strip() %}
+          {% set link_url = url_for('personalised_invitation', token=event.token, link_token=link.link_token, _external=True) %}
+          <tr>
+            <td>{{ full_name }}{% if link.personal_msg %}<div style="color:#666;font-size:.72rem;margin-top:3px;">{{ link.personal_msg }}</div>{% endif %}</td>
+            <td>{% if link.opened %}<span style="color:#1d9e75;">Yes</span>{% else %}<span style="color:#555;">Not yet</span>{% endif %}</td>
+            <td>{{ link.created_at.strftime('%d %b, %H:%M') if link.created_at else '—' }}</td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button type="button" onclick="copyText('{{ link_url }}', this)" style="background:transparent;border:.5px solid #ffffff15;border-radius:4px;color:#e8d5a3;padding:4px 8px;font-size:.7rem;cursor:pointer;">Copy</button>
+              <a target="_blank" href="https://wa.me/?text={{ ('Hi ' ~ full_name ~ ', here is your invitation: ' ~ link_url)|urlencode }}" style="border:.5px solid #ffffff15;border-radius:4px;color:#1d9e75;padding:4px 8px;font-size:.7rem;text-decoration:none;">WhatsApp</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Attending -->
+  {% if yes_list %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label">✓ Attending ({{ yes_list|length }}{% if event.capacity %} / {{ event.capacity }}{% endif %})</div>
+    <div class="manage-table-wrap">
+      <table class="manage-table">
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Plus one</th><th>Dietary</th><th>RSVPd</th></tr></thead>
+        <tbody>
+          {% for r in yes_list %}
+          <tr>
+            <td>{{ loop.index }}</td><td>{{ r.name }}</td><td>{{ r.email or '—' }}</td>
+            <td>{{ r.plus_one or '—' }}</td><td>{{ r.dietary or '—' }}</td>
+            <td>{{ r.timestamp.strftime('%d %b, %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Waitlist -->
+  {% if wait_list %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label" style="color:#fcd34d;">⏳ Waitlist ({{ wait_list|length }})</div>
+    <div class="manage-table-wrap">
+      <table class="manage-table">
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>RSVPd</th></tr></thead>
+        <tbody>
+          {% for r in wait_list %}
+          <tr><td>{{ loop.index }}</td><td>{{ r.name }}</td><td>{{ r.email or '—' }}</td><td>{{ r.timestamp.strftime('%d %b, %H:%M') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Declined -->
+  {% if no_list %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label" style="color:#f87171;">✗ Can't attend ({{ no_list|length }})</div>
+    <div class="manage-table-wrap">
+      <table class="manage-table">
+        <thead><tr><th>#</th><th>Name</th><th>Email</th><th>RSVPd</th></tr></thead>
+        <tbody>
+          {% for r in no_list %}
+          <tr><td>{{ loop.index }}</td><td>{{ r.name }}</td><td>{{ r.email or '—' }}</td><td>{{ r.timestamp.strftime('%d %b, %H:%M') }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not yes_list and not no_list and not wait_list %}
+  <div style="text-align:center;padding:3rem;color:#333;font-size:.9rem;">No RSVPs yet — share the invite link to get started.</div>
+  {% endif %}
+
+  <!-- Gift status -->
+  {% if event.gifts %}
+  <div style="margin-bottom:1.5rem;">
+    <div class="manage-section-label">Gift list</div>
+    <div class="manage-table-wrap">
+      <table class="manage-table">
+        <thead><tr><th>Gift</th><th>Store</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+          {% for g in event.gifts %}
+          <tr>
+            <td>{{ g.name }}</td><td>{{ g.store or '—' }}</td>
+            <td>{% if g.taken %}<span style="color:#1d9e75;">Taken by {{ g.taken_by }}</span>{% else %}<span style="color:#555;">Available</span>{% endif %}</td>
+            <td>{% if g.taken %}<button onclick="unclaimGift({{ g.id }},this)" style="background:transparent;border:.5px solid #ffffff15;border-radius:4px;color:#555;padding:4px 8px;font-size:.7rem;cursor:pointer;">Undo</button>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Broadcast -->
+  <div style="background:#0f0f0f;border:.5px solid #ffffff10;border-radius:10px;padding:20px;margin-bottom:1.5rem;">
+    <div class="manage-section-label">Broadcast message to all confirmed guests</div>
+    <p style="font-size:.78rem;color:#444;margin-bottom:14px;line-height:1.5;">Sends an email to everyone who confirmed attendance — useful for parking updates, last-minute changes, etc.</p>
+    <textarea id="broadcast-msg" rows="3" style="width:100%;background:#080808;border:.5px solid #ffffff15;border-radius:8px;padding:12px;color:#e0e0e0;font-size:.85rem;font-family:inherit;outline:none;resize:vertical;margin-bottom:10px;" placeholder="e.g. Parking update: please use the overflow lot on Broad Street. Gates open at 6 PM."></textarea>
+    <button onclick="sendBroadcast()" class="btn-ghost" id="bc-btn">Send to {{ yes_list|length }} guest{{ 's' if yes_list|length != 1 }}</button>
+    <p id="bc-msg" class="hidden" style="margin-top:8px;font-size:.8rem;color:#1d9e75;"></p>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button onclick="sendSummary()" class="btn-ghost" id="sum-btn">Email me this summary</button>
+  </div>
+  <p id="sum-msg" class="hidden" style="text-align:center;font-size:.82rem;color:#1d9e75;margin-top:12px;"></p>
+
+</div>
+<script>
+var TOKEN='{{ event.token }}', PIN='{{ pin }}', CSRF='{{ csrf_token() }}';
+function jsonHeaders(){
+  return {'Content-Type':'application/json','X-CSRFToken':CSRF};
+}
+
+function sendSummary(){
+  var btn=document.getElementById('sum-btn'); btn.textContent='Sending...'; btn.disabled=true;
+  fetch('/api/send-summary/'+TOKEN,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({pin:PIN})}).then(function(r){return r.json();}).then(function(d){
+    var m=document.getElementById('sum-msg'); m.textContent=d.message; m.classList.remove('hidden'); btn.textContent='Sent!';
+  });
+}
+
+function parseGuestLine(line){
+  var parts=line.split(',').map(function(p){return p.trim();});
+  return {first:parts[0]||'', last:parts[1]||'', message:parts.slice(2).join(', ').slice(0,300)};
+}
+
+function generateBulkLinks(){
+  var raw=document.getElementById('bulk-guests').value.trim();
+  var msg=document.getElementById('bulk-msg');
+  if(!raw){ document.getElementById('bulk-guests').focus(); return; }
+  var guests=raw.split(/\r?\n/).map(parseGuestLine).filter(function(g){return g.first||g.last;});
+  var btn=document.getElementById('bulk-btn'); btn.textContent='Generating...'; btn.disabled=true;
+  fetch('/api/bulk-links/'+TOKEN,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({guests:guests,pin:PIN})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.status!=='ok'){ throw new Error(d.message||'Could not create links'); }
+      msg.textContent='Created '+d.created+' personalised link'+(d.created!==1?'s':'')+'. Reloading...';
+      msg.classList.remove('hidden');
+      setTimeout(function(){ location.reload(); }, 700);
+    }).catch(function(err){
+      msg.textContent=err.message; msg.style.color='#f87171'; msg.classList.remove('hidden');
+      btn.textContent='Generate links'; btn.disabled=false;
+    });
+}
+
+function copyText(text, btn){
+  navigator.clipboard.writeText(text).then(function(){
+    var old=btn.textContent; btn.textContent='Copied'; setTimeout(function(){btn.textContent=old;},1200);
+  });
+}
+
+function sendBroadcast(){
+  var msg=document.getElementById('broadcast-msg').value.trim();
+  if(!msg){ document.getElementById('broadcast-msg').focus(); return; }
+  var btn=document.getElementById('bc-btn'); btn.textContent='Sending...'; btn.disabled=true;
+  fetch('/api/broadcast/'+TOKEN,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({message:msg,pin:PIN})})
+    .then(function(r){return r.json();}).then(function(d){
+      var m=document.getElementById('bc-msg');
+      m.textContent='Sent to '+d.sent+' guest'+(d.sent!==1?'s':'')+'.';
+      m.classList.remove('hidden'); btn.textContent='Sent!';
+    });
+}
+
+function unclaimGift(id, btn){
+  if(!confirm('Undo this gift claim?')) return;
+  fetch('/api/unclaim-gift/'+id,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({pin:PIN})}).then(function(r){return r.json();}).then(function(d){
+    if(d.status==='ok') location.reload();
+  });
+}
+</script>
+</body>
+</html>

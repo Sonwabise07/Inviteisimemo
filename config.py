@@ -1,0 +1,58 @@
+import os
+from dotenv import load_dotenv
+
+# Load .env file for local development
+load_dotenv()
+
+class Config:
+    # ── Core ──────────────────────────────────────────────────
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-only-change-in-production-NOW'
+    BASE_DIR   = os.path.abspath(os.path.dirname(__file__))
+
+    # ── Database ──────────────────────────────────────────────
+    # Supports PostgreSQL in production via DATABASE_URL env var
+    # Falls back to local SQLite for development
+    _db_url = os.environ.get('DATABASE_URL', '')
+    if _db_url.startswith('postgres://'):
+        # Heroku/Railway give postgres://, SQLAlchemy needs postgresql://
+        _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _db_url or 'sqlite:///' + os.path.join(BASE_DIR, 'invitely.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # ── File uploads ──────────────────────────────────────────
+    UPLOAD_FOLDER      = os.path.join(BASE_DIR, 'static', 'uploads')
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
+
+    # ── Mail ──────────────────────────────────────────────────
+    MAIL_SERVER        = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    MAIL_PORT          = int(os.environ.get('MAIL_PORT', 587))
+    MAIL_USE_TLS       = os.environ.get('MAIL_USE_TLS', 'true').lower() == 'true'
+    MAIL_USERNAME      = os.environ.get('MAIL_USERNAME', '')
+    MAIL_PASSWORD      = os.environ.get('MAIL_PASSWORD', '')
+    MAIL_DEFAULT_SENDER = ('Invitely', os.environ.get('MAIL_USERNAME', 'noreply@invitely.app'))
+
+    # ── CSRF (Flask-WTF) ──────────────────────────────────────
+    WTF_CSRF_ENABLED     = True
+    WTF_CSRF_TIME_LIMIT  = 3600  # 1 hour token lifetime
+
+    # ── Session cookies ───────────────────────────────────────
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    # Set to True in production (requires HTTPS)
+    SESSION_COOKIE_SECURE   = os.environ.get('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+    PERMANENT_SESSION_LIFETIME = 60 * 60 * 24 * 14  # 14 days
+
+    # ── Admin ─────────────────────────────────────────────────
+    # Email of the first admin account — this user gets is_admin=True on first login
+    FIRST_ADMIN_EMAIL = os.environ.get('FIRST_ADMIN_EMAIL', '')
+    # Legacy token for old admin access (kept for transition, removed later)
+    ADMIN_TOKEN       = os.environ.get('ADMIN_TOKEN', '')
+
+    # ── Rate limiting ─────────────────────────────────────────
+    # Use Redis in production: RATELIMIT_STORAGE_URL=redis://localhost:6379/0
+    RATELIMIT_STORAGE_URL = os.environ.get('RATELIMIT_STORAGE_URL', 'memory://')
+    RATELIMIT_HEADERS_ENABLED = True
+
+    # ── Data retention ────────────────────────────────────────
+    # Auto-archive events older than this many days (0 = disabled)
+    ARCHIVE_AFTER_DAYS = int(os.environ.get('ARCHIVE_AFTER_DAYS', 365))
