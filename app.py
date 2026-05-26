@@ -1835,7 +1835,14 @@ scheduler.add_job(day_of_reminder, 'cron', hour=8, minute=0)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown(wait=False))
 
+# ── Auto-run migrations on startup (Render free tier has no shell) ──
+with app.app_context():
+    try:
+        from flask_migrate import upgrade
+        upgrade()
+        app.logger.info("DB migrations applied successfully.")
+    except Exception as _e:
+        app.logger.warning(f"Migration on startup skipped/failed: {_e}")
+
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()   # dev only — use flask db upgrade in production
-    app.run(debug=True)
+    app.run(debug=False)
