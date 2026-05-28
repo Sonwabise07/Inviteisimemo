@@ -62,6 +62,23 @@
     .empty-state h3 { color: #fff; font-family: Georgia, serif; font-size: 1.3rem; margin-bottom: .5rem; }
     .empty-state p { color: #555; font-size: .88rem; }
 
+    /* Countdown pills */
+    .dash-pill { display: inline-block; font-size: .6rem; font-weight: 600; letter-spacing: .06em; padding: 2px 7px; border-radius: 10px; margin-left: 6px; background: rgba(255,255,255,0.06); color: #666; vertical-align: middle; }
+    .dash-pill-today { background: rgba(248,113,113,0.15); color: #f87171; }
+    .dash-pill-soon  { background: rgba(232,213,163,0.12); color: #e8d5a3; }
+    .dash-pill-past  { background: rgba(255,255,255,0.04); color: #444; }
+
+    /* RSVP velocity */
+    .dash-velocity { font-size: .7rem; color: #1d9e75; margin-top: 4px; }
+
+    /* Invite link quick row */
+    .dash-link-row { display: flex; align-items: center; gap: 6px; margin-top: 7px; overflow: hidden; }
+    .dash-link-url { font-size: .65rem; color: #333; font-family: 'Courier New', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+    .dash-copy-btn { flex-shrink: 0; padding: 4px 10px; background: rgba(232,213,163,0.1); border: .5px solid rgba(232,213,163,0.2); border-radius: 5px; font-size: .65rem; color: #e8d5a3; cursor: pointer; white-space: nowrap; transition: background .2s; }
+    .dash-copy-btn:hover { background: rgba(232,213,163,0.2); }
+    .dash-wa-btn { flex-shrink: 0; padding: 4px 10px; background: rgba(37,211,102,0.1); border: .5px solid rgba(37,211,102,0.2); border-radius: 5px; font-size: .65rem; color: #25d366; text-decoration: none; transition: background .2s; }
+    .dash-wa-btn:hover { background: rgba(37,211,102,0.18); }
+
     /* Admin badge */
     .admin-bar { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: .8rem 1.2rem; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
     .admin-bar span { font-size: .82rem; color: #f59e0b; }
@@ -119,13 +136,42 @@
   {% if events %}
   <div class="events-list">
     {% for event in events %}
+    {% set meta = event_meta.get(event.token, {}) %}
     {% set is_past = event.event_date_iso and event.event_date_iso < today %}
-    {% set yes_count = event.rsvps | selectattr('attending','eq','yes') | selectattr('waitlist','eq',false) | list | length %}
+    {% set days_left = meta.get('days_left') %}
+    {% set yes_count = meta.get('yes_count', 0) %}
+    {% set new_today = meta.get('new_today', 0) %}
+    {% set inv_url = url_for('invitation', token=event.token, _external=True) %}
     <div class="event-card">
       <div class="event-dot {{ 'past' if is_past else 'upcoming' }}"></div>
       <div class="event-body">
         <div class="event-title">{{ event.event_title }}</div>
-        <div class="event-meta">{{ event.event_date }} · {{ event.venue_name }}</div>
+        <div class="event-meta">
+          {{ event.event_date }} · {{ event.venue_name }}
+          {% if not is_past and days_left is not none %}
+            {% if days_left == 0 %}
+              <span class="dash-pill dash-pill-today">Today!</span>
+            {% elif days_left == 1 %}
+              <span class="dash-pill dash-pill-soon">Tomorrow</span>
+            {% elif days_left <= 7 %}
+              <span class="dash-pill dash-pill-soon">{{ days_left }} days away</span>
+            {% else %}
+              <span class="dash-pill">{{ days_left }} days away</span>
+            {% endif %}
+          {% elif is_past %}
+            <span class="dash-pill dash-pill-past">Event passed</span>
+          {% endif %}
+        </div>
+        {% if new_today > 0 %}
+        <div class="dash-velocity">+{{ new_today }} new RSVP{{ 's' if new_today != 1 }} in the last 24h</div>
+        {% endif %}
+        <!-- Invite link quick-copy -->
+        <div class="dash-link-row">
+          <span class="dash-link-url">{{ inv_url }}</span>
+          <button class="dash-copy-btn" onclick="dashCopy(this,'{{ inv_url }}')">Copy link</button>
+          <a class="dash-wa-btn" target="_blank"
+             href="https://wa.me/?text={{ ("You're invited! 🎉 " ~ inv_url)|urlencode }}">WA</a>
+        </div>
       </div>
       <div class="event-stats">
         <div class="event-stat">
@@ -181,6 +227,14 @@
 
 <script>
 const today = '{{ today }}';
+
+function dashCopy(btn, url) {
+  navigator.clipboard.writeText(url).then(function(){
+    var old = btn.textContent;
+    btn.textContent = 'Copied! ✓';
+    setTimeout(function(){ btn.textContent = old; }, 2000);
+  });
+}
 
 function confirmDelete(token, title) {
   document.getElementById('delete-msg').textContent =

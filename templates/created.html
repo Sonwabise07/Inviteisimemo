@@ -9,76 +9,91 @@
 </head>
 <body class="form-page">
 {% include '_nav.html' %}
-<div class="form-wrap" style="max-width:600px;">
 
-  <div class="created-icon">✦</div>
-  <h1 class="form-title" style="text-align:center;">Your invitation is ready!</h1>
-  <p class="form-sub" style="text-align:center;">
-    RSVP notifications go to <strong style="color:#e8d5a3;">{{ event.host_email }}</strong> instantly.
-    A daily summary lands at 5 PM.
-  </p>
+<div class="created-wrap">
 
-  <div class="created-card">
-    <div class="created-card-label">Shareable invite link</div>
-    <div class="link-box">
-      <span id="inv-link">{{ invite_url }}</span>
-      <button onclick="copyText('inv-link','copy-btn')" class="copy-btn" id="copy-btn">Copy</button>
+  <!-- ── Celebration header ── -->
+  <div class="created-hero">
+    <div class="created-confetti" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
+    <h1 class="created-title">Your invitation is live! ✦</h1>
+    <p class="created-sub">RSVP notifications go to <strong>{{ event.host_email }}</strong> — a daily summary lands at 5 PM.</p>
+  </div>
+
+  <!-- ── GUEST LINK — share this ── -->
+  <div class="cc-block cc-guest">
+    <div class="cc-block-header">
+      <span class="cc-badge cc-badge-share">📤 Share this with guests</span>
     </div>
-    <div class="share-row">
-      <a class="share-btn wa" id="wa-btn" target="_blank">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.524 5.847L0 24l6.324-1.501A11.936 11.936 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.806 9.806 0 01-5.001-1.371l-.36-.214-3.724.883.934-3.62-.236-.372A9.797 9.797 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/></svg>
+    <p class="cc-block-desc">This is the link your guests will open. Post it in WhatsApp groups, email it, or share the QR code. It is safe to share publicly.</p>
+
+    <div class="cc-link-row">
+      <span id="inv-link" class="cc-link-text">{{ invite_url }}</span>
+      <button onclick="copyText('inv-link','copy-btn')" class="cc-copy-btn" id="copy-btn">Copy</button>
+    </div>
+
+    <div class="cc-share-row">
+      <a class="cc-btn cc-btn-wa" id="wa-btn" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.524 5.847L0 24l6.324-1.501A11.936 11.936 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.806 9.806 0 01-5.001-1.371l-.36-.214-3.724.883.934-3.62-.236-.372A9.797 9.797 0 012.182 12C2.182 6.578 6.578 2.182 12 2.182S21.818 6.578 21.818 12 17.422 21.818 12 21.818z"/></svg>
         Share on WhatsApp
       </a>
-      <button class="share-btn copy-link" onclick="copyText('inv-link','copy-btn2')" id="copy-btn2">📋 Copy link</button>
+      <button class="cc-btn cc-btn-outline" onclick="copyText('inv-link','copy-btn2')" id="copy-btn2">📋 Copy link</button>
+    </div>
+
+    <!-- QR code -->
+    <div class="cc-qr-wrap">
+      <p class="cc-qr-label">QR code — screenshot &amp; share anywhere</p>
+      <div id="qr-wrap" class="cc-qr-box"></div>
+      <button onclick="downloadQR()" class="cc-btn cc-btn-outline cc-qr-dl">⬇ Download QR</button>
     </div>
   </div>
 
-  <div class="created-card">
-    <div class="created-card-label">QR code — screenshot &amp; share anywhere</div>
-    <div id="qr-wrap" style="display:flex;justify-content:center;padding:16px 0;background:#080808;border-radius:8px;margin-bottom:10px;"></div>
-    <button onclick="downloadQR()" class="share-btn copy-link" style="width:100%;justify-content:center;">⬇ Download QR code</button>
-  </div>
+  <!-- ── MANAGE LINK — private ── -->
+  <div class="cc-block cc-manage">
+    <div class="cc-block-header">
+      <span class="cc-badge cc-badge-private">🔒 Your private host link — do not share</span>
+    </div>
+    <p class="cc-block-desc cc-manage-desc">This link opens <strong>your management dashboard</strong> — RSVP list, stats, broadcasts, CSV export. Keep it private. Your guests should never see this URL.</p>
 
-  <div class="created-card">
-    <div class="created-card-label">Your private management page</div>
-    <p style="font-size:.78rem;color:#555;margin-bottom:10px;line-height:1.5;">Bookmark this — view all RSVPs in a table. PIN: <strong style="color:#e8d5a3;">{{ host_pin }}</strong></p>
-    <div class="link-box" style="border-color:#ffffff10;">
-      <span id="manage-link" style="color:#666;font-size:.76rem;">{{ manage_url }}</span>
-      <button onclick="copyText('manage-link','copy-manage')" class="copy-btn" id="copy-manage" style="background:#1a1a1a;color:#666;">Copy</button>
+    <div class="cc-link-row cc-manage-link-row">
+      <span id="manage-link" class="cc-link-text cc-link-muted">{{ manage_url }}</span>
+      <button onclick="copyText('manage-link','copy-manage')" class="cc-copy-btn cc-copy-manage" id="copy-manage">Copy</button>
+    </div>
+
+    <div class="cc-share-row">
+      <a href="{{ manage_url }}" class="cc-btn cc-btn-manage">Go to manage dashboard →</a>
     </div>
   </div>
 
-  <div class="created-card">
-    <div class="created-card-label">Personalised links — same event, different name per guest</div>
-    <p class="field-note" style="margin-bottom:12px;">Each person sees their name on the reveal: "You're invited, Sipho ✦"</p>
+  <!-- ── Personalised links ── -->
+  <div class="cc-block cc-personal">
+    <div class="cc-block-header">
+      <span class="cc-badge cc-badge-personal">✨ Personalised links</span>
+    </div>
+    <p class="cc-block-desc">Generate a unique link per guest — they'll see their name on the reveal: <em>"You're invited, Sipho ✦"</em></p>
     <div style="display:flex;gap:8px;">
-      <input type="text" id="plink-name" placeholder="Guest name e.g. Sipho"
-             style="flex:1;background:#080808;border:.5px solid #ffffff18;border-radius:8px;padding:10px 13px;color:#e0e0e0;font-size:.85rem;outline:none;font-family:inherit;"
+      <input type="text" id="plink-name" placeholder="Guest name e.g. Sipho" class="cc-plink-input"
              onkeydown="if(event.key==='Enter'){event.preventDefault();createPLink();}"/>
-      <button onclick="createPLink()" class="copy-btn">Generate</button>
+      <button onclick="createPLink()" class="cc-copy-btn">Generate</button>
     </div>
-    <div id="plinks-list" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="plinks-list" class="cc-plinks-list"></div>
   </div>
 
-  <div class="created-actions">
-    <a href="{{ invite_url }}" target="_blank" class="btn-primary">Preview invitation</a>
-    <a href="{{ url_for('create') }}" class="btn-secondary">Create another</a>
-  </div>
-
-  <div class="summary-trigger">
-    <p class="field-note" style="text-align:center;">Need the RSVP list right now?</p>
-    <button onclick="sendSummary('{{ event.token }}')" class="btn-ghost" id="summary-btn">Send summary to {{ event.host_email }}</button>
+  <!-- ── Actions ── -->
+  <div class="cc-actions">
+    <a href="{{ url_for('create') }}" class="cc-btn cc-btn-outline">+ Create another invitation</a>
+    <button onclick="sendSummary('{{ event.token }}')" class="cc-btn cc-btn-ghost" id="summary-btn">
+      Send RSVP summary to {{ event.host_email }}
+    </button>
     <p id="summary-msg" class="hidden" style="text-align:center;font-size:.82rem;color:#1d9e75;margin-top:8px;"></p>
   </div>
-</div>
+
+</div><!-- /created-wrap -->
 
 <script>
 var INVITE_URL = '{{ invite_url }}';
-var TOKEN = '{{ event.token }}';
-var CSRF = '{{ csrf_token() }}';
-function jsonHeaders(){
-  return {'Content-Type':'application/json','X-CSRFToken':CSRF};
-}
+var TOKEN      = '{{ event.token }}';
+var CSRF       = '{{ csrf_token() }}';
+function jsonHeaders(){ return {'Content-Type':'application/json','X-CSRFToken':CSRF}; }
 
 new QRCode(document.getElementById('qr-wrap'), {
   text: INVITE_URL, width:180, height:180,
@@ -99,13 +114,13 @@ function downloadQR() {
 function copyText(spanId, btnId) {
   navigator.clipboard.writeText(document.getElementById(spanId).textContent.trim()).then(function(){
     var b=document.getElementById(btnId), o=b.textContent;
-    b.textContent='Copied!'; setTimeout(function(){ b.textContent=o; },2000);
+    b.textContent='Copied! ✓'; setTimeout(function(){ b.textContent=o; },2000);
   });
 }
 
 function sendSummary(token) {
   var btn=document.getElementById('summary-btn');
-  btn.textContent='Sending...'; btn.disabled=true;
+  btn.textContent='Sending…'; btn.disabled=true;
   fetch('/api/send-summary/'+token,{method:'POST',headers:jsonHeaders(),body:JSON.stringify({})})
     .then(function(r){ return r.json(); })
     .then(function(d){
@@ -129,29 +144,84 @@ function createPLink() {
 function addPlinkRow(name, url) {
   var list=document.getElementById('plinks-list');
   var row=document.createElement('div');
-  row.style.cssText='background:#080808;border:.5px solid #ffffff0d;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;';
+  row.className='cc-plink-row';
   row.innerHTML=
-    '<div style="flex:1;min-width:0;">'+
-      '<div style="font-size:.8rem;color:#e8d5a3;">'+name+'</div>'+
-      '<div style="font-size:.68rem;color:#444;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+url+'</div>'+
+    '<div class="cc-plink-info">'+
+      '<div class="cc-plink-name">'+name+'</div>'+
+      '<div class="cc-plink-url">'+url+'</div>'+
     '</div>'+
     '<button onclick="navigator.clipboard.writeText(\''+url+'\').then(function(){ this.textContent=\'✓\'; }.bind(this))" '+
-      'style="padding:6px 10px;background:#e8d5a3;border:none;border-radius:6px;font-size:.7rem;font-weight:500;cursor:pointer;color:#080808;flex-shrink:0;">Copy</button>'+
+      'class="cc-copy-btn">Copy</button>'+
     '<a href="https://wa.me/?text='+encodeURIComponent("You're invited! 🎉\n"+url)+'" target="_blank" '+
-      'style="padding:6px 10px;background:#25d366;border-radius:6px;font-size:.7rem;color:#fff;text-decoration:none;flex-shrink:0;">WA</a>';
+      'class="cc-btn cc-btn-wa" style="font-size:.72rem;padding:7px 12px;">WA</a>';
   list.appendChild(row);
 }
 </script>
 
 <style>
-.created-card{background:#0f0f0f;border:.5px solid #ffffff10;border-radius:10px;padding:20px;margin-bottom:14px;}
-.created-card-label{font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:#444;margin-bottom:12px;}
-.share-row{display:flex;gap:8px;margin-top:10px;}
-.share-btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;border-radius:8px;font-size:.78rem;cursor:pointer;text-decoration:none;transition:opacity .2s;border:none;font-family:inherit;flex:1;}
-.share-btn.wa{background:#25d366;color:#fff;}
-.share-btn.wa:hover{opacity:.85;}
-.share-btn.copy-link{background:#1a1a1a;color:#888;border:.5px solid #ffffff12;}
-.share-btn.copy-link:hover{color:#e0e0e0;}
+/* ── Layout ── */
+.created-wrap{max-width:580px;margin:0 auto;padding:2rem 1rem 3rem;}
+
+/* ── Hero ── */
+.created-hero{text-align:center;padding:1.5rem 0 1rem;}
+.created-confetti{font-size:.8rem;letter-spacing:.3em;color:#e8d5a340;margin-bottom:.6rem;}
+.created-title{font-family:'Playfair Display',Georgia,serif;font-size:2rem;color:#fff;margin-bottom:.4rem;}
+.created-sub{font-size:.82rem;color:#555;line-height:1.6;}
+.created-sub strong{color:#e8d5a3;}
+
+/* ── Blocks ── */
+.cc-block{border-radius:14px;padding:1.4rem;margin-bottom:14px;}
+.cc-guest{background:linear-gradient(135deg,rgba(29,158,117,0.06),rgba(29,158,117,0.02));border:1px solid rgba(29,158,117,0.25);}
+.cc-manage{background:linear-gradient(135deg,rgba(252,211,77,0.05),rgba(252,211,77,0.01));border:1px solid rgba(252,211,77,0.2);}
+.cc-personal{background:#0f0f0f;border:1px solid rgba(255,255,255,0.07);}
+.cc-block-header{margin-bottom:.7rem;}
+.cc-block-desc{font-size:.8rem;color:#555;line-height:1.6;margin-bottom:.9rem;}
+.cc-manage-desc{color:#6b6040;}
+
+/* ── Badges ── */
+.cc-badge{display:inline-block;font-size:.65rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px;}
+.cc-badge-share{background:rgba(29,158,117,0.15);color:#1d9e75;}
+.cc-badge-private{background:rgba(252,211,77,0.12);color:#fcd34d;}
+.cc-badge-personal{background:rgba(232,213,163,0.1);color:#e8d5a3;}
+
+/* ── Link row ── */
+.cc-link-row{display:flex;align-items:center;gap:8px;background:#060606;border:1px solid rgba(255,255,255,0.06);border-radius:9px;padding:10px 14px;margin-bottom:10px;overflow:hidden;}
+.cc-manage-link-row{background:#0a0900;border-color:rgba(252,211,77,0.1);}
+.cc-link-text{flex:1;font-size:.72rem;color:#5d9e7e;word-break:break-all;font-family:'Courier New',monospace;}
+.cc-link-muted{color:#6b6040;}
+.cc-copy-btn{padding:7px 14px;background:#e8d5a3;border:none;border-radius:7px;font-size:.72rem;font-weight:600;cursor:pointer;color:#080808;white-space:nowrap;transition:opacity .2s;flex-shrink:0;}
+.cc-copy-btn:hover{opacity:.85;}
+.cc-copy-manage{background:#fcd34d;color:#1a1000;}
+
+/* ── Share row ── */
+.cc-share-row{display:flex;gap:8px;flex-wrap:wrap;}
+.cc-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 16px;border-radius:9px;font-size:.78rem;font-weight:500;cursor:pointer;text-decoration:none;transition:opacity .2s;border:none;font-family:inherit;white-space:nowrap;}
+.cc-btn-wa{background:#25d366;color:#fff;}
+.cc-btn-wa:hover{opacity:.85;}
+.cc-btn-outline{background:transparent;color:#888;border:1px solid rgba(255,255,255,0.12);}
+.cc-btn-outline:hover{color:#e0e0e0;border-color:rgba(255,255,255,0.25);}
+.cc-btn-manage{background:rgba(252,211,77,0.12);color:#fcd34d;border:1px solid rgba(252,211,77,0.2);}
+.cc-btn-manage:hover{background:rgba(252,211,77,0.2);}
+.cc-btn-ghost{background:transparent;color:#444;border:none;font-size:.78rem;cursor:pointer;padding:8px 0;}
+.cc-btn-ghost:hover{color:#888;}
+
+/* ── QR ── */
+.cc-qr-wrap{margin-top:1rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,0.05);}
+.cc-qr-label{font-size:.65rem;letter-spacing:.15em;text-transform:uppercase;color:#333;margin-bottom:.7rem;}
+.cc-qr-box{display:flex;justify-content:center;padding:16px 0;background:#080808;border-radius:8px;margin-bottom:8px;}
+.cc-qr-dl{width:100%;margin-top:4px;}
+
+/* ── Personalised links ── */
+.cc-plink-input{flex:1;background:#080808;border:.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 13px;color:#e0e0e0;font-size:.85rem;outline:none;font-family:inherit;}
+.cc-plink-input:focus{border-color:#e8d5a340;}
+.cc-plinks-list{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+.cc-plink-row{background:#060606;border:.5px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;}
+.cc-plink-info{flex:1;min-width:0;}
+.cc-plink-name{font-size:.8rem;color:#e8d5a3;}
+.cc-plink-url{font-size:.66rem;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── Actions ── */
+.cc-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:1.2rem;}
 </style>
 </body>
 </html>

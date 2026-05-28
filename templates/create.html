@@ -31,17 +31,27 @@
 </head>
 <body class="form-page">
 {% include '_nav.html' %}
+
+{% if edit_mode %}
+<a href="{{ url_for('invitation', token=event.token) }}" target="_blank" id="float-preview-btn" class="float-preview-btn">
+  👁 Preview live
+</a>
+{% else %}
+<button type="button" id="float-preview-btn" class="float-preview-btn" onclick="openFullPreview()">
+  👁 Full preview
+</button>
+{% endif %}
+
+<!-- Hidden preview form — submits current form data to /preview-draft -->
+<form id="preview-form" method="POST" action="{{ url_for('preview_draft') }}" target="_blank" style="display:none;">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+</form>
+
 <div class="form-wrap">
   <a href="{{ url_for('index') }}" class="brand-sm">Invitely</a>
   <h1 class="form-title">{% if edit_mode %}Edit your invitation{% else %}Create your invitation{% endif %}</h1>
   <p class="form-sub">{% if edit_mode %}Update any details — your existing share links stay the same.{% else %}Fill in the sections below. Each one expands when you click it.{% endif %}</p>
   <div class="create-actions">
-    {% if edit_mode %}
-    <a href="{{ url_for('invitation', token=event.token) }}" target="_blank" class="btn-secondary" style="padding:10px 18px;font-size:.75rem;">Preview invitation</a>
-    {% else %}
-    <button type="button" class="btn-secondary" style="padding:10px 18px;font-size:.75rem;" onclick="focusStylePreview()">Preview style</button>
-    {% endif %}
-  </div>
 
   <div class="form-progress" id="progress-bar">
     {% for i in range(6) %}<div class="fp-step {% if i==0 %}active{% endif %}" id="fp-{{i}}"></div>{% endfor %}
@@ -89,9 +99,10 @@
         <div class="field-row">
           <div class="field">
             <label>Event type</label>
-            <select name="event_type">
+            <select name="event_type" id="sel-type" onchange="toggleCustom('type')">
               {% for et in event_types %}<option value="{{ et }}" {% if event and event.event_type==et %}selected{% endif %}>{{ et }}</option>{% endfor %}
             </select>
+            <input type="text" name="event_type_custom" id="custom-type" class="custom-input hidden" value="{{ event.event_type if event and event.event_type not in event_types else '' }}" placeholder="Type event type..."/>
           </div>
           <div class="field">
             <label>Event title</label>
@@ -203,7 +214,7 @@
             </select>
           </div>
           <div class="field">
-            <label>Accent colour</label>
+            <label>Accent colour <span class="hint">— primary</span></label>
             <div class="colour-swatches">
               {% for hex, label in accent_colours %}
               <label class="swatch-wrap" title="{{ label }}">
@@ -222,6 +233,81 @@
             <input type="hidden" name="accent_colour" id="accent-hidden" value="{{ event.accent_colour if event else '#e8d5a3' }}"/>
           </div>
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Accent colour 2 <span class="hint">— gradient mix (optional)</span></label>
+            <p class="field-note" style="margin-bottom:8px;">Blends with accent 1 for richer gradients on borders, the RSVP card, and highlights.</p>
+            <div class="colour-swatches">
+              <label class="swatch-wrap" title="None (use accent 1 only)">
+                <input type="radio" name="accent2_radio" value="" id="accent2-none-radio"
+                       {% if not event or not event.accent_colour_2 %}checked{% endif %}
+                       onchange="setAccent2('')"/>
+                <div class="swatch" style="background:linear-gradient(135deg,#222 50%,#333 50%);border-color:#444;" title="No gradient">✕</div>
+              </label>
+              {% for hex, label in accent_colours %}
+              <label class="swatch-wrap" title="{{ label }}">
+                <input type="radio" name="accent2_radio" value="{{ hex }}"
+                       {% if event and event.accent_colour_2==hex %}checked{% endif %}
+                       onchange="setAccent2('{{ hex }}')"/>
+                <div class="swatch" style="background:{{ hex }};"></div>
+              </label>
+              {% endfor %}
+              <label class="swatch-wrap" title="Custom">
+                <input type="radio" name="accent2_radio" value="custom" id="accent2-custom-radio"/>
+                <div class="swatch swatch-custom">+</div>
+              </label>
+              <input type="color" id="accent2-picker" class="hidden" value="{{ event.accent_colour_2 if event and event.accent_colour_2 else '#c084fc' }}" oninput="setAccent2(this.value)"/>
+            </div>
+            <input type="hidden" name="accent_colour_2" id="accent2-hidden" value="{{ event.accent_colour_2 if event else '' }}"/>
+            <div id="accent2-preview-row" class="accent2-preview-row" style="{{ '' if (event and event.accent_colour_2) else 'display:none;' }}">
+              <span class="accent2-preview-label">Gradient preview:</span>
+              <span class="accent2-swatch-preview" id="accent2-swatch-preview"
+                    style="background:linear-gradient(90deg,{{ event.accent_colour if event else '#e8d5a3' }},{{ event.accent_colour_2 if event and event.accent_colour_2 else '#c084fc' }});"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Pattern intensity <span class="hint">— optional</span></label>
+            <p class="field-note" style="margin-bottom:8px;">Controls how visible the background pattern is. Drag to find your sweet spot.</p>
+            <div class="pattern-intensity-wrap">
+              <input type="range" name="pattern_opacity" id="pattern-opacity-slider" min="10" max="100" step="5"
+                     value="{{ (event.pattern_opacity if event and event.pattern_opacity else 40) }}"
+                     oninput="updatePatternOpacity(this.value)"/>
+              <span class="pattern-intensity-val" id="pattern-opacity-val">{{ (event.pattern_opacity if event and event.pattern_opacity else 40) }}%</span>
+            </div>
+          </div>
+        </div>
+        <!-- Effects picker -->
+        <div class="field-row" style="margin-top:10px;">
+          <div class="field">
+            <label>Visual effect <span class="hint">— animated on the invitation</span></label>
+            <div class="effect-picker" id="effect-picker">
+              {% for key, label in effects %}
+              <label class="effect-opt{% if (event and event.effect==key) or (not event and key=='none') %} selected{% endif %}" title="{{ label }}">
+                <input type="radio" name="effect" value="{{ key }}" {% if (event and event.effect==key) or (not event and key=='none') %}checked{% endif %} onchange="selectEffect(this)"/>
+                <div class="effect-icon">{{ {'none':'—','confetti':'🎊','particles':'✦','petals':'🌸','stars':'✨','fireflies':'🔆','bokeh':'◎','glitter':'✦','neon_glow':'⚡','gold_foil':'◈','typewriter':'Aa','aurora':'〰','bubbles':'○','snow':'❄'}.get(key,'✦') }}</div>
+                <div class="effect-label">{{ label }}</div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="field">
+            <label>Photo filter <span class="hint">— applied to your photos</span></label>
+            <select name="photo_filter" id="photo-filter-sel">
+              {% for key, label in photo_filters %}
+              <option value="{{ key }}" {% if event and event.photo_filter==key %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div id="filter-preview-row" style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#8B6914,#D4A843);" title="Warm Glow"></div>
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#1a3a5e,#4a90d9);" title="Cool Blue"></div>
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#111,#555);" title="Noir"></div>
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#5a3e28,#c4956a);" title="Vintage"></div>
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#ff6b35,#f7c59f);" title="Vivid"></div>
+              <div class="filter-swatch" style="background:linear-gradient(135deg,#d4c4b0,#ede8e0);" title="Fade"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="live-preview" id="style-preview">
           <div class="live-preview-head"><span>Live style preview</span><span id="preview-pattern-label">{{ event.pattern if event else 'none' }}</span></div>
           <div class="live-card" id="live-card">
@@ -499,7 +585,9 @@ var patternNames = {
   none:'No Pattern', xhosa:'Xhosa Heritage', venda:'Venda Tradition', royal:'Royal Gold Border',
   fine_grid:'Fine Grid', dot_matrix:'Dot Matrix', ndebele:'Ndebele Chevron', soft_glow:'Soft Glow',
   diagonal:'Diagonal Lines', cape_malay:'Cape Malay Mosaic', linen:'Linen Texture',
-  corner_frame:'Corner Frame', celestial_swirl:'Celestial Swirl', zulu_shield:'Zulu Shield Lines'
+  corner_frame:'Corner Frame', celestial_swirl:'Celestial Swirl', zulu_shield:'Zulu Shield Lines',
+  zulu_beads:'Zulu Beadwork', kanga_print:'Kanga Print', san_art:'San Rock Art',
+  venda_spiral:'Venda Spiral', hexagon:'Honeycomb', waves:'Ocean Waves'
 };
 function patternBackground(pattern, accent){
   var a = accent + '66';
@@ -526,30 +614,45 @@ document.querySelectorAll('.pattern-opt input').forEach(function(r){
   });
 });
 function updateStylePreview(){
-  var accent = document.getElementById('accent-hidden').value || '#e8d5a3';
+  var accent  = document.getElementById('accent-hidden').value || '#e8d5a3';
+  var accent2 = document.getElementById('accent2-hidden').value || '';
   var patternInput = document.querySelector('input[name="pattern"]:checked');
   var pattern = patternInput ? patternInput.value : 'none';
+  var opacitySlider = document.getElementById('pattern-opacity-slider');
+  var opacityVal = opacitySlider ? (parseInt(opacitySlider.value) / 100) : 0.4;
   var card = document.getElementById('live-card');
   if(card){
-    card.style.setProperty('--live-accent', accent);
+    card.style.setProperty('--live-accent', accent2 ? 'linear-gradient(90deg,'+accent+','+accent2+')' : accent);
     card.style.setProperty('--live-pattern', patternBackground(pattern, accent));
+    var beforeEl = card.querySelector('::before');
+    card.style.setProperty('--live-opacity', opacityVal);
   }
+  // Update live card border gradient
+  if(card) card.style.borderImage = accent2
+    ? 'linear-gradient(90deg,'+accent+','+accent2+','+accent+') 1'
+    : '';
   var picker = document.getElementById('pattern-picker');
   if(picker) picker.style.setProperty('--p-accent', accent + '66');
   var label = document.getElementById('preview-pattern-label');
   if(label) label.textContent = patternNames[pattern] || pattern;
   var stage = document.getElementById('pattern-stage-surface');
-  if(stage) stage.style.background = patternBackground(pattern, accent) + ', #080808';
+  if(stage){
+    stage.style.background = patternBackground(pattern, accent) + ', #080808';
+    stage.style.opacity = opacityVal;
+  }
   var stageName = document.getElementById('pattern-stage-name');
   if(stageName) stageName.textContent = patternNames[pattern] || pattern;
-  var type = document.querySelector('select[name="event_type"]');
+  var type  = document.querySelector('select[name="event_type"]');
   var title = document.querySelector('input[name="event_title"]');
-  var date = document.querySelector('input[name="event_date"]');
+  var date  = document.querySelector('input[name="event_date"]');
   var venue = document.getElementById('hid-venue-name');
-  if(document.getElementById('live-type')) document.getElementById('live-type').textContent = type ? type.value : 'Event';
+  if(document.getElementById('live-type'))  document.getElementById('live-type').textContent  = type  ? type.value  : 'Event';
   if(document.getElementById('live-title')) document.getElementById('live-title').textContent = title && title.value ? title.value : 'Your Event Title';
-  if(document.getElementById('live-date')) document.getElementById('live-date').textContent = date && date.value ? date.value : 'Selected date';
+  if(document.getElementById('live-date'))  document.getElementById('live-date').textContent  = date  && date.value  ? date.value  : 'Selected date';
   if(document.getElementById('live-venue')) document.getElementById('live-venue').textContent = venue && venue.value ? venue.value : 'Venue name';
+  // Update kicker/title colour in preview
+  var kicker = document.getElementById('live-kicker');
+  if(kicker) kicker.style.color = accent;
 }
 function focusStylePreview(){
   var el = document.getElementById('style-preview');
@@ -567,13 +670,43 @@ document.getElementById('accent-custom-radio').addEventListener('click',function
   document.getElementById('accent-picker').click();
 });
 
+// ── Accent colour 2 ───────────────────────────────────────────
+function setAccent2(val) {
+  document.getElementById('accent2-hidden').value = val;
+  var row = document.getElementById('accent2-preview-row');
+  var preview = document.getElementById('accent2-swatch-preview');
+  if(val && val !== 'custom') {
+    row.style.display = 'flex';
+    var a1 = document.getElementById('accent-hidden').value || '#e8d5a3';
+    preview.style.background = 'linear-gradient(90deg,'+a1+','+val+')';
+  } else if(!val) {
+    row.style.display = 'none';
+  }
+  updateStylePreview();
+}
+document.getElementById('accent2-custom-radio').addEventListener('click',function(){
+  document.getElementById('accent2-picker').click();
+});
+
+// ── Pattern opacity ───────────────────────────────────────────
+function updatePatternOpacity(val) {
+  document.getElementById('pattern-opacity-val').textContent = val + '%';
+  updateStylePreview();
+}
+
 // ── Custom dropdowns ──────────────────────────────────────────
 function toggleCustom(field) {
   var sel=document.getElementById('sel-'+field);
   var inp=document.getElementById('custom-'+field);
-  if(sel.value==='Custom...'){ inp.classList.remove('hidden'); inp.focus(); }
+  var trigger = sel.value === 'Custom...' || sel.value === 'Other';
+  if(trigger){ inp.classList.remove('hidden'); inp.focus(); }
   else { inp.classList.add('hidden'); inp.value=''; }
 }
+// Restore custom inputs on edit load
+['dress','theme','palette','type'].forEach(function(f){
+  var inp=document.getElementById('custom-'+f);
+  if(inp && inp.value.trim()){ inp.classList.remove('hidden'); }
+});
 
 // ── Photo compression + preview ──────────────────────────────
 function compressAndPreview(input, prevId, lblId, compressedId, msgId) {
@@ -630,6 +763,36 @@ function addGiftRow(name,store){
   document.getElementById('gift-rows').appendChild(row);
 }
 {% if not edit_mode %}addGiftRow();{% endif %}
+
+// ── Full preview (opens in new tab) ─────────────────────────
+function openFullPreview() {
+  var pf = document.getElementById('preview-form');
+  var mf = document.getElementById('main-form');
+  // Copy all current form field values into preview form
+  pf.innerHTML = '<input type="hidden" name="csrf_token" value="' + (mf.querySelector('[name=csrf_token]').value) + '"/>';
+  var fields = mf.querySelectorAll('input,select,textarea');
+  var added = {};
+  fields.forEach(function(el) {
+    if(!el.name || el.name === 'csrf_token') return;
+    if(el.type === 'radio') { if(!el.checked) return; }
+    if(el.type === 'file') return;
+    if(added[el.name] && el.type !== 'radio') return;
+    var inp = document.createElement('input');
+    inp.type = 'hidden'; inp.name = el.name; inp.value = el.value;
+    pf.appendChild(inp);
+    added[el.name] = true;
+  });
+  pf.submit();
+}
+
+// ── Effect picker ─────────────────────────────────────────────
+function selectEffect(radio) {
+  document.querySelectorAll('.effect-opt').forEach(function(el){ el.classList.remove('selected'); });
+  radio.closest('.effect-opt').classList.add('selected');
+}
+document.querySelectorAll('.effect-opt input').forEach(function(r){
+  r.addEventListener('change', function(){ selectEffect(r); });
+});
 
 // ── Prepare submit ────────────────────────────────────────────
 function prepareSubmit() {

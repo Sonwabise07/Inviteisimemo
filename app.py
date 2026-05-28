@@ -63,7 +63,8 @@ ALLOWED_IMG_TYPES  = {'image/jpeg', 'image/png', 'image/webp'}
 EVENT_TYPES = [
     'Birthday','Graduation','Umgidi','Umemulo','Wedding','Lobola',
     'Baby Shower','Matric Farewell','Memorial','Corporate Event',
-    'Bridal Shower','Kitchen Tea','Other',
+    'Bridal Shower','Kitchen Tea','Imbeleko','Umkhosi woMhlanga',
+    'Matric Rage','Stokvel','Gender Reveal','Engagement Party','Other',
 ]
 DRESS_CODES = [
     'Smart Casual','Formal','Black Tie','Traditional / Cultural',
@@ -106,6 +107,17 @@ DESIGNS = [
     ('cape_botanica','Cape Botanica','Sage & cream — garden party'),
     ('mono_edge','Monochrome Edge','Black & white — modern'),
     ('soweto_summer','Soweto Summer','Yellow & orange — festive'),
+    ('neon_nights','Neon Nights','Electric neon on deep black'),
+    ('art_deco','Art Deco Gatsby','Gold geometric — 1920s glamour'),
+    ('afrofuturism','Afrofuturism','Deep purple & bold future'),
+    ('lobola_red','Lobola Red','Rich burgundy & warm gold'),
+    ('cape_fynbos','Cape Fynbos','Blush & sage — botanical'),
+    ('kente_gold','Kente Gold','Deep kente with bright accents'),
+    ('galaxy_dream','Galaxy Dream','Deep space with nebula hues'),
+    ('safari_dusk','Safari Dusk','Amber & burnt orange — bush sunset'),
+    ('boho_dream','Boho Dream','Warm terracotta & dusty rose'),
+    ('editorial_black','Editorial Black','Stark black & white — editorial'),
+    ('ocean_deep','Ocean Deep','Deep teal & midnight blue'),
 ]
 FONTS = [
     ('Modern',"'Helvetica Neue', Helvetica, Arial, sans-serif"),
@@ -114,6 +126,13 @@ FONTS = [
     ('Jakarta',"'Plus Jakarta Sans', 'Helvetica Neue', sans-serif"),
     ('Playful Script',"'Brush Script MT', cursive"),
     ('Classic Mono',"'Courier New', monospace"),
+    ('Cinzel',"'Cinzel', Georgia, serif"),
+    ('Great Vibes',"'Great Vibes', cursive"),
+    ('Montserrat',"'Montserrat', 'Helvetica Neue', sans-serif"),
+    ('Dancing Script',"'Dancing Script', cursive"),
+    ('Raleway',"'Raleway', 'Helvetica Neue', sans-serif"),
+    ('Space Mono',"'Space Mono', 'Courier New', monospace"),
+    ('Josefin Sans',"'Josefin Sans', 'Helvetica Neue', sans-serif"),
 ]
 PATTERNS = [
     ('none','No Pattern'),('xhosa','Xhosa Heritage'),
@@ -123,10 +142,40 @@ PATTERNS = [
     ('diagonal','Diagonal Lines'),('cape_malay','Cape Malay Mosaic'),
     ('linen','Linen Texture'),('corner_frame','Corner Frame'),
     ('celestial_swirl','Celestial Swirl'),('zulu_shield','Zulu Shield Lines'),
+    ('zulu_beads','Zulu Beadwork'),('kanga_print','Kanga Print'),
+    ('san_art','San Rock Art'),('venda_spiral','Venda Spiral'),
+    ('hexagon','Honeycomb'),('waves','Ocean Waves'),
 ]
 DECORATIONS = [
     ('none','None'),('flowers','Flowers'),
     ('balloons','Balloons'),('both','Flowers & Balloons'),
+]
+EFFECTS = [
+    ('none','No Effect'),
+    ('confetti','Confetti Rain'),
+    ('particles','Floating Particles'),
+    ('petals','Falling Petals'),
+    ('stars','Twinkling Stars'),
+    ('fireflies','Fireflies'),
+    ('bokeh','Bokeh Circles'),
+    ('glitter','Gold Glitter'),
+    ('neon_glow','Neon Glow Pulse'),
+    ('gold_foil','Gold Foil Shimmer'),
+    ('typewriter','Typewriter Title'),
+    ('aurora','Aurora Waves'),
+    ('bubbles','Rising Bubbles'),
+    ('snow','Snow Drift'),
+]
+PHOTO_FILTERS = [
+    ('none','Original'),
+    ('warm','Warm Glow'),
+    ('cool','Cool Blue'),
+    ('noir','Noir / B&W'),
+    ('vintage','Vintage Film'),
+    ('vivid','Vivid Boost'),
+    ('fade','Faded Matte'),
+    ('golden','Golden Hour'),
+    ('dreamy','Dreamy Soft'),
 ]
 
 
@@ -180,7 +229,10 @@ class Event(db.Model):
     design         = db.Column(db.String(40), default='classic_dark')
     font           = db.Column(db.String(100), default='Modern')
     pattern        = db.Column(db.String(100), default='none')
+    pattern_opacity = db.Column(db.Integer, default=40)
     decorations    = db.Column(db.String(40), default='none')
+    effect         = db.Column(db.String(40), default='none')
+    photo_filter   = db.Column(db.String(40), default='none')
     extra_notes    = db.Column(db.Text, default='')
     music_url      = db.Column(db.String(400), default='')
     music_title    = db.Column(db.String(200), default='')
@@ -588,7 +640,7 @@ def _build_event_from_form(f, files, token: str, existing=None):
     ev.host_email     = _clean(f.get('host_email', ''), 200).lower()
     ev.host_pin       = _clean(f.get('host_pin', ''), 8) or ev.host_pin or str(uuid.uuid4().int)[:4]
     ev.guest_name     = _clean_name(f.get('guest_name', ''))
-    ev.event_type     = f.get('event_type', 'Birthday')
+    ev.event_type     = _clean(f.get('event_type_custom', '')) or _clean(f.get('event_type', 'Birthday'))
     ev.event_title    = _clean(f.get('event_title', ''), 200)
     ev.event_date     = fmt_date(raw_date)
     ev.event_date_iso = raw_date
@@ -607,7 +659,10 @@ def _build_event_from_form(f, files, token: str, existing=None):
     ev.design         = f.get('design', 'classic_dark')
     ev.font           = f.get('font', 'Modern')
     ev.pattern        = f.get('pattern', 'none')
+    ev.pattern_opacity = max(10, min(100, int(f.get('pattern_opacity') or 40)))
     ev.decorations    = f.get('decorations', 'none')
+    ev.effect         = f.get('effect', 'none')
+    ev.photo_filter   = f.get('photo_filter', 'none')
     ev.extra_notes    = _clean(f.get('extra_notes', ''), 1000)
     ev.music_url      = embed
     ev.music_title    = auto_title
@@ -827,8 +882,27 @@ def dashboard():
               .filter_by(user_id=current_user.id, is_archived=False)
               .order_by(Event.created_at.desc())
               .all())
+    today_dt = date.today()
+    cutoff_24h = datetime.utcnow() - timedelta(hours=24)
+    event_meta = {}
+    for ev in events:
+        yes_count   = sum(1 for r in ev.rsvps if r.attending == 'yes' and not r.waitlist)
+        new_today   = sum(1 for r in ev.rsvps if r.timestamp and r.timestamp >= cutoff_24h)
+        days_left   = None
+        if ev.event_date_iso:
+            try:
+                ev_date   = date.fromisoformat(ev.event_date_iso)
+                days_left = (ev_date - today_dt).days
+            except ValueError:
+                pass
+        event_meta[ev.token] = {
+            'yes_count': yes_count,
+            'new_today': new_today,
+            'days_left': days_left,
+        }
     return render_template('dashboard.html', events=events,
-                           today=date.today().isoformat())
+                           today=today_dt.isoformat(),
+                           event_meta=event_meta)
 
 
 # ── Password reset helpers ────────────────────────────────────
@@ -972,6 +1046,7 @@ def _form_ctx():
         event_types=EVENT_TYPES, dress_codes=DRESS_CODES, themes=THEMES,
         colour_palettes=COLOUR_PALETTES, accent_colours=ACCENT_COLOURS,
         designs=DESIGNS, fonts=FONTS, patterns=PATTERNS, decorations=DECORATIONS,
+        effects=EFFECTS, photo_filters=PHOTO_FILTERS,
     )
 
 
@@ -1016,6 +1091,82 @@ def create():
     return render_template('created.html', event=event,
                            invite_url=invite_url, manage_url=manage_url,
                            host_pin=event.host_pin)
+
+
+@app.route('/preview-draft', methods=['POST'])
+@login_required
+def preview_draft():
+    """Render a full invitation preview from form data without saving to DB."""
+    from types import SimpleNamespace
+    f = request.form
+    raw_date  = _clean(f.get('event_date', ''))
+    raw_time  = _clean(f.get('event_time', ''))
+    raw_music = _clean(f.get('music_url', ''), 400)
+    embed     = yt_embed(raw_music) or ''
+    accent    = f.get('accent_colour', '#e8d5a3')
+    if not _valid_colour(accent):
+        accent = '#e8d5a3'
+    accent2 = f.get('accent_colour_2', '')
+    if not _valid_colour(accent2):
+        accent2 = ''
+
+    event = SimpleNamespace(
+        token='preview',
+        host_name=_clean_name(f.get('host_name', 'Your Name')),
+        host_email='',
+        guest_name=_clean_name(f.get('guest_name', '')),
+        event_type=_clean(f.get('event_type_custom', '')) or _clean(f.get('event_type', 'Birthday')),
+        event_title=_clean(f.get('event_title', 'Your Event Title'), 200) or 'Your Event Title',
+        event_date=fmt_date(raw_date) if raw_date else 'Date TBD',
+        event_date_iso=raw_date,
+        event_time=fmt_time(raw_time) if raw_time else '',
+        rsvp_deadline='',
+        capacity=0,
+        save_the_date=bool(f.get('save_the_date')),
+        venue_name=_clean(f.get('venue_name', ''), 200) or 'Venue TBD',
+        venue_address=_clean(f.get('venue_address', ''), 300),
+        venue_lat=float(f.get('venue_lat') or -26.2041),
+        venue_lng=float(f.get('venue_lng') or 28.0473),
+        dress_code=_clean(f.get('dress_code_custom', '')) or _clean(f.get('dress_code', '')),
+        theme=_clean(f.get('theme_custom', '')) or _clean(f.get('theme', '')),
+        colour_palette=_clean(f.get('palette_custom', '')) or _clean(f.get('colour_palette', '')),
+        accent_colour=accent,
+        accent_colour_2=accent2,
+        design=f.get('design', 'classic_dark'),
+        font=f.get('font', 'Modern'),
+        pattern=f.get('pattern', 'none'),
+        pattern_opacity=max(10, min(100, int(f.get('pattern_opacity') or 40))),
+        decorations=f.get('decorations', 'none'),
+        effect=f.get('effect', 'none'),
+        photo_filter=f.get('photo_filter', 'none'),
+        extra_notes=_clean(f.get('extra_notes', ''), 1000),
+        music_url=embed,
+        music_title=_clean(f.get('music_title', ''), 200),
+        music_artist=_clean(f.get('music_artist', ''), 200),
+        programme=_clean(f.get('programme', ''), 2000),
+        spotify_url='',
+        whatsapp_group='',
+        hashtag='',
+        greeting_lang=f.get('greeting_lang', 'English'),
+        image_1='',
+        image_2='',
+        image_3='',
+        video_note='',
+        view_count=0,
+        gifts=[],
+        rsvps=[],
+        links=[],
+        announcements=[],
+    )
+
+    ctx = dict(
+        event=event, link=None, existing_rsvp=None,
+        yes_count=0, no_count=0,
+        rsvp_open=False, event_passed=False, capacity_full=False,
+        recent_rsvps=[], guest_name_prefill='',
+        is_preview=True,
+    )
+    return render_template('invitation.html', **ctx)
 
 
 @app.route('/edit/<token>', methods=['GET', 'POST'])
