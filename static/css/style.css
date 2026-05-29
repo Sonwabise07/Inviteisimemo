@@ -370,3 +370,129 @@ footer{text-align:center;padding:2.5rem;font-size:.65rem;letter-spacing:.18em;te
 
 /* Multi-language greeting */
 .lang-greeting{font-family:Georgia,serif;font-size:.85rem;color:var(--accent,#e8d5a3);opacity:.7;text-align:center;letter-spacing:.08em;margin-bottom:.5rem;font-style:italic;}
+
+/* ── FLIP-CLOCK COUNTDOWN ── */
+.countdown-wrap{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;}
+.cd-sep{font-size:1.5rem;font-weight:700;color:var(--accent,#e8d5a3);opacity:.55;line-height:1;padding-bottom:.4rem;flex-shrink:0;}
+.cd-unit{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.flip-card{position:relative;overflow:hidden;}
+.cd-num.tick{animation:flipTick .42s cubic-bezier(.4,0,.2,1);}
+
+/* ── CAPACITY URGENCY BAR ── */
+.capacity-wrap{margin:.6rem 0 1.1rem;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:10px;border:.5px solid rgba(255,255,255,.08);}
+.cap-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;}
+.cap-spots{font-size:.78rem;font-weight:600;color:#e8d5a3;}
+.cap-ratio{font-size:.7rem;color:#555;}
+.cap-bar-track{height:5px;background:rgba(255,255,255,.08);border-radius:10px;overflow:hidden;}
+.cap-bar-fill{height:100%;background:#22c55e;border-radius:10px;transition:width .6s ease;will-change:width;}
+.cap-bar-fill.warning{background:#f59e0b;}
+.cap-bar-fill.urgent{background:#ef4444;}
+
+/* ── EMOJI REACTION BAR ── */
+.reaction-bar{
+  position:fixed;bottom:0;left:0;right:0;z-index:60;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:9px 16px;padding-bottom:max(9px,env(safe-area-inset-bottom));
+  background:rgba(8,8,8,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:.5px solid rgba(255,255,255,.07);
+}
+.reaction-label{font-size:.6rem;color:#555;letter-spacing:.08em;text-transform:uppercase;margin-right:4px;white-space:nowrap;flex-shrink:0;}
+.reaction-emojis{display:flex;align-items:center;gap:4px;}
+.re-btn{
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:6px 9px;cursor:pointer;
+  transition:transform .15s,background .15s,border-color .15s;
+  color:#fff;line-height:1;
+}
+.re-btn:hover{transform:scale(1.18);background:rgba(255,255,255,.1);}
+.re-btn:active{transform:scale(.92);}
+.re-btn.reacted{border-color:var(--accent,#e8d5a3);background:rgba(232,213,163,.1);}
+.re-emoji{font-size:1.15rem;}
+.re-btn small{font-size:.58rem;color:#666;line-height:1.2;}
+.re-btn.reacted small{color:var(--accent,#e8d5a3);}
+.qr-trigger{
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.1);
+  border-radius:8px;padding:7px 10px;cursor:pointer;font-size:1rem;
+  transition:background .15s,transform .15s;margin-left:6px;flex-shrink:0;
+  color:#fff;
+}
+.qr-trigger:hover{background:rgba(255,255,255,.12);transform:scale(1.08);}
+
+/* Give the invitation page bottom padding so reaction bar doesn't overlap content */
+.inv{padding-bottom:70px;}
+
+/* ── QR SHARE MODAL ── */
+.qr-modal{
+  position:fixed;inset:0;z-index:9800;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:opacity .22s;
+}
+.qr-modal.open{opacity:1;pointer-events:all;}
+.qr-inner{
+  background:#111;border:.5px solid rgba(255,255,255,.12);
+  border-radius:18px;padding:28px 24px 22px;
+  max-width:300px;width:90%;text-align:center;
+  transform:scale(.94);transition:transform .22s;
+}
+.qr-modal.open .qr-inner{transform:scale(1);}
+.qr-close{
+  position:absolute;top:12px;right:14px;
+  background:rgba(255,255,255,.08);border:none;border-radius:50%;
+  width:28px;height:28px;cursor:pointer;color:#aaa;font-size:.8rem;
+  transition:background .15s;
+}
+.qr-inner{position:relative;}
+.qr-close:hover{background:rgba(255,255,255,.16);}
+.qr-title{font-size:1rem;font-weight:600;color:#fff;margin-bottom:3px;}
+.qr-subtitle{font-size:.72rem;color:#555;margin-bottom:16px;}
+.qr-canvas-wrap{display:flex;justify-content:center;margin:0 auto 14px;border-radius:10px;overflow:hidden;width:fit-content;background:#fff;padding:8px;}
+.qr-canvas-wrap img,.qr-canvas-wrap canvas{border-radius:6px;}
+.qr-url{font-size:.65rem;color:#444;word-break:break-all;margin-bottom:14px;max-height:36px;overflow:hidden;}
+.qr-copy-btn{
+  display:block;width:100%;padding:10px;background:var(--accent,#e8d5a3);
+  color:#080808;border:none;border-radius:8px;font-size:.8rem;font-weight:600;
+  cursor:pointer;margin-bottom:8px;transition:opacity .15s;
+}
+.qr-copy-btn:hover{opacity:.85;}
+.qr-wa-btn{
+  display:block;padding:10px;background:rgba(37,211,102,.12);
+  border:.5px solid rgba(37,211,102,.25);color:#25d366;
+  border-radius:8px;font-size:.78rem;font-weight:500;
+  text-decoration:none;transition:background .15s;
+}
+.qr-wa-btn:hover{background:rgba(37,211,102,.2);}
+
+/* ── CREATE CONFIRMATION MODAL ── */
+.confirm-overlay{
+  position:fixed;inset:0;z-index:9900;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.75);backdrop-filter:blur(8px);
+  opacity:0;pointer-events:none;transition:opacity .25s;
+  padding:1rem;
+}
+.confirm-overlay.open{opacity:1;pointer-events:all;}
+.confirm-modal{
+  background:#111;border:.5px solid rgba(255,255,255,.1);
+  border-radius:20px;padding:32px 28px 24px;
+  max-width:420px;width:100%;
+  transform:translateY(16px);transition:transform .25s;
+}
+.confirm-overlay.open .confirm-modal{transform:translateY(0);}
+.confirm-header{text-align:center;margin-bottom:22px;}
+.confirm-icon{font-size:2.2rem;margin-bottom:10px;}
+.confirm-title{font-size:1.25rem;font-weight:300;color:#fff;letter-spacing:.06em;margin-bottom:5px;}
+.confirm-sub{font-size:.75rem;color:#555;}
+.confirm-details{border:.5px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;margin-bottom:22px;}
+.confirm-row{display:flex;align-items:baseline;gap:10px;padding:10px 14px;border-bottom:.5px solid rgba(255,255,255,.05);}
+.confirm-row:last-child{border-bottom:none;}
+.cr-label{font-size:.62rem;color:#555;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;min-width:46px;flex-shrink:0;}
+.cr-val{font-size:.82rem;color:#e0e0e0;font-weight:500;word-break:break-word;}
+.confirm-actions{display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:12px;}
+.confirm-back-btn{padding:12px;background:rgba(255,255,255,.05);border:.5px solid rgba(255,255,255,.1);border-radius:10px;color:#888;font-size:.78rem;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;}
+.confirm-back-btn:hover{background:rgba(255,255,255,.1);color:#ccc;}
+.confirm-go-btn{padding:12px;background:#e8d5a3;color:#080808;border:none;border-radius:10px;font-size:.82rem;font-weight:600;cursor:pointer;transition:opacity .15s;font-family:inherit;}
+.confirm-go-btn:hover{opacity:.88;}
+.confirm-note{text-align:center;font-size:.65rem;color:#333;}

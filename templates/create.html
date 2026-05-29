@@ -414,11 +414,39 @@
       </div>
     </div>
 
-    <button type="submit" class="btn-primary btn-submit" onclick="return prepareSubmit()">
-      {% if edit_mode %}Save changes{% else %}Generate invitation link{% endif %}
-    </button>
+    {% if edit_mode %}
+    <button type="submit" class="btn-primary btn-submit" onclick="return prepareSubmit()">Save changes</button>
+    {% else %}
+    <button type="button" class="btn-primary btn-submit" onclick="showConfirmModal()">Generate invitation link</button>
+    {% endif %}
   </form>
 </div>
+
+<!-- ════ CONFIRMATION MODAL ════ -->
+{% if not edit_mode %}
+<div class="confirm-overlay" id="confirm-overlay" onclick="closeConfirmModal()">
+  <div class="confirm-modal" onclick="event.stopPropagation()">
+    <div class="confirm-header">
+      <div class="confirm-icon">✨</div>
+      <h2 class="confirm-title">Ready to create?</h2>
+      <p class="confirm-sub">Here's a summary of your invitation</p>
+    </div>
+    <div class="confirm-details" id="confirm-details">
+      <div class="confirm-row"><span class="cr-label">Event</span><span class="cr-val" id="cm-title">—</span></div>
+      <div class="confirm-row"><span class="cr-label">Type</span><span class="cr-val" id="cm-type">—</span></div>
+      <div class="confirm-row"><span class="cr-label">Date</span><span class="cr-val" id="cm-date">—</span></div>
+      <div class="confirm-row"><span class="cr-label">Time</span><span class="cr-val" id="cm-time">—</span></div>
+      <div class="confirm-row"><span class="cr-label">Venue</span><span class="cr-val" id="cm-venue">—</span></div>
+      <div class="confirm-row"><span class="cr-label">Design</span><span class="cr-val" id="cm-design">—</span></div>
+    </div>
+    <div class="confirm-actions">
+      <button class="confirm-back-btn" onclick="closeConfirmModal()">← Keep editing</button>
+      <button class="confirm-go-btn" onclick="confirmSubmit()">Create invitation 🎉</button>
+    </div>
+    <p class="confirm-note">You can edit everything after creation.</p>
+  </div>
+</div>
+{% endif %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -794,9 +822,8 @@ document.querySelectorAll('.effect-opt input').forEach(function(r){
   r.addEventListener('change', function(){ selectEffect(r); });
 });
 
-// ── Prepare submit ────────────────────────────────────────────
+// ── Prepare submit (shared validation) ───────────────────────
 function prepareSubmit() {
-  // Venue fallback
   if(!pinned) {
     var v=document.getElementById('venue-search-input').value.trim();
     if(v&&!document.getElementById('hid-venue-name').value) {
@@ -804,7 +831,6 @@ function prepareSubmit() {
       document.getElementById('hid-venue-address').value=v;
     }
   }
-  // Validate required date/time
   if(!document.getElementById('event_date').value) {
     alert('Please select an event date.'); return false;
   }
@@ -812,6 +838,45 @@ function prepareSubmit() {
     alert('Please select an event time.'); return false;
   }
   return true;
+}
+
+// ── Confirmation modal (create mode only) ─────────────────────
+var DESIGN_NAMES = {
+  classic_dark:'Classic Dark', celestial:'Celestial', blanc:'Blanc',
+  rose_gold:'Rose Gold', midnight_luxe:'Midnight Luxe', emerald_forest:'Emerald Forest',
+  sunset_vibes:'Sunset Vibes', regal_purple:'Regal Purple', ubuntu:'Ubuntu',
+  neon_nights:'Neon Nights', art_deco:'Art Deco', afrofuturism:'Afrofuturism',
+  lobola_red:'Lobola Red', cape_fynbos:'Cape Fynbos', kente_gold:'Kente Gold',
+  galaxy_dream:'Galaxy Dream', safari_dusk:'Safari Dusk', boho_dream:'Boho Dream',
+  editorial_black:'Editorial Black', ocean_deep:'Ocean Deep',
+};
+
+function showConfirmModal() {
+  if (!prepareSubmit()) return;
+  var get = function(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  var title   = get('event_title')  || '(untitled)';
+  var type    = (document.getElementById('event_type_custom') && document.getElementById('event_type_custom').value.trim())
+                || get('event_type') || '—';
+  var date    = get('event_date')   || '—';
+  var time    = get('event_time')   || '—';
+  var venue   = get('hid-venue-name') || (document.getElementById('venue-search-input') ? document.getElementById('venue-search-input').value.trim() : '') || '—';
+  var designKey = (document.querySelector('input[name="design"]:checked') || {}).value || 'classic_dark';
+  var designName = DESIGN_NAMES[designKey] || designKey;
+  document.getElementById('cm-title').textContent  = title;
+  document.getElementById('cm-type').textContent   = type;
+  document.getElementById('cm-date').textContent   = date;
+  document.getElementById('cm-time').textContent   = time;
+  document.getElementById('cm-venue').textContent  = venue;
+  document.getElementById('cm-design').textContent = designName;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+function confirmSubmit() {
+  document.getElementById('main-form').submit();
 }
 </script>
 </body>

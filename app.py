@@ -259,6 +259,8 @@ class Event(db.Model):
                                      cascade='all, delete-orphan')
     announcements  = db.relationship('Announcement', backref='event', lazy=True,
                                      cascade='all, delete-orphan')
+    reactions      = db.relationship('Reaction', backref='event', lazy=True,
+                                     cascade='all, delete-orphan')
 
 
 class RSVP(db.Model):
@@ -270,6 +272,7 @@ class RSVP(db.Model):
     attending = db.Column(db.String(10), nullable=False)
     dietary   = db.Column(db.String(300), default='')
     plus_one  = db.Column(db.String(120), default='')
+    plus_ones = db.Column(db.Integer, default=0)
     waitlist  = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -316,6 +319,16 @@ class GuestComment(db.Model):
     name       = db.Column(db.String(120), nullable=False)
     message    = db.Column(db.Text, nullable=False)
     approved   = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Reaction(db.Model):
+    """Emoji reactions on an invitation page — one per emoji per IP."""
+    __tablename__ = 'reaction'
+    id         = db.Column(db.Integer, primary_key=True)
+    event_id   = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    emoji      = db.Column(db.String(10), nullable=False)
+    ip_hash    = db.Column(db.String(64), default='')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class AuditLog(db.Model):
@@ -559,7 +572,7 @@ def _event_passed(event) -> bool:
 
 
 def _yes_count(event) -> int:
-    return sum(1 for r in event.rsvps if r.attending == 'yes' and not r.waitlist)
+    return sum(1 + (r.plus_ones or 0) for r in event.rsvps if r.attending == 'yes' and not r.waitlist)
 
 
 def _capacity_full(event) -> bool:
@@ -1572,11 +1585,12 @@ def api_rsvp(token):
                                     link_token=invite_link.link_token),
             }), 200
 
-    name      = _clean_name(data.get('name', ''))
-    email     = _clean(data.get('email', ''), 200).lower()
-    attending = data.get('attending')
-    dietary   = _clean(data.get('dietary', ''), 300)
-    plus_one  = _clean_name(data.get('plus_one', ''))
+    name        = _clean_name(data.get('name', ''))
+    email       = _clean(data.get('email', ''), 200).lower()
+    attending   = data.get('attending')
+    dietary     = _clean(data.get('dietary', ''), 300)
+    plus_one    = _clean_name(data.get('plus_one', ''))
+    plus_ones   = max(0, min(9, int(data.get('plus_ones', 0) or 0)))
 
     if invite_link and not name:
         name = f"{invite_link.guest_name} {invite_link.guest_surname or ''}".strip()
@@ -1604,7 +1618,7 @@ def api_rsvp(token):
 
     rsvp = RSVP(event_id=event.id, name=name, email=email,
                 attending=attending, dietary=dietary,
-                plus_one=plus_one, waitlist=on_waitlist)
+                plus_one=plus_one, plus_ones=plus_ones, waitlist=on_waitlist)
     db.session.add(rsvp)
     db.session.flush()
     if invite_link:
@@ -1623,6 +1637,45 @@ def api_rsvp(token):
                             token=event.token,
                             link_token=invite_link.link_token) if invite_link else '',
     })
+
+
+@csrf.exempt
+@app.route('/api/react/<token>', methods=['POST'])
+@limiter.limit("60 per minute")
+def api_react(token):
+    import hashlib
+    event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    data  = request.get_json(silent=True) or {}
+    emoji = data.get('emoji', '')
+    allowed = ['🔥', '❤️', '😍', '🎉', '🥳']
+    if emoji not in allowed:
+        return jsonify({'error': 'invalid emoji'}), 400
+    ip      = (request.headers.get('X-Forwarded-For', '') or '').split(',')[0].strip() or request.remote_addr or ''
+    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:40]
+    existing = Reaction.query.filter_by(event_id=event.id, emoji=emoji, ip_hash=ip_hash).first()
+    toggled = False
+    if existing:
+        db.session.delete(existing)
+        toggled = False
+    else:
+        db.session.add(Reaction(event_id=event.id, emoji=emoji, ip_hash=ip_hash))
+        toggled = True
+    db.session.commit()
+    counts = _reaction_counts(event.id)
+    return jsonify({'counts': counts, 'toggled': toggled})
+
+
+@app.route('/api/reactions/<token>')
+def api_reactions(token):
+    event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    return jsonify({'counts': _reaction_counts(event.id)})
+
+
+def _reaction_counts(event_id: int) -> dict:
+    rows = (db.session.query(Reaction.emoji, db.func.count(Reaction.id))
+            .filter_by(event_id=event_id)
+            .group_by(Reaction.emoji).all())
+    return {emoji: cnt for emoji, cnt in rows}
 
 
 @csrf.exempt

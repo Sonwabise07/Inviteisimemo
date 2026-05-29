@@ -741,6 +741,19 @@
       0%   { transform:translateY(-10px) rotate(0deg); opacity:1; }
       100% { transform:translateY(100vh) rotate(720deg); opacity:0; }
     }
+    @keyframes emojiFloat {
+      0%   { transform:translateY(0) scale(1);    opacity:1; }
+      60%  { transform:translateY(-70px) scale(1.3); opacity:.9; }
+      100% { transform:translateY(-120px) scale(.8); opacity:0; }
+    }
+    @keyframes flipTick {
+      0%   { transform:scaleY(1) translateY(0);   opacity:1; }
+      35%  { transform:scaleY(.3) translateY(-4px); opacity:0; }
+      65%  { transform:scaleY(.3) translateY(4px);  opacity:0; }
+      100% { transform:scaleY(1) translateY(0);   opacity:1; }
+    }
+    .cd-num.tick { animation:flipTick .45s cubic-bezier(.4,0,.2,1); }
+    .cd-sep { font-size:1.6rem; font-weight:700; color:var(--accent); opacity:.6; align-self:flex-start; padding-top:.3rem; }
     .balloon-wrap, .flower-wrap { position:fixed; pointer-events:none; z-index:3; }
     @keyframes balloonRise {
       0%   { transform:translateY(110vh) rotate(-4deg); opacity:0; }
@@ -986,19 +999,22 @@
         </div>
         <div class="countdown-wrap" id="cd-row">
           <div class="cd-unit">
-            <div class="cd-card"><span class="cd-num" id="cd-d">--</span></div>
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-d">--</span></div>
             <div class="cd-lbl">Days</div>
           </div>
+          <div class="cd-sep">:</div>
           <div class="cd-unit">
-            <div class="cd-card"><span class="cd-num" id="cd-h">--</span></div>
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-h">--</span></div>
             <div class="cd-lbl">Hours</div>
           </div>
+          <div class="cd-sep">:</div>
           <div class="cd-unit">
-            <div class="cd-card"><span class="cd-num" id="cd-m">--</span></div>
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-m">--</span></div>
             <div class="cd-lbl">Mins</div>
           </div>
+          <div class="cd-sep">:</div>
           <div class="cd-unit">
-            <div class="cd-card"><span class="cd-num" id="cd-s">--</span></div>
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-s">--</span></div>
             <div class="cd-lbl">Secs</div>
           </div>
         </div>
@@ -1188,6 +1204,21 @@
           <span class="section-label-new">💌 &nbsp;Your RSVP</span>
           <div class="section-line"></div>
         </div>
+        {% if event.capacity and event.capacity > 0 and not event_passed %}
+        {% set cap_yes = yes_count %}
+        {% set cap_pct = [(cap_yes * 100 // event.capacity), 100] | min %}
+        {% set cap_left = [event.capacity - cap_yes, 0] | max %}
+        <div class="capacity-wrap">
+          <div class="cap-meta">
+            <span class="cap-spots">{{ cap_left }} spot{{ '' if cap_left == 1 else 's' }} remaining</span>
+            <span class="cap-ratio">{{ cap_yes }} / {{ event.capacity }}</span>
+          </div>
+          <div class="cap-bar-track">
+            <div class="cap-bar-fill{% if cap_pct >= 85 %} urgent{% elif cap_pct >= 60 %} warning{% endif %}" style="width:{{ cap_pct }}%;"></div>
+          </div>
+        </div>
+        {% endif %}
+
         <div class="rsvp-card">
           {% if existing_rsvp %}
           <div class="existing-rsvp">
@@ -1229,7 +1260,14 @@
               <input class="rinput" type="text"  id="rname"    placeholder="Your name" value="{{ guest_name_prefill }}"/>
               <input class="rinput" type="email" id="remail"   placeholder="Email — for your confirmation"/>
               <input class="rinput" type="text"  id="rdietary" placeholder="Any dietary requirements? (optional)"/>
-              <input class="rinput" type="text"  id="rplus"    placeholder="Bringing a plus one? (their name)"/>
+              <select class="rinput" id="rplus-count" style="display:none;">
+                <option value="0">Just me</option>
+                <option value="1">+ 1 guest</option>
+                <option value="2">+ 2 guests</option>
+                <option value="3">+ 3 guests</option>
+                <option value="4">+ 4 guests</option>
+              </select>
+              <input class="rinput" type="text"  id="rplus"    placeholder="Guest name(s) — optional" style="display:none;"/>
               <button class="rsub" onclick="submitR()">Confirm my RSVP →</button>
               <p style="font-size:.65rem;text-align:center;margin-top:10px;line-height:1.6;opacity:.35;">Your name and RSVP status are shared with the host only. Your email is used solely for event updates.</p>
             </div>
@@ -1275,6 +1313,32 @@
 
 </div><!-- /inv -->
 
+<!-- ════ EMOJI REACTION BAR ════ -->
+{% if not is_preview is defined or not is_preview %}
+<div class="reaction-bar" id="reaction-bar">
+  <span class="reaction-label">Vibe check</span>
+  <div class="reaction-emojis">
+    <button class="re-btn" onclick="sendReaction('🔥')" data-emoji="🔥"><span class="re-emoji">🔥</span><small id="r-fire">0</small></button>
+    <button class="re-btn" onclick="sendReaction('❤️')" data-emoji="❤️"><span class="re-emoji">❤️</span><small id="r-heart">0</small></button>
+    <button class="re-btn" onclick="sendReaction('😍')" data-emoji="😍"><span class="re-emoji">😍</span><small id="r-love">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🎉')" data-emoji="🎉"><span class="re-emoji">🎉</span><small id="r-party">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🥳')" data-emoji="🥳"><span class="re-emoji">🥳</span><small id="r-celebrate">0</small></button>
+  </div>
+  <button class="qr-trigger" onclick="showQR()" title="Share via QR code">📲</button>
+</div>
+{% else %}
+<div class="reaction-bar" id="reaction-bar">
+  <span class="reaction-label">Vibe check</span>
+  <div class="reaction-emojis">
+    <button class="re-btn" onclick="sendReaction('🔥')" data-emoji="🔥"><span class="re-emoji">🔥</span><small id="r-fire">0</small></button>
+    <button class="re-btn" onclick="sendReaction('❤️')" data-emoji="❤️"><span class="re-emoji">❤️</span><small id="r-heart">0</small></button>
+    <button class="re-btn" onclick="sendReaction('😍')" data-emoji="😍"><span class="re-emoji">😍</span><small id="r-love">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🎉')" data-emoji="🎉"><span class="re-emoji">🎉</span><small id="r-party">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🥳')" data-emoji="🥳"><span class="re-emoji">🥳</span><small id="r-celebrate">0</small></button>
+  </div>
+</div>
+{% endif %}
+
 <!-- VIDEO NOTE MODAL -->
 {% if event.video_note %}
 <div class="vidnote-bar" onclick="openVideoNote()" id="vidnote-bar">
@@ -1292,6 +1356,19 @@
   </div>
 </div>
 {% endif %}
+
+<!-- QR SHARE MODAL -->
+<div class="qr-modal" id="qr-modal" onclick="closeQR()">
+  <div class="qr-inner" onclick="event.stopPropagation()">
+    <button class="qr-close" onclick="closeQR()">✕</button>
+    <div class="qr-title">Scan to open invitation</div>
+    <div class="qr-subtitle">Or copy the link below</div>
+    <div id="qr-canvas" class="qr-canvas-wrap"></div>
+    <div class="qr-url" id="qr-url-display"></div>
+    <button class="qr-copy-btn" id="qr-copy-btn" onclick="copyInviteLink()">Copy link</button>
+    <a class="qr-wa-btn" id="qr-wa-btn" target="_blank">Share on WhatsApp</a>
+  </div>
+</div>
 
 <!-- SVG SYMBOLS -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
@@ -1317,6 +1394,7 @@
 </svg>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 /* ── JS VARIABLES ── */
 var TOKEN      = '{{ event.token }}';
@@ -1337,6 +1415,8 @@ var SPOTIFY_URL = '{{ event.spotify_url or "" }}';
 var EVENT_LAT  = {{ event.venue_lat }};
 var EVENT_LNG  = {{ event.venue_lng }};
 
+var CAPACITY  = {{ event.capacity or 0 }};
+var YES_COUNT = {{ yes_count if yes_count is defined else 0 }};
 var choice = null, musicOn = false, prog = 0, ticker = null;
 var IS_PREVIEW = {{ 'true' if is_preview is defined and is_preview else 'false' }};
 
@@ -1492,23 +1572,33 @@ function initMap() {
   setTimeout(function() { map.invalidateSize(); }, 300);
 }
 
-/* ── COUNTDOWN ── */
+/* ── COUNTDOWN (flip animation) ── */
 function startCountdown() {
   var cdRow = document.getElementById('cd-row');
   if (!cdRow) return;
   var target = new Date(EVENT_DATE + 'T' + ((EVENT_TIME.match(/\d+:\d+/) || ['00:00'])[0]));
   if (isNaN(target)) { cdRow.style.display = 'none'; return; }
   function pad(n) { return String(n).padStart(2, '0'); }
+  function setFlip(id, val) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var str = String(val);
+    if (el.textContent === str) return;
+    el.classList.remove('tick');
+    void el.offsetWidth;
+    el.textContent = str;
+    el.classList.add('tick');
+  }
   function tick() {
     var diff = target - new Date();
     if (diff <= 0) {
       cdRow.innerHTML = '<div class="cd-passed">✨ We hope you celebrated beautifully ✨</div>';
       return;
     }
-    document.getElementById('cd-d').textContent = Math.floor(diff / 86400000);
-    document.getElementById('cd-h').textContent = pad(Math.floor((diff % 86400000) / 3600000));
-    document.getElementById('cd-m').textContent = pad(Math.floor((diff % 3600000) / 60000));
-    document.getElementById('cd-s').textContent = pad(Math.floor((diff % 60000) / 1000));
+    setFlip('cd-d', Math.floor(diff / 86400000));
+    setFlip('cd-h', pad(Math.floor((diff % 86400000) / 3600000)));
+    setFlip('cd-m', pad(Math.floor((diff % 3600000) / 60000)));
+    setFlip('cd-s', pad(Math.floor((diff % 60000) / 1000)));
   }
   tick(); setInterval(tick, 1000);
 }
@@ -1572,25 +1662,28 @@ function pick(c) {
       }
     }, 120);
   }
-  var dietary = document.getElementById('rdietary');
-  var plus    = document.getElementById('rplus');
-  if (dietary) dietary.style.display = (c === 'yes') ? '' : 'none';
-  if (plus)    plus.style.display    = (c === 'yes') ? '' : 'none';
+  var dietary   = document.getElementById('rdietary');
+  var plusCount = document.getElementById('rplus-count');
+  var plus      = document.getElementById('rplus');
+  if (dietary)   dietary.style.display   = (c === 'yes') ? '' : 'none';
+  if (plusCount) plusCount.style.display = (c === 'yes') ? '' : 'none';
+  if (plus)      plus.style.display      = (c === 'yes') ? '' : 'none';
 }
 
 function submitR() {
   if (!choice) { alert('Please select Yes or No first.'); return; }
-  var name    = (document.getElementById('rname')    ? document.getElementById('rname').value    : '').trim();
-  var email   = (document.getElementById('remail')   ? document.getElementById('remail').value   : '').trim();
-  var dietary = (document.getElementById('rdietary') ? document.getElementById('rdietary').value : '').trim();
-  var plus    = (document.getElementById('rplus')    ? document.getElementById('rplus').value    : '').trim();
+  var name      = (document.getElementById('rname')       ? document.getElementById('rname').value       : '').trim();
+  var email     = (document.getElementById('remail')      ? document.getElementById('remail').value      : '').trim();
+  var dietary   = (document.getElementById('rdietary')    ? document.getElementById('rdietary').value    : '').trim();
+  var plus      = (document.getElementById('rplus')       ? document.getElementById('rplus').value       : '').trim();
+  var plusOnes  = parseInt((document.getElementById('rplus-count') ? document.getElementById('rplus-count').value : '0') || '0', 10);
   if (!name) { document.getElementById('rname').focus(); return; }
   var btn = document.querySelector('.rsub');
   if (btn) { btn.textContent = 'Confirming…'; btn.disabled = true; }
   fetch('/api/rsvp/' + TOKEN, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: name, email: email, attending: choice, dietary: dietary, plus_one: plus, link_token: LINK_TOKEN })
+    body: JSON.stringify({ name: name, email: email, attending: choice, dietary: dietary, plus_one: plus, plus_ones: plusOnes, link_token: LINK_TOKEN })
   }).then(function(r) { return r.json(); }).then(function(d) {
     if (d.redirect) { window.location.href = d.redirect; return; }
     if (d.status === 'duplicate') {
@@ -1699,6 +1792,95 @@ function showSocialProof() {
     setTimeout(show, 7000);
   }
   setTimeout(show, 5000);
+}
+
+/* ── EMOJI REACTIONS ── */
+var REACTION_EMOJIS = ['🔥','❤️','😍','🎉','🥳'];
+var REACTION_IDS    = {'🔥':'r-fire','❤️':'r-heart','😍':'r-love','🎉':'r-party','🥳':'r-celebrate'};
+var myReacted       = {};
+
+function loadReactions() {
+  if (IS_PREVIEW || TOKEN === 'preview') return;
+  fetch('/api/reactions/' + TOKEN)
+    .then(function(r){ return r.json(); })
+    .then(function(d){ updateReactionCounts(d.counts || {}); })
+    .catch(function(){});
+}
+
+function updateReactionCounts(counts) {
+  REACTION_EMOJIS.forEach(function(e) {
+    var id = REACTION_IDS[e];
+    var el = document.getElementById(id);
+    if (el) el.textContent = counts[e] || 0;
+  });
+}
+
+function sendReaction(emoji) {
+  floatEmoji(emoji);
+  if (IS_PREVIEW || TOKEN === 'preview') return;
+  fetch('/api/react/' + TOKEN, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({emoji: emoji})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.counts) updateReactionCounts(d.counts);
+    var btn = document.querySelector('[data-emoji="' + emoji + '"]');
+    if (btn) btn.classList.toggle('reacted', !!d.toggled);
+  }).catch(function(){});
+}
+
+function floatEmoji(emoji) {
+  var el = document.createElement('div');
+  el.textContent = emoji;
+  var left = 15 + Math.random() * 70;
+  el.style.cssText = 'position:fixed;bottom:80px;left:' + left + 'vw;font-size:1.8rem;pointer-events:none;z-index:9000;animation:emojiFloat 1.6s ease-out forwards;';
+  document.body.appendChild(el);
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 1700);
+}
+
+document.addEventListener('DOMContentLoaded', loadReactions);
+
+/* ── QR CODE SHARE ── */
+var _qrInstance = null;
+
+function showQR() {
+  var modal = document.getElementById('qr-modal');
+  var url   = window.location.href.split('?')[0].split('#')[0];
+  var urlEl = document.getElementById('qr-url-display');
+  var waBtn = document.getElementById('qr-wa-btn');
+  if (urlEl) urlEl.textContent = url;
+  if (waBtn) waBtn.href = 'https://wa.me/?text=' + encodeURIComponent('You\'re invited! ' + url);
+  if (!_qrInstance) {
+    var container = document.getElementById('qr-canvas');
+    if (container) {
+      _qrInstance = new QRCode(container, {
+        text: url, width: 200, height: 200,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  }
+  if (modal) modal.classList.add('open');
+}
+
+function closeQR() {
+  var modal = document.getElementById('qr-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function copyInviteLink() {
+  var url = window.location.href.split('?')[0].split('#')[0];
+  var btn = document.getElementById('qr-copy-btn');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function(){
+      if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 2200); }
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 2200); }
+  }
 }
 
 /* ── EFFECTS SYSTEM ── */
