@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Payment Cancelled — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
+    .wrap{max-width:460px;width:90%;text-align:center;padding:2.5rem 2rem;background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:20px;}
+    .icon{font-size:3rem;margin-bottom:1.2rem;}
+    h1{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
+    p{font-size:.88rem;color:#666;line-height:1.7;margin-bottom:1.8rem;}
+    .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+    .btn-primary{padding:12px 24px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:600;text-decoration:none;font-size:.84rem;transition:opacity .2s;}
+    .btn-primary:hover{opacity:.88;}
+    .btn-ghost{padding:12px 24px;background:none;border:.5px solid rgba(255,255,255,.1);color:#888;border-radius:8px;text-decoration:none;font-size:.84rem;transition:color .2s;}
+    .btn-ghost:hover{color:#fff;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon">👋</div>
+    <h1>No problem!</h1>
+    <p>Your invitations are safely saved as drafts. Subscribe any time to publish them and start collecting RSVPs.</p>
+    <div class="btns">
+      <a href="{{ url_for('subscribe') }}" class="btn-primary">Try again</a>
+      <a href="{{ url_for('dashboard') }}" class="btn-ghost">Back to dashboard</a>
+    </div>
+  </div>
+</body>
+</html>

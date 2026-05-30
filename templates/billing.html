@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Billing — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;min-height:100vh;}
+    .bill-wrap{max-width:620px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+    .bill-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:2rem;transition:color .2s;}
+    .bill-back:hover{color:#aaa;}
+    .bill-title{font-family:Georgia,serif;font-size:1.8rem;color:#fff;margin-bottom:.4rem;}
+    .bill-sub{font-size:.85rem;color:#555;margin-bottom:2.2rem;}
+    /* Status card */
+    .sub-status-card{border-radius:14px;padding:1.6rem 1.8rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.2rem;flex-wrap:wrap;}
+    .sub-status-card.active{background:rgba(29,158,117,.08);border:.5px solid rgba(29,158,117,.2);}
+    .sub-status-card.free{background:rgba(232,213,163,.05);border:.5px solid rgba(232,213,163,.12);}
+    .sub-status-icon{font-size:2rem;flex-shrink:0;}
+    .sub-status-body{flex:1;}
+    .sub-status-label{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:4px;}
+    .sub-status-value{font-size:1.1rem;font-weight:600;}
+    .sub-status-card.active .sub-status-value{color:#1d9e75;}
+    .sub-status-card.free .sub-status-value{color:#e8d5a3;}
+    .sub-status-detail{font-size:.75rem;color:#555;margin-top:4px;}
+    .sub-action-btn{padding:10px 20px;border-radius:8px;font-size:.78rem;font-weight:600;text-decoration:none;border:none;cursor:pointer;font-family:inherit;}
+    .btn-subscribe{background:#e8d5a3;color:#080808;transition:opacity .2s;}
+    .btn-subscribe:hover{opacity:.88;}
+    /* Payment history */
+    .bill-section-label{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:#444;margin-bottom:12px;}
+    .payment-table{width:100%;border-collapse:collapse;}
+    .payment-table th{font-size:.65rem;letter-spacing:.08em;text-transform:uppercase;color:#444;text-align:left;padding:0 0 8px;border-bottom:.5px solid rgba(255,255,255,.06);}
+    .payment-table td{padding:10px 0;font-size:.82rem;color:#aaa;border-bottom:.5px solid rgba(255,255,255,.04);}
+    .payment-table td:last-child{text-align:right;}
+    .status-pill{display:inline-block;font-size:.6rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:10px;}
+    .status-pill.complete{background:rgba(29,158,117,.15);color:#1d9e75;}
+    .status-pill.pending{background:rgba(232,213,163,.1);color:#e8d5a3;}
+    .status-pill.failed{background:rgba(248,113,113,.12);color:#f87171;}
+    .empty-history{text-align:center;padding:2rem;color:#333;font-size:.82rem;}
+    {% if config.get('PAYFAST_SANDBOX') %}
+    .dev-banner{background:rgba(245,158,11,.06);border:.5px solid rgba(245,158,11,.15);border-radius:10px;padding:.7rem 1rem;margin-bottom:1.5rem;font-size:.73rem;color:#f59e0b;}
+    {% endif %}
+  </style>
+</head>
+<body>
+{% include '_nav.html' %}
+
+<div class="bill-wrap">
+  <a class="bill-back" href="{{ url_for('dashboard') }}">← Dashboard</a>
+  <div class="bill-title">Billing &amp; subscription</div>
+  <div class="bill-sub">Manage your Invitisimemo subscription</div>
+
+  {% if config.get('PAYFAST_SANDBOX') %}
+  <div class="dev-banner">⚡ Sandbox mode — payments go to PayFast's test environment.</div>
+  {% endif %}
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-msg {{ cat }}" style="margin-bottom:1rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Subscription status -->
+  <div class="sub-status-card {{ 'active' if current_user.sub_status == 'active' else 'free' }}">
+    <div class="sub-status-icon">{{ '✅' if current_user.sub_status == 'active' else '🔓' }}</div>
+    <div class="sub-status-body">
+      <div class="sub-status-label">Current plan</div>
+      <div class="sub-status-value">{{ 'Active — Monthly' if current_user.sub_status == 'active' else 'Free (unpublished)' }}</div>
+      <div class="sub-status-detail">
+        {% if current_user.sub_status == 'active' %}
+          R{{ price | int }}/month · Unlimited invitations
+        {% else %}
+          Build and preview invitations free. Subscribe to publish &amp; share.
+        {% endif %}
+      </div>
+    </div>
+    {% if current_user.sub_status != 'active' %}
+    <a href="{{ url_for('subscribe') }}" class="sub-action-btn btn-subscribe">Subscribe — R{{ price | int }}/mo</a>
+    {% endif %}
+  </div>
+
+  <!-- Payment history -->
+  <div class="bill-section-label">Payment history</div>
+  {% if payments %}
+  <table class="payment-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.created_at.strftime('%d %b %Y') if p.created_at else '—' }}</td>
+        <td>Monthly subscription</td>
+        <td>R{{ '%.2f' | format(p.amount | float) }}</td>
+        <td><span class="status-pill {{ p.status }}">{{ p.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-history">No payments yet.</div>
+  {% endif %}
+</div>
+</body>
+</html>

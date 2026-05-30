@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Payment Received — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
+    .wrap{max-width:460px;width:90%;text-align:center;padding:2.5rem 2rem;background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:20px;}
+    .icon{font-size:3rem;margin-bottom:1.2rem;}
+    h1{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
+    p{font-size:.88rem;color:#666;line-height:1.7;margin-bottom:1.5rem;}
+    .note{font-size:.75rem;color:#333;margin-bottom:1.8rem;}
+    .btn{display:inline-block;padding:13px 28px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:600;text-decoration:none;font-size:.85rem;transition:opacity .2s;}
+    .btn:hover{opacity:.88;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="icon">🎉</div>
+    <h1>Payment received!</h1>
+    <p>Thank you for subscribing to Invitisimemo. Your payment is being processed by PayFast — your subscription will activate within a few seconds.</p>
+    <p class="note">If your account doesn't show as active after a minute, please refresh the page or contact us.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn">Go to my dashboard →</a>
+  </div>
+</body>
+</html>

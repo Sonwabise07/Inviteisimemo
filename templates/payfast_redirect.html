@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Redirecting to PayFast…</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
+    .wrap{text-align:center;padding:2rem;}
+    .spinner{width:40px;height:40px;border:2px solid rgba(232,213,163,.2);border-top-color:#e8d5a3;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.5rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    h2{color:#fff;font-weight:300;font-size:1.1rem;margin-bottom:.5rem;}
+    p{color:#555;font-size:.82rem;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner"></div>
+    <h2>Redirecting to PayFast…</h2>
+    <p>Please do not close this window.</p>
+  </div>
+  <form id="pf-form" method="POST" action="{{ pf_url }}" style="display:none;">
+    {% for key, val in pf_data.items() %}
+    <input type="hidden" name="{{ key }}" value="{{ val }}"/>
+    {% endfor %}
+  </form>
+  <script>document.getElementById('pf-form').submit();</script>
+</body>
+</html>

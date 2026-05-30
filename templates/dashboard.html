@@ -125,6 +125,20 @@
   <div class="dash-title">My Events</div>
   <div class="dash-sub">All your invitations in one place</div>
 
+  {% if not is_subscribed %}
+  <div style="background:rgba(232,213,163,.05);border:.5px solid rgba(232,213,163,.18);border-radius:12px;padding:1.1rem 1.4rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+    <div>
+      <div style="font-size:.9rem;font-weight:600;color:#e8d5a3;margin-bottom:3px;">Publish your invitations</div>
+      <div style="font-size:.76rem;color:#555;">Subscribe to make invites live and start collecting RSVPs — R99/month.</div>
+    </div>
+    <a href="{{ url_for('subscribe') }}" style="flex-shrink:0;padding:9px 18px;background:#e8d5a3;color:#080808;border-radius:8px;font-size:.78rem;font-weight:700;text-decoration:none;">Subscribe →</a>
+  </div>
+  {% else %}
+  <div style="text-align:right;margin-bottom:1rem;">
+    <a href="{{ url_for('billing') }}" style="font-size:.72rem;color:#1d9e75;text-decoration:none;border:.5px solid rgba(29,158,117,.2);padding:4px 12px;border-radius:6px;">● Active subscription</a>
+  </div>
+  {% endif %}
+
   <div class="create-cta">
     <div>
       <h3>Ready to create something beautiful?</h3>
@@ -145,7 +159,14 @@
     <div class="event-card">
       <div class="event-dot {{ 'past' if is_past else 'upcoming' }}"></div>
       <div class="event-body">
-        <div class="event-title">{{ event.event_title }}</div>
+        <div class="event-title">
+          {{ event.event_title }}
+          {% if event.is_live %}
+          <span style="font-size:.58rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:rgba(29,158,117,.12);color:#1d9e75;border:.5px solid rgba(29,158,117,.25);border-radius:8px;padding:1px 6px;vertical-align:middle;margin-left:5px;">LIVE</span>
+          {% else %}
+          <span style="font-size:.58rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:rgba(255,255,255,.05);color:#555;border:.5px solid rgba(255,255,255,.08);border-radius:8px;padding:1px 6px;vertical-align:middle;margin-left:5px;">DRAFT</span>
+          {% endif %}
+        </div>
         <div class="event-meta">
           {{ event.event_date }} · {{ event.venue_name }}
           {% if not is_past and days_left is not none %}

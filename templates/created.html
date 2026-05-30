@@ -15,9 +15,25 @@
   <!-- ── Celebration header ── -->
   <div class="created-hero">
     <div class="created-confetti" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
+    {% if event.is_live %}
     <h1 class="created-title">Your invitation is live! ✦</h1>
     <p class="created-sub">RSVP notifications go to <strong>{{ event.host_email }}</strong> — a daily summary lands at 5 PM.</p>
+    {% else %}
+    <h1 class="created-title" style="font-size:1.8rem;">Your invitation is ready! ✦</h1>
+    <p class="created-sub">One last step — subscribe to publish it and start collecting RSVPs.</p>
+    {% endif %}
   </div>
+
+  {% if not event.is_live %}
+  <!-- ── Subscribe CTA ── -->
+  <div class="cc-block" style="background:rgba(232,213,163,.05);border:.5px solid rgba(232,213,163,.2);border-radius:14px;padding:1.8rem;margin-bottom:1.5rem;text-align:center;">
+    <div style="font-size:1.8rem;margin-bottom:.8rem;">🔓</div>
+    <div style="font-size:1.05rem;font-weight:600;color:#fff;margin-bottom:.5rem;">Publish your invitation</div>
+    <p style="font-size:.84rem;color:#666;line-height:1.7;margin-bottom:1.4rem;">Subscribe to make your invite live and shareable. Guests won't be able to open or RSVP until it's published.</p>
+    <a href="{{ url_for('subscribe') }}" style="display:inline-block;padding:14px 28px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:700;text-decoration:none;font-size:.88rem;">Subscribe — R99/month</a>
+    <p style="font-size:.7rem;color:#333;margin-top:10px;">Cancel any time. All your invitations publish instantly on activation.</p>
+  </div>
+  {% endif %}
 
   <!-- ── GUEST LINK — share this ── -->
   <div class="cc-block cc-guest">

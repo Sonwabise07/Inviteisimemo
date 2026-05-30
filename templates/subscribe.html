@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Subscribe — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;min-height:100vh;color:#fff;}
+    .sub-wrap{max-width:520px;margin:0 auto;padding:3rem 1.5rem 4rem;}
+    .sub-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:2rem;transition:color .2s;}
+    .sub-back:hover{color:#aaa;}
+    .sub-header{text-align:center;margin-bottom:2.5rem;}
+    .sub-badge{display:inline-block;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#e8d5a3;border:.5px solid rgba(232,213,163,.3);border-radius:20px;padding:4px 12px;margin-bottom:1.2rem;}
+    .sub-title{font-family:Georgia,serif;font-size:2.2rem;font-weight:400;line-height:1.2;margin-bottom:.8rem;}
+    .sub-title span{color:#e8d5a3;}
+    .sub-sub{font-size:.9rem;color:#555;line-height:1.7;}
+    .price-card{background:#111;border:.5px solid rgba(255,255,255,.1);border-radius:18px;padding:2rem 1.8rem;margin-bottom:2rem;position:relative;overflow:hidden;}
+    .price-card::before{content:'';position:absolute;inset:-1px;border-radius:18px;background:linear-gradient(135deg,rgba(232,213,163,.25),transparent 60%);pointer-events:none;}
+    .price-top{display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;}
+    .price-amount{font-size:3rem;font-weight:700;color:#fff;line-height:1;}
+    .price-currency{font-size:1.1rem;color:#888;margin-bottom:.5rem;}
+    .price-period{font-size:.8rem;color:#555;margin-bottom:1.4rem;}
+    .price-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:1.8rem;}
+    .price-features li{display:flex;align-items:center;gap:10px;font-size:.88rem;color:#ccc;}
+    .price-features li::before{content:'✓';color:#e8d5a3;font-weight:700;flex-shrink:0;}
+    .sub-btn{display:block;width:100%;padding:16px;background:#e8d5a3;color:#080808;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.06em;transition:opacity .2s;font-family:inherit;}
+    .sub-btn:hover{opacity:.88;}
+    .sub-guarantee{text-align:center;font-size:.7rem;color:#333;margin-top:14px;line-height:1.6;}
+    .sub-pf-logo{text-align:center;margin-top:1.2rem;font-size:.68rem;color:#2a2a2a;}
+    .sub-pf-logo span{color:#007bff;}
+    {% if config.get('PAYFAST_SANDBOX') %}
+    .dev-panel{background:rgba(245,158,11,.06);border:.5px solid rgba(245,158,11,.2);border-radius:12px;padding:1rem 1.2rem;margin-top:1.5rem;}
+    .dev-panel p{font-size:.75rem;color:#f59e0b;margin-bottom:.8rem;}
+    .dev-btn{display:block;width:100%;padding:10px;background:rgba(245,158,11,.12);border:.5px solid rgba(245,158,11,.3);border-radius:8px;color:#f59e0b;font-size:.78rem;cursor:pointer;font-family:inherit;}
+    {% endif %}
+  </style>
+</head>
+<body>
+{% include '_nav.html' %}
+
+<div class="sub-wrap">
+  <a class="sub-back" href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+
+  <div class="sub-header">
+    <div class="sub-badge">✦ Invitisimemo</div>
+    <h1 class="sub-title">Create invitations that <span>truly impress</span></h1>
+    <p class="sub-sub">One simple monthly plan. Unlimited invitations. Publish instantly and share with the world.</p>
+  </div>
+
+  <div class="price-card">
+    <div class="price-top">
+      <span class="price-currency">R</span>
+      <span class="price-amount">{{ price | int }}</span>
+    </div>
+    <div class="price-period">per month · cancel any time</div>
+    <ul class="price-features">
+      <li>Unlimited digital invitations</li>
+      <li>23 stunning designs &amp; 20 patterns</li>
+      <li>Live RSVP collection &amp; management</li>
+      <li>Personalised per-guest invite links</li>
+      <li>WhatsApp sharing + QR codes</li>
+      <li>14 animated effects &amp; photo filters</li>
+      <li>Emoji reactions &amp; guest comments</li>
+      <li>CSV export &amp; daily RSVP summaries</li>
+      <li>Gift registry &amp; capacity management</li>
+    </ul>
+    <form method="POST" action="{{ url_for('subscribe_checkout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="sub-btn">Subscribe now — R{{ price | int }}/month</button>
+    </form>
+    <p class="sub-guarantee">🔒 Secure payment via PayFast · Your card details are never stored on our servers</p>
+    <div class="sub-pf-logo">Powered by <span>PayFast</span></div>
+  </div>
+
+  {% if config.get('PAYFAST_SANDBOX') %}
+  <div class="dev-panel">
+    <p>⚡ Sandbox mode — activate without a real payment for testing:</p>
+    <form method="POST" action="{{ url_for('payfast_dev_activate') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <button type="submit" class="dev-btn">Activate subscription (dev shortcut)</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

@@ -189,6 +189,9 @@ class User(db.Model, UserMixin):
     email         = db.Column(db.String(200), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     is_admin      = db.Column(db.Boolean, default=False, nullable=False)
+    sub_status    = db.Column(db.String(20), default='free')
+    sub_pf_token  = db.Column(db.String(200), default='')
+    sub_expires   = db.Column(db.DateTime, nullable=True)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
     events        = db.relationship('Event', backref='owner', lazy=True,
                                     foreign_keys='Event.user_id')
@@ -249,6 +252,7 @@ class Event(db.Model):
     image_2        = db.Column(db.String(300), default='')
     image_3        = db.Column(db.String(300), default='')
     view_count     = db.Column(db.Integer, default=0)
+    is_live        = db.Column(db.Boolean, default=False, nullable=False)
     is_archived    = db.Column(db.Boolean, default=False, nullable=False)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
     rsvps          = db.relationship('RSVP', backref='event', lazy=True,
@@ -342,6 +346,19 @@ class AuditLog(db.Model):
     timestamp  = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref=db.backref('audit_logs', lazy=True))
+
+
+class Payment(db.Model):
+    """Record of a PayFast payment or recurring subscription charge."""
+    __tablename__ = 'payment'
+    id            = db.Column(db.Integer, primary_key=True)
+    user_id       = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    pf_payment_id = db.Column(db.String(100), default='')
+    pf_sub_token  = db.Column(db.String(200), default='')
+    amount        = db.Column(db.Numeric(10, 2), default=0)
+    status        = db.Column(db.String(20), default='pending')
+    created_at    = db.Column(db.DateTime, default=datetime.utcnow)
+    user          = db.relationship('User', backref=db.backref('payments', lazy=True))
 
 
 # ── Flask-Login loader ────────────────────────────────────────
@@ -915,7 +932,8 @@ def dashboard():
         }
     return render_template('dashboard.html', events=events,
                            today=today_dt.isoformat(),
-                           event_meta=event_meta)
+                           event_meta=event_meta,
+                           is_subscribed=_has_active_sub(current_user))
 
 
 # ── Password reset helpers ────────────────────────────────────
@@ -1096,6 +1114,7 @@ def create():
             db.session.add(Gift(event_id=event.id, name=gname,
                                 store=_clean(gstore, 200)))
 
+    event.is_live = _has_active_sub(current_user)
     db.session.commit()
     _audit('event_create', f'token={token} title={event.event_title!r}')
 
@@ -1103,7 +1122,8 @@ def create():
     manage_url = url_for('manage', token=token, _external=True)
     return render_template('created.html', event=event,
                            invite_url=invite_url, manage_url=manage_url,
-                           host_pin=event.host_pin)
+                           host_pin=event.host_pin,
+                           is_subscribed=_has_active_sub(current_user))
 
 
 @app.route('/preview-draft', methods=['POST'])
@@ -1275,6 +1295,9 @@ def edit_event_pin(token, pin):
 @app.route('/invite/<token>')
 def invitation(token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    if not event.is_live:
+        if not (current_user.is_authenticated and _can_manage(event)):
+            return render_template('invite_draft.html', event=event)
     event.view_count = (event.view_count or 0) + 1
     db.session.commit()
     return render_template('invitation.html', **_invitation_context(event))
@@ -1283,6 +1306,8 @@ def invitation(token):
 @app.route('/invite/<token>/<link_token>')
 def personalised_invitation(token, link_token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    if not event.is_live:
+        return render_template('invite_draft.html', event=event)
     link  = InviteLink.query.filter_by(link_token=link_token,
                                        event_id=event.id).first_or_404()
     event.view_count = (event.view_count or 0) + 1
@@ -1356,11 +1381,13 @@ def _render_manage(event, legacy_pin: str = None):
     else:
         edit_url = url_for('edit_event', token=event.token, _external=True)
 
+    is_subscribed = _has_active_sub(current_user) if current_user.is_authenticated else False
     return render_template('manage.html', event=event,
                            yes_list=yes_list, no_list=no_list,
                            wait_list=wait_list, invite_links=invite_links,
                            invite_url=invite_url, edit_url=edit_url,
-                           legacy_pin=legacy_pin)
+                           legacy_pin=legacy_pin,
+                           is_subscribed=is_subscribed)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1449,6 +1476,219 @@ def delete_rsvp(rsvp_id):
     db.session.commit()
     _audit('rsvp_delete', f'event={event.token} guest={name!r}')
     return jsonify({'status': 'ok'})
+
+
+# ─────────────────────────────────────────────────────────────
+# ── Subscription helpers ──────────────────────────────────────
+# ─────────────────────────────────────────────────────────────
+
+_PF_SANDBOX_URL  = 'https://sandbox.payfast.co.za/eng/process'
+_PF_LIVE_URL     = 'https://www.payfast.co.za/eng/process'
+_PF_SANDBOX_VURL = 'https://sandbox.payfast.co.za/eng/query/validate'
+_PF_LIVE_VURL    = 'https://www.payfast.co.za/eng/query/validate'
+
+
+def _has_active_sub(user) -> bool:
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    if getattr(user, 'is_admin', False):
+        return True
+    return getattr(user, 'sub_status', '') == 'active'
+
+
+def _pf_url() -> str:
+    return _PF_SANDBOX_URL if app.config.get('PAYFAST_SANDBOX') else _PF_LIVE_URL
+
+
+def _pf_validate_url() -> str:
+    return _PF_SANDBOX_VURL if app.config.get('PAYFAST_SANDBOX') else _PF_LIVE_VURL
+
+
+def _pf_signature(data: dict) -> str:
+    import hashlib
+    passphrase = app.config.get('PAYFAST_PASSPHRASE', '')
+    parts = []
+    for key, val in data.items():
+        if key != 'signature' and val is not None and str(val) != '':
+            parts.append(f"{key}={urllib.parse.quote_plus(str(val))}")
+    pf_str = '&'.join(parts)
+    if passphrase:
+        pf_str += f'&passphrase={urllib.parse.quote_plus(passphrase)}'
+    return hashlib.md5(pf_str.encode()).hexdigest()
+
+
+def _app_base() -> str:
+    base = app.config.get('APP_BASE_URL', '').rstrip('/')
+    return base or request.host_url.rstrip('/')
+
+
+# ─────────────────────────────────────────────────────────────
+# ── Routes: Subscription / Billing ───────────────────────────
+# ─────────────────────────────────────────────────────────────
+
+@app.route('/subscribe')
+@login_required
+def subscribe():
+    if _has_active_sub(current_user):
+        return redirect(url_for('billing'))
+    price = app.config.get('SUBSCRIPTION_PRICE_ZAR', 99)
+    return render_template('subscribe.html', price=price)
+
+
+@app.route('/subscribe/checkout', methods=['POST'])
+@login_required
+def subscribe_checkout():
+    if _has_active_sub(current_user):
+        return redirect(url_for('billing'))
+
+    base  = _app_base()
+    price = float(app.config.get('SUBSCRIPTION_PRICE_ZAR', 99))
+
+    name_parts = current_user.name.strip().split()
+    first = name_parts[0] if name_parts else current_user.name
+    last  = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
+    pf_data = {
+        'merchant_id':       app.config.get('PAYFAST_MERCHANT_ID', ''),
+        'merchant_key':      app.config.get('PAYFAST_MERCHANT_KEY', ''),
+        'return_url':        f"{base}/payment/success",
+        'cancel_url':        f"{base}/payment/cancel",
+        'notify_url':        f"{base}/payfast/notify",
+        'name_first':        first,
+        'name_last':         last,
+        'email_address':     current_user.email,
+        'm_payment_id':      f"{current_user.id}_{int(time.time())}",
+        'amount':            f"{price:.2f}",
+        'item_name':         'Invitisimemo Monthly Subscription',
+        'item_description':  'Full access — create & publish unlimited digital invitations',
+        'custom_str1':       str(current_user.id),
+        'subscription_type': '1',
+        'billing_date':      date.today().strftime('%Y-%m-%d'),
+        'recurring_amount':  f"{price:.2f}",
+        'frequency':         '3',
+        'cycles':            '0',
+    }
+    pf_data['signature'] = _pf_signature(pf_data)
+
+    return render_template('payfast_redirect.html',
+                           pf_url=_pf_url(), pf_data=pf_data)
+
+
+@csrf.exempt
+@app.route('/payfast/notify', methods=['POST'])
+def payfast_notify():
+    posted = request.form.to_dict()
+
+    # Validate ITN with PayFast
+    try:
+        validate_str = '&'.join(
+            f"{k}={urllib.parse.quote_plus(str(v))}" for k, v in posted.items()
+        )
+        req = urllib.request.Request(
+            _pf_validate_url(),
+            data=validate_str.encode(),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = resp.read().decode().strip()
+    except Exception as exc:
+        app.logger.warning(f"PayFast ITN validation error: {exc}")
+        # In sandbox mode, accept anyway so devs can test
+        result = 'VALID' if app.config.get('PAYFAST_SANDBOX') else 'INVALID'
+
+    if result != 'VALID':
+        app.logger.warning("PayFast ITN rejected")
+        return 'INVALID', 400
+
+    payment_status = posted.get('payment_status', '')
+    custom_str1    = posted.get('custom_str1', '')
+    pf_payment_id  = posted.get('pf_payment_id', '')
+    pf_sub_token   = posted.get('token', '')
+    amount_gross   = posted.get('amount_gross', '0')
+
+    if not custom_str1 or not custom_str1.isdigit():
+        return 'OK', 200
+
+    user = db.session.get(User, int(custom_str1))
+    if not user:
+        return 'OK', 200
+
+    db.session.add(Payment(
+        user_id=user.id,
+        pf_payment_id=pf_payment_id,
+        pf_sub_token=pf_sub_token,
+        amount=float(amount_gross) if amount_gross else 0,
+        status=payment_status.lower(),
+    ))
+
+    if payment_status == 'COMPLETE':
+        user.sub_status   = 'active'
+        user.sub_pf_token = pf_sub_token
+        # Auto-publish all their draft events
+        for ev in Event.query.filter_by(user_id=user.id, is_archived=False).all():
+            if not ev.is_live:
+                ev.is_live = True
+        _audit('subscription_activated', f'user={user.email}', user_id=user.id)
+    elif payment_status in ('FAILED', 'CANCELLED'):
+        user.sub_status = 'expired'
+        _audit('subscription_lapsed', f'user={user.email} status={payment_status}',
+               user_id=user.id)
+
+    db.session.commit()
+    return 'OK', 200
+
+
+@app.route('/payment/success')
+@login_required
+def payment_success():
+    return render_template('payment_success.html')
+
+
+@app.route('/payment/cancel')
+@login_required
+def payment_cancel():
+    return render_template('payment_cancel.html')
+
+
+@app.route('/billing')
+@login_required
+def billing():
+    payments = (Payment.query
+                .filter_by(user_id=current_user.id)
+                .order_by(Payment.created_at.desc())
+                .limit(12).all())
+    price = app.config.get('SUBSCRIPTION_PRICE_ZAR', 99)
+    return render_template('billing.html', payments=payments, price=price)
+
+
+@app.route('/publish/<token>', methods=['POST'])
+@login_required
+def publish_event(token):
+    event = Event.query.filter_by(token=token).first_or_404()
+    if not _can_manage(event):
+        abort(403)
+    if not _has_active_sub(current_user):
+        flash('Subscribe to publish your invitation and make it visible to guests.', 'info')
+        return redirect(url_for('subscribe'))
+    event.is_live = True
+    db.session.commit()
+    _audit('event_publish', f'token={token}')
+    flash('Your invitation is now live! ✦', 'success')
+    return redirect(url_for('manage', token=token))
+
+
+@app.route('/payfast/dev-activate', methods=['POST'])
+@login_required
+def payfast_dev_activate():
+    """Sandbox-only shortcut to activate subscription without real payment."""
+    if not app.config.get('PAYFAST_SANDBOX'):
+        abort(403)
+    current_user.sub_status = 'active'
+    for ev in Event.query.filter_by(user_id=current_user.id, is_archived=False).all():
+        ev.is_live = True
+    db.session.commit()
+    flash('Subscription activated (sandbox dev mode). All drafts are now live.', 'success')
+    return redirect(url_for('billing'))
 
 
 # ─────────────────────────────────────────────────────────────

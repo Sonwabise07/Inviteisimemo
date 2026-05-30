@@ -56,3 +56,11 @@ class Config:
     # ── Data retention ────────────────────────────────────────
     # Auto-archive events older than this many days (0 = disabled)
     ARCHIVE_AFTER_DAYS = int(os.environ.get('ARCHIVE_AFTER_DAYS', 365))
+
+    # ── PayFast payments ──────────────────────────────────────
+    PAYFAST_MERCHANT_ID  = os.environ.get('PAYFAST_MERCHANT_ID', '')
+    PAYFAST_MERCHANT_KEY = os.environ.get('PAYFAST_MERCHANT_KEY', '')
+    PAYFAST_PASSPHRASE   = os.environ.get('PAYFAST_PASSPHRASE', '')
+    PAYFAST_SANDBOX      = os.environ.get('PAYFAST_SANDBOX', 'true').lower() == 'true'
+    SUBSCRIPTION_PRICE_ZAR = float(os.environ.get('SUBSCRIPTION_PRICE_ZAR', '99'))
+    APP_BASE_URL         = os.environ.get('APP_BASE_URL', '')
