@@ -497,6 +497,10 @@ footer{text-align:center;padding:2.5rem;font-size:.65rem;letter-spacing:.18em;te
 .confirm-go-btn:hover{opacity:.88;}
 .confirm-note{text-align:center;font-size:.65rem;color:#333;}
 
+/* RSVP edit button */
+.rsvp-edit-btn{display:block;width:100%;margin-top:12px;padding:9px;background:rgba(255,255,255,.04);border:.5px solid rgba(255,255,255,.1);border-radius:8px;color:#666;font-size:.76rem;cursor:pointer;transition:color .15s,border-color .15s;font-family:inherit;}
+.rsvp-edit-btn:hover{color:#aaa;border-color:rgba(255,255,255,.2);}
+
 /* ── PRESET PACKS ── */
 .preset-section{margin-bottom:2rem;padding-bottom:1.8rem;border-bottom:.5px solid rgba(255,255,255,.06);}
 .preset-header{margin-bottom:1.1rem;}

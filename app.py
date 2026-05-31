@@ -1110,6 +1110,16 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+
 # ─────────────────────────────────────────────────────────────
 # ── Routes: Event creation / editing ─────────────────────────
 # ─────────────────────────────────────────────────────────────
@@ -1959,6 +1969,33 @@ def _reaction_counts(event_id: int) -> dict:
             .filter_by(event_id=event_id)
             .group_by(Reaction.emoji).all())
     return {emoji: cnt for emoji, cnt in rows}
+
+
+@csrf.exempt
+@app.route('/api/rsvp/<token>/update', methods=['POST'])
+@limiter.limit("10 per minute")
+def api_rsvp_update(token):
+    """Allow a guest to update their RSVP via their personalised invite link."""
+    event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    if not _rsvp_open(event):
+        return jsonify({'status': 'closed', 'message': 'RSVP deadline has passed.'}), 200
+    data        = request.get_json(silent=True) or {}
+    link_token  = _clean(data.get('link_token', ''), 32)
+    attending   = data.get('attending')
+    if not link_token or attending not in ('yes', 'no'):
+        return jsonify({'status': 'error', 'message': 'Invalid request.'}), 400
+    link = InviteLink.query.filter_by(link_token=link_token, event_id=event.id).first()
+    if not link or not link.rsvp_id:
+        return jsonify({'status': 'error', 'message': 'RSVP not found.'}), 404
+    rsvp = db.session.get(RSVP, link.rsvp_id)
+    if not rsvp:
+        return jsonify({'status': 'error'}), 404
+    rsvp.attending = attending
+    rsvp.dietary   = _clean(data.get('dietary', ''), 300)
+    rsvp.plus_ones = max(0, min(9, int(data.get('plus_ones', 0) or 0)))
+    db.session.commit()
+    _audit('rsvp_update', f'token={token} rsvp={rsvp.id} attending={attending}')
+    return jsonify({'status': 'ok', 'attending': attending})
 
 
 @csrf.exempt

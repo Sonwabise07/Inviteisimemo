@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Terms of Service — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;}
+    .legal-wrap{max-width:720px;margin:0 auto;padding:3rem 1.5rem 5rem;}
+    .legal-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:2rem;transition:color .2s;}
+    .legal-back:hover{color:#aaa;}
+    .legal-title{font-family:Georgia,serif;font-size:2rem;font-weight:400;color:#fff;margin-bottom:.4rem;}
+    .legal-updated{font-size:.72rem;color:#444;margin-bottom:2.5rem;}
+    h2{font-size:1rem;font-weight:600;color:#e8d5a3;margin:2rem 0 .6rem;}
+    h3{font-size:.88rem;font-weight:600;color:#ccc;margin:1.2rem 0 .4rem;}
+    p,li{font-size:.84rem;color:#777;line-height:1.8;margin-bottom:.5rem;}
+    ul{padding-left:1.2rem;margin-bottom:.8rem;}
+    a{color:#e8d5a3;text-decoration:underline;text-underline-offset:3px;}
+    .legal-footer{margin-top:3rem;padding-top:1.5rem;border-top:.5px solid rgba(255,255,255,.06);font-size:.72rem;color:#333;line-height:1.7;}
+  </style>
+</head>
+<body>
+{% include '_nav.html' %}
+<div class="legal-wrap">
+  <a class="legal-back" href="{{ url_for('index') }}">← Home</a>
+  <h1 class="legal-title">Terms of Service</h1>
+  <p class="legal-updated">Last updated: 1 June 2026 · Effective: 1 June 2026</p>
+
+  <p>Welcome to Invitisimemo. By creating an account or using our platform you agree to these Terms of Service ("Terms"). Please read them carefully.</p>
+
+  <h2>1. Who we are</h2>
+  <p>Invitisimemo is a South African digital invitation platform operated as a sole-proprietor / close-corporation business. References to "we", "us" or "Invitisimemo" mean the operator of the platform. Our contact email is <a href="mailto:inviteisimemo@gmail.com">inviteisimemo@gmail.com</a>.</p>
+
+  <h2>2. Your account</h2>
+  <p>You must be at least 18 years old to create an account and accept payments. You are responsible for keeping your login credentials confidential. You agree to provide accurate information and to keep it up to date. We reserve the right to suspend or terminate accounts that violate these Terms.</p>
+
+  <h2>3. Acceptable use</h2>
+  <p>You may use Invitisimemo only for lawful purposes. You may not:</p>
+  <ul>
+    <li>Create or share content that is fraudulent, defamatory, hateful, or discriminatory.</li>
+    <li>Impersonate another person or send invitations on behalf of someone without their consent.</li>
+    <li>Use the platform to collect personal data for purposes other than managing your own event RSVPs.</li>
+    <li>Attempt to circumvent any security or access control measures.</li>
+    <li>Use automated tools to scrape or bulk-create invitations without prior written permission.</li>
+  </ul>
+
+  <h2>4. Subscription and payments</h2>
+  <p>Building and previewing an invitation is free. Publishing an invitation and making it accessible to guests requires an active monthly subscription at the price displayed at the time of purchase (currently R99/month).</p>
+  <ul>
+    <li>Payments are processed by PayFast. We do not store your card details.</li>
+    <li>Your subscription renews automatically each month until cancelled.</li>
+    <li>You may cancel at any time via your account billing page. Cancellation takes effect at the end of the current billing period — we do not offer pro-rated refunds for partial months.</li>
+    <li>We reserve the right to change subscription pricing with at least 30 days' notice to your registered email address.</li>
+  </ul>
+
+  <h2>5. Content ownership</h2>
+  <p>You retain ownership of all content you upload (photos, text, video notes). By uploading content, you grant Invitisimemo a limited, non-exclusive licence to store and display that content solely for the purpose of rendering your invitation to your guests.</p>
+  <p>We will never sell your content or use it in marketing materials without your explicit written consent.</p>
+
+  <h2>6. Guest data</h2>
+  <p>When guests RSVP to your event, their names, email addresses, and any optional information they provide (dietary requirements) are shared with you as the event host. You are responsible for using this data lawfully and in accordance with our Privacy Policy and POPIA. You may not use guest data for purposes unrelated to the specific event for which it was collected.</p>
+
+  <h2>7. Service availability</h2>
+  <p>We aim for high availability but do not guarantee uninterrupted access. We may perform scheduled maintenance, and we reserve the right to modify or discontinue features with reasonable notice. We are not liable for any loss arising from temporary service unavailability.</p>
+
+  <h2>8. Limitation of liability</h2>
+  <p>To the maximum extent permitted by South African law, Invitisimemo's total liability for any claim arising from your use of the platform is limited to the amount you paid us in the 3 months preceding the claim. We are not liable for indirect, incidental, or consequential losses.</p>
+
+  <h2>9. Termination</h2>
+  <p>You may delete your account at any time. We will permanently delete your data in accordance with our Privacy Policy. We may terminate your account if you breach these Terms, with or without notice depending on the severity of the breach.</p>
+
+  <h2>10. Governing law</h2>
+  <p>These Terms are governed by the laws of the Republic of South Africa. Any disputes shall be subject to the jurisdiction of the South African courts.</p>
+
+  <h2>11. Changes to these Terms</h2>
+  <p>We may update these Terms from time to time. We will notify you of material changes via email or a notice on the platform. Continued use after a change constitutes acceptance of the updated Terms.</p>
+
+  <h2>12. Contact</h2>
+  <p>Questions about these Terms? Email us at <a href="mailto:inviteisimemo@gmail.com">inviteisimemo@gmail.com</a>.</p>
+
+  <div class="legal-footer">
+    <a href="{{ url_for('privacy') }}">Privacy Policy &amp; POPIA Notice</a> ·
+    <a href="{{ url_for('index') }}">Invitisimemo</a>
+  </div>
+</div>
+</body>
+</html>

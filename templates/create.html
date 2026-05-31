@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>{% if edit_mode %}Edit{% else %}Create{% endif %} Invitation — Invitely</title>
+  <title>{% if edit_mode %}Edit{% else %}Create{% endif %} Invitation — Invitisimemo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"/>
@@ -48,7 +48,7 @@
 </form>
 
 <div class="form-wrap">
-  <a href="{{ url_for('index') }}" class="brand-sm">Invitely</a>
+  <a href="{{ url_for('index') }}" class="brand-sm">Invitisimemo</a>
   <h1 class="form-title">{% if edit_mode %}Edit your invitation{% else %}Create your invitation{% endif %}</h1>
   <p class="form-sub">{% if edit_mode %}Update any details — your existing share links stay the same.{% else %}Fill in the sections below. Each one expands when you click it.{% endif %}</p>
   <div class="create-actions">

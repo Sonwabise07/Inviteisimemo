@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>{{ code }} — Invitely</title>
+  <title>{{ code }} — Invitisimemo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <style>
     .err-wrap { max-width: 480px; margin: 0 auto; padding: 5rem 2rem; text-align: center; }
@@ -22,7 +22,7 @@
     {% if code == 403 %}Access denied{% elif code == 404 %}Page not found{% else %}Something went wrong{% endif %}
   </div>
   <div class="err-msg">{{ message }}</div>
-  <a class="err-btn" href="{{ url_for('index') }}">← Back to Invitely</a>
+  <a class="err-btn" href="{{ url_for('index') }}">← Back to Invitisimemo</a>
 </div>
 </body>
 </html>

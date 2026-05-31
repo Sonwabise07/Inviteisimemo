@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Privacy Policy &amp; POPIA Notice — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;}
+    .legal-wrap{max-width:720px;margin:0 auto;padding:3rem 1.5rem 5rem;}
+    .legal-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:2rem;transition:color .2s;}
+    .legal-back:hover{color:#aaa;}
+    .legal-title{font-family:Georgia,serif;font-size:2rem;font-weight:400;color:#fff;margin-bottom:.4rem;}
+    .legal-updated{font-size:.72rem;color:#444;margin-bottom:2.5rem;}
+    h2{font-size:1rem;font-weight:600;color:#e8d5a3;margin:2rem 0 .6rem;}
+    h3{font-size:.88rem;font-weight:600;color:#ccc;margin:1.2rem 0 .4rem;}
+    p,li{font-size:.84rem;color:#777;line-height:1.8;margin-bottom:.5rem;}
+    ul{padding-left:1.2rem;margin-bottom:.8rem;}
+    a{color:#e8d5a3;text-decoration:underline;text-underline-offset:3px;}
+    .popia-box{background:rgba(232,213,163,.04);border:.5px solid rgba(232,213,163,.15);border-radius:10px;padding:1.2rem 1.4rem;margin:1.5rem 0;}
+    .popia-box h3{color:#e8d5a3;margin-top:0;}
+    .legal-footer{margin-top:3rem;padding-top:1.5rem;border-top:.5px solid rgba(255,255,255,.06);font-size:.72rem;color:#333;line-height:1.7;}
+  </style>
+</head>
+<body>
+{% include '_nav.html' %}
+<div class="legal-wrap">
+  <a class="legal-back" href="{{ url_for('index') }}">← Home</a>
+  <h1 class="legal-title">Privacy Policy &amp; POPIA Notice</h1>
+  <p class="legal-updated">Last updated: 1 June 2026 · Effective: 1 June 2026</p>
+
+  <p>This Privacy Policy explains how Invitisimemo collects, uses, stores, and protects your personal information. It also serves as our <strong>Section 18 Information Notice</strong> under the Protection of Personal Information Act, 2013 (POPIA).</p>
+
+  <div class="popia-box">
+    <h3>POPIA — Responsible Party</h3>
+    <p>The responsible party (as defined in POPIA) is the operator of Invitisimemo. Contact: <a href="mailto:inviteisimemo@gmail.com">inviteisimemo@gmail.com</a>. We process personal information for the purpose of providing a digital invitation service to hosts and their guests in South Africa and beyond.</p>
+  </div>
+
+  <h2>1. What information we collect</h2>
+
+  <h3>From hosts (registered users)</h3>
+  <ul>
+    <li><strong>Account information:</strong> name, email address, password (stored as a secure hash — never in plaintext).</li>
+    <li><strong>Event information:</strong> event title, date, time, venue name and address, photos, video notes you choose to upload.</li>
+    <li><strong>Billing information:</strong> your subscription status and PayFast payment references. We do not store credit/debit card numbers — PayFast handles all card data under PCI-DSS compliance.</li>
+  </ul>
+
+  <h3>From guests (people who RSVP)</h3>
+  <ul>
+    <li><strong>RSVP data:</strong> name, email address (required), attending status, dietary requirements (optional), plus-one count (optional).</li>
+    <li><strong>Usage data:</strong> we record when a personalised invite link is opened (opened/not-opened status).</li>
+  </ul>
+
+  <h3>Automatically collected</h3>
+  <ul>
+    <li>IP addresses (hashed and used only for rate limiting and security logging).</li>
+    <li>Basic server logs (request timestamps, pages visited) retained for up to 90 days for security purposes.</li>
+  </ul>
+
+  <h2>2. Lawful basis for processing (POPIA)</h2>
+  <p>We process personal information on the following grounds:</p>
+  <ul>
+    <li><strong>Contractual necessity:</strong> account information and billing data are required to provide the subscription service.</li>
+    <li><strong>Consent:</strong> guest RSVP data is collected based on the guest's voluntary participation in the host's event. Guests are informed at the point of collection that their data will be shared with the host.</li>
+    <li><strong>Legitimate interest:</strong> security logging and rate limiting to protect the platform and its users.</li>
+  </ul>
+
+  <h2>3. How we use your information</h2>
+  <ul>
+    <li>To operate and display your invitation to guests.</li>
+    <li>To send RSVP confirmations and event updates to guests (via email) on behalf of the host.</li>
+    <li>To send daily RSVP summary emails to hosts.</li>
+    <li>To process subscription payments via PayFast.</li>
+    <li>To send password-reset emails when requested.</li>
+    <li>To maintain security, detect abuse, and comply with legal obligations.</li>
+  </ul>
+  <p>We <strong>do not</strong> sell, rent, or share your personal information with third parties for marketing purposes.</p>
+
+  <h2>4. Sensitive information</h2>
+  <p>Dietary requirements may reveal health, religious, or cultural information — categories POPIA regards as sensitive. We collect this information only when voluntarily provided by guests, use it solely to assist the host in catering planning, and do not retain it beyond the retention periods set out below.</p>
+
+  <h2>5. Data sharing</h2>
+  <ul>
+    <li><strong>Host → Guest data:</strong> when you RSVP, your name and attending status are shared with the event host. Your email is shared only to allow the host to contact you about the event.</li>
+    <li><strong>PayFast:</strong> we share your name and email with PayFast to process subscription payments. PayFast's own Privacy Policy applies to data they hold.</li>
+    <li><strong>Render / Railway (hosting):</strong> our application runs on cloud infrastructure. Data is stored in accordance with the provider's security standards.</li>
+    <li>We do not share data with any other third parties.</li>
+  </ul>
+
+  <h2>6. Data retention</h2>
+  <ul>
+    <li><strong>Events and RSVPs:</strong> automatically archived after 365 days of inactivity, permanently deleted on account deletion.</li>
+    <li><strong>Accounts:</strong> retained as long as the account is active. You may request deletion at any time.</li>
+    <li><strong>Payment records:</strong> retained for 5 years to comply with financial record-keeping requirements.</li>
+    <li><strong>Server logs:</strong> retained for 90 days.</li>
+  </ul>
+
+  <h2>7. Your rights under POPIA</h2>
+  <p>As a data subject you have the right to:</p>
+  <ul>
+    <li><strong>Access</strong> the personal information we hold about you.</li>
+    <li><strong>Correct</strong> inaccurate or incomplete information.</li>
+    <li><strong>Delete</strong> your personal information (subject to legal retention obligations).</li>
+    <li><strong>Object</strong> to the processing of your information.</li>
+    <li><strong>Lodge a complaint</strong> with the Information Regulator of South Africa at <a href="https://inforegulator.org.za" target="_blank">inforegulator.org.za</a>.</li>
+  </ul>
+  <p>To exercise any of these rights, email us at <a href="mailto:inviteisimemo@gmail.com">inviteisimemo@gmail.com</a>. We will respond within 30 days.</p>
+
+  <h2>8. Security</h2>
+  <p>We implement industry-standard security measures including: HTTPS-only access, bcrypt password hashing, CSRF protection on all forms, rate limiting, and access controls. No system is perfectly secure — if you suspect a breach, please contact us immediately.</p>
+
+  <h2>9. Cookies</h2>
+  <p>We use a single session cookie to keep you logged in. We do not use tracking, analytics, or advertising cookies. No third-party cookies are set by Invitisimemo.</p>
+
+  <h2>10. Children</h2>
+  <p>Our service is not directed at children under 18. We do not knowingly collect personal information from minors. If you believe a minor has provided us with personal data, please contact us and we will delete it promptly.</p>
+
+  <h2>11. Changes to this policy</h2>
+  <p>We may update this policy from time to time. Material changes will be communicated to registered users via email. Continued use of the platform after notification constitutes acceptance of the updated policy.</p>
+
+  <h2>12. Contact us</h2>
+  <p>For any privacy-related queries, requests, or complaints:<br/>
+  Email: <a href="mailto:inviteisimemo@gmail.com">inviteisimemo@gmail.com</a><br/>
+  Information Regulator (SA): <a href="https://inforegulator.org.za" target="_blank">inforegulator.org.za</a></p>
+
+  <div class="legal-footer">
+    <a href="{{ url_for('terms') }}">Terms of Service</a> ·
+    <a href="{{ url_for('index') }}">Invitisimemo</a>
+  </div>
+</div>
+</body>
+</html>

@@ -793,7 +793,7 @@
 
 <!-- NAV -->
 <nav class="inv-nav">
-  <a href="{{ url_for('index') }}" class="inv-nav-logo">Invitely</a>
+  <a href="{{ url_for('index') }}" class="inv-nav-logo">Invitisimemo</a>
   <a href="{{ url_for('register') }}" class="inv-nav-cta">Create your own →</a>
 </nav>
 
@@ -1221,7 +1221,7 @@
 
         <div class="rsvp-card">
           {% if existing_rsvp %}
-          <div class="existing-rsvp">
+          <div class="existing-rsvp" id="rsvp-confirmed-block">
             <div class="existing-rsvp-icon">{% if existing_rsvp.waitlist %}⏳{% elif existing_rsvp.attending == 'yes' %}✅{% else %}💔{% endif %}</div>
             <div class="existing-rsvp-title">
               {% if existing_rsvp.waitlist %}You're on the waitlist{% elif existing_rsvp.attending == 'yes' %}You're confirmed!{% else %}We'll miss you{% endif %}
@@ -1232,7 +1232,34 @@
               {% if existing_rsvp.email %}<div>{{ existing_rsvp.email }}</div>{% endif %}
               <div>{{ existing_rsvp.timestamp.strftime('%d %b %Y, %H:%M') }}</div>
             </div>
+            {% if rsvp_open and not existing_rsvp.waitlist and link is defined and link %}
+            <button class="rsvp-edit-btn" onclick="showRSVPEdit()">✏️ Update my RSVP</button>
+            {% endif %}
           </div>
+          {% if rsvp_open and not existing_rsvp.waitlist and link is defined and link %}
+          <div id="rsvp-edit-block" style="display:none;margin-top:14px;">
+            <div class="rsvp-q" style="margin-bottom:10px;">Change your response:</div>
+            <div class="rsvp-btns">
+              <button class="rbtn yes" id="edit-yes-btn" onclick="editPick('yes')"
+                      {% if existing_rsvp.attending == 'yes' %}style="background:var(--accent,#e8d5a3)22;border-color:var(--accent,#e8d5a3);color:var(--accent,#e8d5a3);"{% endif %}>
+                <span class="rbtn-icon">🎉</span> Yes, I'll be there!
+              </button>
+              <button class="rbtn no" id="edit-no-btn" onclick="editPick('no')"
+                      {% if existing_rsvp.attending == 'no' %}style="background:var(--accent,#e8d5a3)22;border-color:var(--accent,#e8d5a3);color:var(--accent,#e8d5a3);"{% endif %}>
+                <span class="rbtn-icon">💔</span> Can't make it
+              </button>
+            </div>
+            <input class="rinput" type="text" id="edit-dietary"
+                   placeholder="Dietary requirements (optional)"
+                   value="{{ existing_rsvp.dietary or '' }}"
+                   style="margin-top:10px;"/>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="rsub" style="flex:1;" onclick="submitRSVPEdit()">Save changes</button>
+              <button class="rsub" style="flex:0;padding:12px 16px;background:rgba(255,255,255,.05);color:#888;" onclick="hideRSVPEdit()">Cancel</button>
+            </div>
+            <div id="edit-msg" style="display:none;font-size:.78rem;margin-top:8px;color:#1d9e75;text-align:center;"></div>
+          </div>
+          {% endif %}
           {% else %}
           <div id="rsuccess" class="hidden">
             <div class="sicon" id="sicon">🎉</div>
@@ -1257,8 +1284,9 @@
               <button class="rbtn no"  onclick="pick('no')"><span class="rbtn-icon">💔</span> Can't make it</button>
             </div>
             <div id="rform" class="hidden">
-              <input class="rinput" type="text"  id="rname"    placeholder="Your name" value="{{ guest_name_prefill }}"/>
-              <input class="rinput" type="email" id="remail"   placeholder="Email — for your confirmation"/>
+              <input class="rinput" type="text"  id="rname"    placeholder="Your name *" value="{{ guest_name_prefill }}" required/>
+              <input class="rinput" type="email" id="remail"   placeholder="Email{% if not (link is defined and link) %} — required for confirmation{% else %} — optional{% endif %}"
+                     {% if not (link is defined and link) %}required{% endif %}/>
               <input class="rinput" type="text"  id="rdietary" placeholder="Any dietary requirements? (optional)"/>
               <select class="rinput" id="rplus-count" style="display:none;">
                 <option value="0">Just me</option>
@@ -1678,6 +1706,12 @@ function submitR() {
   var plus      = (document.getElementById('rplus')       ? document.getElementById('rplus').value       : '').trim();
   var plusOnes  = parseInt((document.getElementById('rplus-count') ? document.getElementById('rplus-count').value : '0') || '0', 10);
   if (!name) { document.getElementById('rname').focus(); return; }
+  var isPersonalised = {{ 'true' if (link is defined and link) else 'false' }};
+  if (!isPersonalised && !email) {
+    var re = document.getElementById('remail');
+    if (re) { re.focus(); re.style.borderColor='#f87171'; setTimeout(function(){ re.style.borderColor=''; }, 2000); }
+    return;
+  }
   var btn = document.querySelector('.rsub');
   if (btn) { btn.textContent = 'Confirming…'; btn.disabled = true; }
   fetch('/api/rsvp/' + TOKEN, {
@@ -1744,6 +1778,50 @@ function afterRSVP(name, d) {
   var rui = document.getElementById('rui');
   if (rui) rui.style.display = 'none';
   document.getElementById('rsuccess').classList.remove('hidden');
+}
+
+/* ── RSVP EDIT (personalised link only) ── */
+var editChoice = '{{ existing_rsvp.attending if existing_rsvp else "" }}';
+
+function showRSVPEdit() {
+  document.getElementById('rsvp-edit-block').style.display = '';
+  document.getElementById('rsvp-confirmed-block').style.opacity = '.4';
+}
+function hideRSVPEdit() {
+  document.getElementById('rsvp-edit-block').style.display = 'none';
+  document.getElementById('rsvp-confirmed-block').style.opacity = '1';
+}
+function editPick(c) {
+  editChoice = c;
+  ['yes','no'].forEach(function(v){
+    var b = document.getElementById('edit-' + v + '-btn');
+    if (!b) return;
+    b.style.background = (c === v) ? 'rgba(var(--accent-rgb,232,213,163),.15)' : '';
+    b.style.borderColor = (c === v) ? ACCENT : '';
+    b.style.color       = (c === v) ? ACCENT : '';
+  });
+}
+function submitRSVPEdit() {
+  if (!editChoice) return;
+  var dietary = (document.getElementById('edit-dietary') ? document.getElementById('edit-dietary').value : '').trim();
+  var btn = document.querySelector('#rsvp-edit-block .rsub');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  fetch('/api/rsvp/' + TOKEN + '/update', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({link_token: LINK_TOKEN, attending: editChoice, dietary: dietary})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    var msg = document.getElementById('edit-msg');
+    if (d.status === 'ok') {
+      if (msg) { msg.textContent = 'RSVP updated ✓'; msg.style.display = ''; }
+      setTimeout(function(){ window.location.reload(); }, 1200);
+    } else {
+      if (msg) { msg.textContent = d.message || 'Could not update. Try again.'; msg.style.color = '#f87171'; msg.style.display = ''; }
+      if (btn) { btn.textContent = 'Save changes'; btn.disabled = false; }
+    }
+  }).catch(function(){
+    if (btn) { btn.textContent = 'Save changes'; btn.disabled = false; }
+  });
 }
 
 /* ── GIFT CLAIM ── */
