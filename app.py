@@ -94,6 +94,48 @@ ACCENT_COLOURS = [
     ('#166534','Emerald'),('#d97706','Saffron'),('#831843','Plum'),
     ('#374151','Graphite'),('#b8860b','Dark Gold'),
 ]
+PRESET_PACKS = [
+    # ── Birthday ─────────────────────────────────────────────────
+    {'id':'bday_gold',  'name':'Golden Birthday',  'emoji':'🎂', 'category':'birthday',   'vibe':'Elegant',
+     'design':'classic_dark',   'pattern':'royal',        'font':'Cinzel',        'effect':'confetti',  'accent':'#e8d5a3'},
+    {'id':'bday_neon',  'name':'Neon Party',        'emoji':'🎉', 'category':'birthday',   'vibe':'Fun',
+     'design':'neon_nights',    'pattern':'dot_matrix',   'font':'Montserrat',    'effect':'particles', 'accent':'#c084fc'},
+    {'id':'bday_sa',    'name':'Soweto Vibes',      'emoji':'🌞', 'category':'birthday',   'vibe':'SA Festive',
+     'design':'soweto_summer',  'pattern':'kanga_print',  'font':'Jakarta',       'effect':'confetti',  'accent':'#fcd34d'},
+    # ── Wedding / Bridal ─────────────────────────────────────────
+    {'id':'wed_elegant','name':'Timeless Wedding',  'emoji':'💍', 'category':'wedding',    'vibe':'Elegant',
+     'design':'blanc',          'pattern':'linen',         'font':'Cormorant',     'effect':'petals',    'accent':'#e8d5a3'},
+    {'id':'wed_dark',   'name':'Midnight Vows',     'emoji':'🕯️', 'category':'wedding',    'vibe':'Dramatic',
+     'design':'ocean_dusk',     'pattern':'corner_frame',  'font':'Cinzel',        'effect':'gold_foil', 'accent':'#e8d5a3'},
+    {'id':'wed_blush',  'name':'Rose Bridal',       'emoji':'🌸', 'category':'wedding',    'vibe':'Soft',
+     'design':'blush',          'pattern':'soft_glow',     'font':'Great Vibes',   'effect':'petals',    'accent':'#f9a8d4'},
+    # ── Cultural (SA) ────────────────────────────────────────────
+    {'id':'umemulo',    'name':'Umemulo',            'emoji':'🌿', 'category':'cultural',   'vibe':'Traditional',
+     'design':'lobola_red',     'pattern':'zulu_beads',    'font':'Cinzel',        'effect':'petals',    'accent':'#e8d5a3'},
+    {'id':'lobola',     'name':'Lobola Ceremony',   'emoji':'🤝', 'category':'cultural',   'vibe':'Traditional',
+     'design':'kente_gold',     'pattern':'ndebele',       'font':'Great Vibes',   'effect':'gold_foil', 'accent':'#fbbf24'},
+    {'id':'ndebele',    'name':'Ndebele Pride',     'emoji':'🛡️', 'category':'cultural',   'vibe':'Bold',
+     'design':'ndebele_fire',   'pattern':'ndebele',       'font':'Josefin Sans',  'effect':'particles', 'accent':'#dc2626'},
+    # ── Baby & Family ────────────────────────────────────────────
+    {'id':'baby_soft',  'name':'Baby Shower',       'emoji':'🍼', 'category':'baby',       'vibe':'Soft',
+     'design':'cape_fynbos',    'pattern':'soft_glow',     'font':'Dancing Script','effect':'bubbles',   'accent':'#f9a8d4'},
+    {'id':'gender',     'name':'Gender Reveal',     'emoji':'🎀', 'category':'baby',       'vibe':'Fun',
+     'design':'blush',          'pattern':'dot_matrix',    'font':'Dancing Script','effect':'confetti',  'accent':'#ec4899'},
+    # ── Graduation & Matric ──────────────────────────────────────
+    {'id':'graduation', 'name':'Graduation Night',  'emoji':'🎓', 'category':'graduation', 'vibe':'Achievement',
+     'design':'amethyst',       'pattern':'royal',         'font':'Cinzel',        'effect':'stars',     'accent':'#e8d5a3'},
+    {'id':'matric',     'name':'Matric Farewell',   'emoji':'🎊', 'category':'graduation', 'vibe':'Fun',
+     'design':'neon_nights',    'pattern':'hexagon',       'font':'Montserrat',    'effect':'confetti',  'accent':'#c4b5fd'},
+    # ── Corporate ────────────────────────────────────────────────
+    {'id':'corporate',  'name':'Corporate Event',   'emoji':'💼', 'category':'corporate',  'vibe':'Professional',
+     'design':'editorial_black','pattern':'diagonal',       'font':'Josefin Sans',  'effect':'none',      'accent':'#e8d5a3'},
+    # ── Celebration ──────────────────────────────────────────────
+    {'id':'afrofuture', 'name':'Afrofuturism',      'emoji':'✨', 'category':'celebration','vibe':'Bold',
+     'design':'afrofuturism',   'pattern':'san_art',       'font':'Space Mono',    'effect':'aurora',    'accent':'#c084fc'},
+    {'id':'safari',     'name':'Safari Sunset',     'emoji':'🦁', 'category':'celebration','vibe':'Cultural',
+     'design':'safari_dusk',    'pattern':'venda_spiral',  'font':'Raleway',       'effect':'particles', 'accent':'#d97706'},
+]
+
 DESIGNS = [
     ('classic_dark','Classic Dark','Black & gold — timeless elegance'),
     ('celestial','Celestial','Deep purple & stars — dreamy'),
@@ -1078,6 +1120,7 @@ def _form_ctx():
         colour_palettes=COLOUR_PALETTES, accent_colours=ACCENT_COLOURS,
         designs=DESIGNS, fonts=FONTS, patterns=PATTERNS, decorations=DECORATIONS,
         effects=EFFECTS, photo_filters=PHOTO_FILTERS,
+        preset_packs=PRESET_PACKS,
     )
 
 
