@@ -1,5 +1,5 @@
 """
-Invitely — Secure Edition
+Invitisimemo — Secure Edition
 Implements:
   Phase 1: Flask-Login user accounts, is_admin, login-based event management
   Phase 2: Flask-WTF CSRF, Flask-Limiter rate limits, input sanitisation
@@ -129,7 +129,17 @@ PRESET_PACKS = [
     # ── Corporate ────────────────────────────────────────────────
     {'id':'corporate',  'name':'Corporate Event',   'emoji':'💼', 'category':'corporate',  'vibe':'Professional',
      'design':'editorial_black','pattern':'diagonal',       'font':'Josefin Sans',  'effect':'none',      'accent':'#e8d5a3'},
+    {'id':'launch',     'name':'Product Launch',    'emoji':'◎', 'category':'corporate',  'vibe':'Modern',
+     'design':'ocean_deep',     'pattern':'fine_grid',      'font':'Jakarta',       'effect':'particles', 'accent':'#2dd4bf'},
     # ── Celebration ──────────────────────────────────────────────
+    {'id':'memorial',   'name':'Memorial Gathering','emoji':'✦', 'category':'celebration','vibe':'Respectful',
+     'design':'blanc',          'pattern':'linen',          'font':'Cormorant',     'effect':'none',      'accent':'#374151'},
+    {'id':'stokvel',    'name':'Stokvel Social',    'emoji':'●', 'category':'celebration','vibe':'Warm',
+     'design':'kalahari',       'pattern':'cape_malay',     'font':'Raleway',       'effect':'fireflies', 'accent':'#d97706'},
+    {'id':'kitchen_tea','name':'Kitchen Tea',        'emoji':'✿', 'category':'celebration','vibe':'Soft',
+     'design':'cape_fynbos',    'pattern':'soft_glow',      'font':'Dancing Script','effect':'petals',    'accent':'#86efac'},
+    {'id':'rage',       'name':'Matric Rage',        'emoji':'◆', 'category':'celebration','vibe':'Electric',
+     'design':'galaxy_dream',   'pattern':'celestial_swirl','font':'Montserrat',    'effect':'neon_glow', 'accent':'#7dd3fc'},
     {'id':'afrofuture', 'name':'Afrofuturism',      'emoji':'✨', 'category':'celebration','vibe':'Bold',
      'design':'afrofuturism',   'pattern':'san_art',       'font':'Space Mono',    'effect':'aurora',    'accent':'#c084fc'},
     {'id':'safari',     'name':'Safari Sunset',     'emoji':'🦁', 'category':'celebration','vibe':'Cultural',
@@ -495,11 +505,62 @@ def allowed_file(fn: str) -> bool:
     return '.' in fn and fn.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def _object_storage_enabled() -> bool:
+    return bool(app.config.get('S3_BUCKET_NAME') and app.config.get('S3_ACCESS_KEY_ID')
+                and app.config.get('S3_SECRET_ACCESS_KEY') and app.config.get('S3_PUBLIC_URL'))
+
+
+def _s3_client():
+    import boto3
+    return boto3.client(
+        's3',
+        endpoint_url=app.config.get('S3_ENDPOINT_URL') or None,
+        aws_access_key_id=app.config.get('S3_ACCESS_KEY_ID'),
+        aws_secret_access_key=app.config.get('S3_SECRET_ACCESS_KEY'),
+        region_name=app.config.get('S3_REGION') or 'auto',
+    )
+
+
+def _store_upload(key: str, body: bytes, content_type: str) -> str:
+    if _object_storage_enabled():
+        try:
+            _s3_client().put_object(
+                Bucket=app.config['S3_BUCKET_NAME'],
+                Key=key,
+                Body=body,
+                ContentType=content_type,
+                CacheControl='public, max-age=31536000, immutable',
+            )
+            return key
+        except Exception as e:
+            app.logger.warning(f"Object storage upload failed, falling back to local disk: {e}")
+
+    dest = os.path.join(app.config['UPLOAD_FOLDER'], key)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    with open(dest, 'wb') as fh:
+        fh.write(body)
+    return key
+
+
+def upload_url(path: str) -> str:
+    if not path:
+        return ''
+    if path.startswith(('http://', 'https://', '//')):
+        return path
+    public = app.config.get('S3_PUBLIC_URL')
+    if public and not path.startswith('static/'):
+        return f"{public}/{path.lstrip('/')}"
+    return url_for('static', filename='uploads/' + path.lstrip('/'))
+
+
+@app.context_processor
+def inject_upload_helpers():
+    return {'upload_url': upload_url}
+
+
 def save_image(file, token: str, compressed_b64: str = None):
-    folder = os.path.join(app.config['UPLOAD_FOLDER'], token)
-    os.makedirs(folder, exist_ok=True)
     name = secure_filename(f"{uuid.uuid4().hex}.jpg")
-    dest = os.path.join(folder, name)
+    key = f"{token}/{name}"
 
     if compressed_b64 and compressed_b64.startswith('data:image'):
         try:
@@ -508,9 +569,7 @@ def save_image(file, token: str, compressed_b64: str = None):
             # Validate it's actually an image before saving
             import io as _io
             Image.open(_io.BytesIO(img_bytes)).verify()
-            with open(dest, 'wb') as fh:
-                fh.write(img_bytes)
-            return f"{token}/{name}"
+            return _store_upload(key, img_bytes, 'image/jpeg')
         except Exception as e:
             app.logger.warning(f"Base64 image save failed: {e}")
 
@@ -522,15 +581,16 @@ def save_image(file, token: str, compressed_b64: str = None):
         img = Image.open(file.stream)
         img = img.convert('RGB')
         img.thumbnail((1800, 1800), Image.LANCZOS)
-        img.save(dest, 'JPEG', quality=82, optimize=True)
+        out = io.BytesIO()
+        img.save(out, 'JPEG', quality=82, optimize=True)
+        return _store_upload(key, out.getvalue(), 'image/jpeg')
     except Exception as e:
         app.logger.warning(f"Image resize failed: {e}")
         try:
             file.stream.seek(0)
-            file.save(dest)
+            return _store_upload(key, file.stream.read(), file.mimetype or 'application/octet-stream')
         except Exception:
             return None
-    return f"{token}/{name}"
 
 
 def save_video(file, token: str) -> str:
@@ -540,13 +600,10 @@ def save_video(file, token: str) -> str:
     ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
     if ext not in {'mp4', 'webm', 'mov', 'ogg'}:
         return ''
-    folder = os.path.join(app.config['UPLOAD_FOLDER'], token)
-    os.makedirs(folder, exist_ok=True)
     name = secure_filename(f"vidnote_{uuid.uuid4().hex[:8]}.{ext}")
-    dest = os.path.join(folder, name)
+    key = f"{token}/{name}"
     try:
-        file.save(dest)
-        return f"{token}/{name}"
+        return _store_upload(key, file.read(), file.mimetype or f'video/{ext}')
     except Exception as e:
         app.logger.warning(f"Video save failed: {e}")
         return ''
@@ -585,7 +642,7 @@ def yt_meta(raw: str):
     try:
         url = (f"https://www.youtube.com/oembed?"
                f"url=https://www.youtube.com/watch?v={vid_id}&format=json")
-        req = urllib.request.Request(url, headers={'User-Agent': 'Invitely/1.0'})
+        req = urllib.request.Request(url, headers={'User-Agent': 'Invitisimemo/1.0'})
         with urllib.request.urlopen(req, timeout=5) as r:
             data = _json.loads(r.read())
         return data.get('title', ''), data.get('author_name', '')
@@ -895,7 +952,7 @@ def register():
         _audit('user_register', f'email={email}', user_id=user.id)
 
         login_user(user, remember=True)
-        flash(f'Welcome to Invitely, {user.name}! 🎉', 'success')
+        flash(f'Welcome to Invitisimemo, {user.name}! 🎉', 'success')
         return redirect(url_for('dashboard'))
 
     return render_template('register.html')
@@ -1007,7 +1064,7 @@ def forgot_password():
             reset_url = url_for('reset_password', token=token, _external=True)
             try:
                 mail.send(Message(
-                    subject='Reset your Invitely password',
+                    subject='Reset your Invitisimemo password',
                     recipients=[email],
                     html=render_template('email_password_reset.html',
                                          user=user, reset_url=reset_url),
@@ -1118,6 +1175,60 @@ def terms():
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/contact', methods=['GET', 'POST'])
+@limiter.limit("5 per minute", methods=["POST"])
+def contact():
+    contact_email = app.config.get('CONTACT_EMAIL') or app.config.get('MAIL_USERNAME') or 'inviteisimemo@gmail.com'
+
+    if request.method == 'POST':
+        name = _clean(request.form.get('name', ''), 120)
+        email = _clean(request.form.get('email', ''), 200).lower()
+        subject = _clean(request.form.get('subject', ''), 160)
+        message = _clean(request.form.get('message', ''), 2000)
+
+        errors = []
+        if not name:
+            errors.append('Please enter your name.')
+        if not _valid_email(email):
+            errors.append('Please enter a valid email address.')
+        if not subject:
+            errors.append('Please add a short subject.')
+        if len(message) < 10:
+            errors.append('Please write a message with at least 10 characters.')
+
+        if errors:
+            for err in errors:
+                flash(err, 'error')
+            return render_template('contact.html',
+                                   contact_email=contact_email,
+                                   name=name, email=email,
+                                   subject=subject, message=message)
+
+        try:
+            mail.send(Message(
+                subject=f'Invitisimemo contact: {subject}',
+                recipients=[contact_email],
+                reply_to=email,
+                body=(
+                    f'Name: {name}\n'
+                    f'Email: {email}\n\n'
+                    f'{message}'
+                ),
+            ))
+            flash('Thanks, your message has been sent. We will reply as soon as we can.', 'success')
+            return redirect(url_for('contact'))
+        except Exception:
+            app.logger.exception('Contact form email failed')
+            flash('We could not send the form just now. Please email us directly instead.', 'error')
+
+    return render_template('contact.html', contact_email=contact_email)
 
 
 # ─────────────────────────────────────────────────────────────
@@ -1892,6 +2003,10 @@ def api_rsvp(token):
         return jsonify({'status': 'error',
                         'message': 'Please enter your name and select Yes or No.'}), 400
 
+    if not invite_link and not email:
+        return jsonify({'status': 'error',
+                        'message': 'Please enter your email so we can prevent duplicate RSVPs.'}), 400
+
     if email and not _valid_email(email):
         return jsonify({'status': 'error', 'message': 'Please enter a valid email.'}), 400
 
@@ -2150,7 +2265,7 @@ def location_search():
         return jsonify([])
     url = (f"https://nominatim.openstreetmap.org/search"
            f"?format=json&q={urllib.parse.quote(q)}&limit=6&addressdetails=1")
-    req = urllib.request.Request(url, headers={'User-Agent': 'Invitely/1.0'})
+    req = urllib.request.Request(url, headers={'User-Agent': 'Invitisimemo/1.0'})
     try:
         with urllib.request.urlopen(req, timeout=6) as r:
             return jsonify(_json.loads(r.read()))

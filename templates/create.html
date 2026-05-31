@@ -51,7 +51,21 @@
   <a href="{{ url_for('index') }}" class="brand-sm">Invitisimemo</a>
   <h1 class="form-title">{% if edit_mode %}Edit your invitation{% else %}Create your invitation{% endif %}</h1>
   <p class="form-sub">{% if edit_mode %}Update any details — your existing share links stay the same.{% else %}Fill in the sections below. Each one expands when you click it.{% endif %}</p>
-  <div class="create-actions">
+  <div class="creator-shell">
+  <aside class="creator-guide" aria-label="Creation guide">
+    <div class="guide-card">
+      <div class="guide-eyebrow">{% if edit_mode %}Editing mode{% else %}Invitation studio{% endif %}</div>
+      <h2>Make it feel clear before it feels fancy.</h2>
+      <p>Start with the guest journey: who is inviting them, what is happening, where to go, then add the mood.</p>
+      <div class="guide-list">
+        <div><span>1</span><strong>Details</strong><small>Name, date, time and RSVP rules.</small></div>
+        <div><span>2</span><strong>Look</strong><small>Choose a vibe, pattern and accent colour.</small></div>
+        <div><span>3</span><strong>Place</strong><small>Search or pin the venue so guests can navigate.</small></div>
+        <div><span>4</span><strong>Preview</strong><small>Open the full preview before sharing.</small></div>
+      </div>
+    </div>
+  </aside>
+  <div class="create-actions creator-main">
 
   <div class="form-progress" id="progress-bar">
     {% for i in range(6) %}<div class="fp-step {% if i==0 %}active{% endif %}" id="fp-{{i}}"></div>{% endfor %}
@@ -457,6 +471,8 @@
     <button type="button" class="btn-primary btn-submit" onclick="showConfirmModal()">Generate invitation link</button>
     {% endif %}
   </form>
+  </div>
+</div>
 </div>
 
 <!-- ════ CONFIRMATION MODAL ════ -->
@@ -519,6 +535,9 @@ document.addEventListener('DOMContentLoaded', function() {
         altFormat: "F j, Y",
         disableMobile: true
     });
+
+    bindGuidedValidation();
+    updateProgress();
 });
 </script>
 <script>
@@ -537,7 +556,38 @@ function updateProgress() {
     var fp = document.getElementById('fp-'+i);
     if(!fp) return;
     var isOpen = h.classList.contains('open');
-    fp.className = 'fp-step ' + (isOpen ? 'active' : 'done');
+    var complete = sectionComplete(h.nextElementSibling);
+    fp.className = 'fp-step ' + (isOpen ? 'active' : (complete ? 'done' : 'pending'));
+  });
+}
+function sectionComplete(section) {
+  if(!section) return false;
+  var required = section.querySelectorAll('input[required],select[required],textarea[required]');
+  if(!required.length) return true;
+  return Array.prototype.every.call(required, function(el){
+    return el.disabled || el.type === 'hidden' || (el.value && el.checkValidity());
+  });
+}
+function bindGuidedValidation() {
+  var fields = document.querySelectorAll('#main-form input[required],#main-form select[required],#main-form textarea[required]');
+  fields.forEach(function(el){
+    var label = el.closest('.field') ? el.closest('.field').querySelector('label') : null;
+    if(label && !label.querySelector('.req-dot')) {
+      var dot = document.createElement('span');
+      dot.className = 'req-dot';
+      dot.textContent = ' required';
+      label.appendChild(dot);
+    }
+    var mark = function(){
+      var hasValue = !!(el.value && el.value.trim ? el.value.trim() : el.value);
+      el.classList.toggle('user-invalid', hasValue && !el.checkValidity());
+      el.classList.toggle('user-valid', hasValue && el.checkValidity());
+      updateProgress();
+    };
+    el.addEventListener('input', mark);
+    el.addEventListener('change', mark);
+    el.addEventListener('blur', mark);
+    mark();
   });
 }
 

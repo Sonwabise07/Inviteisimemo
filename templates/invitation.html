@@ -866,7 +866,7 @@
   <!-- ════ REVEAL SCREEN ════ -->
   <div id="reveal">
     {% if event.image_1 %}
-    <div class="rv-bg-img" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_1) }}');"></div>
+    <div class="rv-bg-img" style="background-image:url('{{ upload_url(event.image_1) }}');"></div>
     {% endif %}
     <div class="rv-overlay"></div>
 
@@ -920,9 +920,9 @@
       } %}
       {% set filter_str = pf_css.get(pf, 'none') %}
       <div class="hero-photos">
-        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_1) }}');filter:{{ filter_str }};"></div>{% endif %}
-        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_2) }}');filter:{{ filter_str }};"></div>{% endif %}
-        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_3) }}');filter:{{ filter_str }};"></div>{% endif %}
+        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_1) }}');filter:{{ filter_str }};"></div>{% endif %}
+        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_2) }}');filter:{{ filter_str }};"></div>{% endif %}
+        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_3) }}');filter:{{ filter_str }};"></div>{% endif %}
       </div>
       {% endif %}
       <div class="hero::after"></div>
@@ -967,9 +967,9 @@
       } %}
       {% set filter_str2 = pf_css2.get(pf2, 'none') %}
       <div class="hero-photos">
-        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_1) }}');filter:{{ filter_str2 }};"></div>{% endif %}
-        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_2) }}');filter:{{ filter_str2 }};"></div>{% endif %}
-        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ url_for('static',filename='uploads/'+event.image_3) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_1) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_2) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_3) }}');filter:{{ filter_str2 }};"></div>{% endif %}
       </div>
       {% endif %}
       <div class="hero-content">
@@ -1274,7 +1274,7 @@
             <div id="rform-waitlist" style="margin-top:18px;">
               <div class="rsvp-q">Join the waitlist?</div>
               <input class="rinput" type="text"  id="rname"  placeholder="Your name" value="{{ guest_name_prefill }}"/>
-              <input class="rinput" type="email" id="remail" placeholder="Email — we'll notify you if a spot opens"/>
+              <input class="rinput" type="email" id="remail" placeholder="Email — we'll notify you if a spot opens" required/>
               <button class="rsub" style="background:#fcd34d;" onclick="submitWaitlist()">Join waitlist</button>
             </div>
             {% else %}
@@ -1379,7 +1379,7 @@
     <p style="font-size:.78rem;color:#888;margin:0 0 .8rem;text-align:center;">A message from {{ event.host_name.split()[0] }}</p>
     <video id="vidnote-player" controls preload="none"
            style="width:100%;border-radius:12px;background:#000;display:block;"
-           src="{{ url_for('static', filename='uploads/' + event.video_note) }}">
+           src="{{ upload_url(event.video_note) }}">
     </video>
   </div>
 </div>
@@ -1712,6 +1712,10 @@ function submitR() {
     if (re) { re.focus(); re.style.borderColor='#f87171'; setTimeout(function(){ re.style.borderColor=''; }, 2000); }
     return;
   }
+  var rsvpGuardKey = 'invitisimemo_rsvp_' + TOKEN + '_' + email.toLowerCase();
+  if (!isPersonalised && email && localStorage.getItem(rsvpGuardKey)) {
+    if (!confirm("This browser has already sent an RSVP for this email. Send it again anyway?")) return;
+  }
   var btn = document.querySelector('.rsub');
   if (btn) { btn.textContent = 'Confirming…'; btn.disabled = true; }
   fetch('/api/rsvp/' + TOKEN, {
@@ -1734,6 +1738,10 @@ function submitR() {
       if (btn) { btn.textContent = 'Confirm my RSVP →'; btn.disabled = false; }
       return;
     }
+    if (!isPersonalised && email) {
+      localStorage.setItem(rsvpGuardKey, '1');
+      document.cookie = 'invitisimemo_rsvp_' + TOKEN + '=1; max-age=2592000; path=/; samesite=lax';
+    }
     afterRSVP(name, d);
   }).catch(function() {
     if (btn) { btn.textContent = 'Confirm my RSVP →'; btn.disabled = false; }
@@ -1745,6 +1753,11 @@ function submitWaitlist() {
   var name  = (document.getElementById('rname')  ? document.getElementById('rname').value  : '').trim();
   var email = (document.getElementById('remail') ? document.getElementById('remail').value : '').trim();
   if (!name) { document.getElementById('rname').focus(); return; }
+  if (!email) { document.getElementById('remail').focus(); return; }
+  var waitlistGuardKey = 'invitisimemo_rsvp_' + TOKEN + '_' + email.toLowerCase();
+  if (!LINK_TOKEN && localStorage.getItem(waitlistGuardKey)) {
+    if (!confirm("This browser has already sent an RSVP for this email. Send it again anyway?")) return;
+  }
   fetch('/api/rsvp/' + TOKEN, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1753,6 +1766,10 @@ function submitWaitlist() {
     if (d.redirect) { window.location.href = d.redirect; return; }
     var wl = document.getElementById('rform-waitlist');
     if (wl) wl.style.display = 'none';
+    if (!LINK_TOKEN) {
+      localStorage.setItem(waitlistGuardKey, '1');
+      document.cookie = 'invitisimemo_rsvp_' + TOKEN + '=1; max-age=2592000; path=/; samesite=lax';
+    }
     document.getElementById('sicon').textContent = '⏳';
     document.getElementById('smsg').textContent  = "You're on the waitlist!";
     document.getElementById('ssub').textContent  = "We'll email you if a spot opens up.";

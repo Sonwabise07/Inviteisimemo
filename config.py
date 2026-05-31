@@ -22,6 +22,12 @@ class Config:
     # ── File uploads ──────────────────────────────────────────
     UPLOAD_FOLDER      = os.path.join(BASE_DIR, 'static', 'uploads')
     MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB
+    S3_ENDPOINT_URL    = os.environ.get('S3_ENDPOINT_URL', '')
+    S3_ACCESS_KEY_ID   = os.environ.get('S3_ACCESS_KEY_ID', '')
+    S3_SECRET_ACCESS_KEY = os.environ.get('S3_SECRET_ACCESS_KEY', '')
+    S3_BUCKET_NAME     = os.environ.get('S3_BUCKET_NAME', '')
+    S3_REGION          = os.environ.get('S3_REGION', 'auto')
+    S3_PUBLIC_URL      = os.environ.get('S3_PUBLIC_URL', '').rstrip('/')
 
     # ── Mail ──────────────────────────────────────────────────
     MAIL_SERVER        = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -30,6 +36,7 @@ class Config:
     MAIL_USERNAME      = os.environ.get('MAIL_USERNAME', '')
     MAIL_PASSWORD      = os.environ.get('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = ('Invitisimemo', os.environ.get('MAIL_USERNAME', 'noreply@invitisimemo.co.za'))
+    CONTACT_EMAIL      = os.environ.get('CONTACT_EMAIL', os.environ.get('MAIL_USERNAME', 'inviteisimemo@gmail.com'))
 
     # ── CSRF (Flask-WTF) ──────────────────────────────────────
     WTF_CSRF_ENABLED     = True
