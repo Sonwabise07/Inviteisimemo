@@ -218,12 +218,25 @@
       </div>
     </div>
 
-    <div class="form-section">
-      <div class="fsec-header" onclick="toggleSection(this)" data-step="2">
+    <div class="form-section" id="design-section">
+      <div class="fsec-header" onclick="toggleSection(this)" data-step="2" id="design-header">
         <span><span class="fsec-step">3</span><span class="fsec-label">Design & style</span></span>
         <span class="fsec-chevron">▼</span>
       </div>
-      <div class="fsec-body">
+      <div class="fsec-body" id="design-body">
+        <!-- Lock summary shown when a starter pack is applied -->
+        <div class="pack-lock" id="pack-lock" style="display:none;">
+          <div class="pack-lock-row">
+            <span class="pack-lock-emoji" id="pack-lock-emoji">✦</span>
+            <div class="pack-lock-text">
+              <div class="pack-lock-name" id="pack-lock-name">Pack applied</div>
+              <div class="pack-lock-sub">Colours, pattern, font &amp; effects are set for you. Just add your details below.</div>
+            </div>
+            <div class="pack-lock-swatches" id="pack-lock-swatches"></div>
+          </div>
+          <button type="button" class="pack-lock-edit" onclick="unlockDesign()">Customize design instead ›</button>
+        </div>
+        <div id="design-controls">
         <div class="design-picker">
           {% for key, name, desc in designs %}
           <label class="design-opt{% if (event and event.design==key) or (not event and key=='classic_dark') %} selected{% endif %}" data-design="{{ key }}">
@@ -367,6 +380,7 @@
             <div class="live-meta"><span id="live-date">{{ event.event_date if event else 'Selected date' }}</span> · <span id="live-venue">{{ event.venue_name if event else 'Venue name' }}</span></div>
           </div>
         </div>
+        </div><!-- /#design-controls -->
       </div>
     </div>
 
@@ -982,14 +996,80 @@ function applyPreset(id) {
   // Update the style preview
   if (typeof updateStylePreview === 'function') updateStylePreview();
 
+  // Lock the Design & style section into a clean summary — user only fills details
+  lockDesign(pack);
+
   // Toast
   showPackToast(pack.emoji + ' ' + pack.name + ' applied ✓');
 
-  // Scroll down to the form sections
+  // Scroll to the first detail section so they get straight to typing
   setTimeout(function(){
     var sec = document.querySelector('.form-section');
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, 280);
+}
+
+// Capitalise a slug like 'classic_dark' -> 'Classic Dark'
+function _prettyName(s){
+  if(!s) return '';
+  return s.replace(/_/g,' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+
+function lockDesign(pack){
+  var controls = document.getElementById('design-controls');
+  var lock     = document.getElementById('pack-lock');
+  var section  = document.getElementById('design-section');
+  var header   = document.getElementById('design-header');
+  if(!controls || !lock) return;
+
+  // Hide the full controls, show the summary card (inputs stay in the DOM and submit)
+  controls.style.display = 'none';
+  lock.style.display = 'block';
+  if(section) section.classList.add('style-locked');
+
+  document.getElementById('pack-lock-emoji').textContent = pack.emoji || '✦';
+  document.getElementById('pack-lock-name').textContent  = pack.name + ' style';
+
+  // Swatch dots: accent + a hint of pattern/effect names
+  var sw = document.getElementById('pack-lock-swatches');
+  sw.innerHTML = '';
+  var dot = document.createElement('span');
+  dot.className = 'pl-swatch'; dot.style.background = pack.accent;
+  sw.appendChild(dot);
+
+  // Rewrite the section header label so it reads as "done"
+  var label = header ? header.querySelector('.fsec-label') : null;
+  if(label) label.innerHTML = 'Design &amp; style <span class="fsec-done-tag">✓ set by ' + pack.name + '</span>';
+
+  // Collapse the section (details matter more now)
+  var body = document.getElementById('design-body');
+  if(body && header){
+    body.classList.remove('open');
+    header.classList.remove('open');
+    var chev = header.querySelector('.fsec-chevron');
+    if(chev) chev.textContent = '▼';
+  }
+  if(typeof updateProgress === 'function') updateProgress();
+}
+
+function unlockDesign(){
+  var controls = document.getElementById('design-controls');
+  var lock     = document.getElementById('pack-lock');
+  var section  = document.getElementById('design-section');
+  var header   = document.getElementById('design-header');
+  if(controls) controls.style.display = '';
+  if(lock) lock.style.display = 'none';
+  if(section) section.classList.remove('style-locked');
+  var label = header ? header.querySelector('.fsec-label') : null;
+  if(label) label.textContent = 'Design & style';
+  // Make sure the section is open so they can edit
+  var body = document.getElementById('design-body');
+  if(body && header && !body.classList.contains('open')){
+    body.classList.add('open'); header.classList.add('open');
+    var chev = header.querySelector('.fsec-chevron');
+    if(chev) chev.textContent = '▲';
+  }
+  if(section) section.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function filterPresets(cat) {

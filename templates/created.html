@@ -25,13 +25,28 @@
   </div>
 
   {% if not event.is_live %}
-  <!-- ── Subscribe CTA ── -->
-  <div class="cc-block" style="background:rgba(232,213,163,.05);border:.5px solid rgba(232,213,163,.2);border-radius:14px;padding:1.8rem;margin-bottom:1.5rem;text-align:center;">
-    <div style="font-size:1.8rem;margin-bottom:.8rem;">🔓</div>
-    <div style="font-size:1.05rem;font-weight:600;color:#fff;margin-bottom:.5rem;">Publish your invitation</div>
-    <p style="font-size:.84rem;color:#666;line-height:1.7;margin-bottom:1.4rem;">Subscribe to make your invite live and shareable. Guests won't be able to open or RSVP until it's published.</p>
-    <a href="{{ url_for('subscribe') }}" style="display:inline-block;padding:14px 28px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:700;text-decoration:none;font-size:.88rem;">Subscribe — R99/month</a>
-    <p style="font-size:.7rem;color:#333;margin-top:10px;">Cancel any time. All your invitations publish instantly on activation.</p>
+  <!-- ── Publish options: single unlock OR subscription ── -->
+  <div class="cc-block cc-publish">
+    <div class="cc-publish-icon">🔓</div>
+    <div class="cc-publish-title">Publish your invitation</div>
+    <p class="cc-publish-desc">Your invite is saved as a draft. Guests can't open or RSVP until it's published. Pick whichever suits you:</p>
+    <div class="cc-publish-options">
+      <form method="POST" action="{{ url_for('single_invite_checkout', token=event.token) }}" class="cc-pub-opt">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="cc-pub-amt">R{{ single_price | int }}</div>
+        <div class="cc-pub-lbl">Just this invite</div>
+        <button type="submit" class="cc-pub-btn cc-pub-btn-ghost">Unlock this one</button>
+      </form>
+      <form method="POST" action="{{ url_for('subscribe_checkout') }}" class="cc-pub-opt cc-pub-opt-featured">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="return_token" value="{{ event.token }}"/>
+        <div class="cc-pub-flag">Best value</div>
+        <div class="cc-pub-amt">R{{ price | int }}<span>/mo</span></div>
+        <div class="cc-pub-lbl">Unlimited invites</div>
+        <button type="submit" class="cc-pub-btn cc-pub-btn-gold">Subscribe</button>
+      </form>
+    </div>
+    <p class="cc-publish-note">🔒 Secure payment via PayFast. After paying you'll come right back here, ready to share.</p>
   </div>
   {% endif %}
 
@@ -238,6 +253,26 @@ function addPlinkRow(name, url) {
 
 /* ── Actions ── */
 .cc-actions{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:1.2rem;}
+
+/* ── Publish options (single vs subscription) ── */
+.cc-publish{background:rgba(232,213,163,.05);border:.5px solid rgba(232,213,163,.2);text-align:center;margin-bottom:1.5rem;}
+.cc-publish-icon{font-size:1.8rem;margin-bottom:.7rem;}
+.cc-publish-title{font-size:1.1rem;font-weight:600;color:#fff;margin-bottom:.5rem;}
+.cc-publish-desc{font-size:.84rem;color:#777;line-height:1.7;margin-bottom:1.3rem;}
+.cc-publish-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cc-pub-opt{background:#0c0c0c;border:.5px solid rgba(255,255,255,.08);border-radius:12px;padding:1.2rem 1rem;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.cc-pub-opt-featured{border-color:rgba(232,213,163,.35);background:rgba(232,213,163,.04);}
+.cc-pub-flag{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;background:#e8d5a3;color:#080808;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.cc-pub-amt{font-size:1.7rem;font-weight:700;color:#fff;line-height:1;margin-top:4px;}
+.cc-pub-amt span{font-size:.8rem;color:#777;font-weight:400;}
+.cc-pub-lbl{font-size:.74rem;color:#888;margin-bottom:.8rem;}
+.cc-pub-btn{width:100%;padding:11px;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:opacity .2s,background .2s;}
+.cc-pub-btn-gold{background:#e8d5a3;color:#080808;}
+.cc-pub-btn-gold:hover{opacity:.88;}
+.cc-pub-btn-ghost{background:transparent;border:.5px solid rgba(232,213,163,.35);color:#e8d5a3;}
+.cc-pub-btn-ghost:hover{background:rgba(232,213,163,.08);}
+.cc-publish-note{font-size:.68rem;color:#444;margin-top:1rem;line-height:1.6;}
+@media(max-width:460px){.cc-publish-options{grid-template-columns:1fr;gap:18px;}}
 </style>
 </body>
 </html>

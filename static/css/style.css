@@ -9,7 +9,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;}
 .landing{min-height:100vh;background:#080808;display:flex;align-items:center;justify-content:center;padding:2rem;}
 .landing-inner{max-width:560px;text-align:center;}
 .brand{font-size:1rem;letter-spacing:.35em;text-transform:uppercase;color:#e8d5a3;margin-bottom:2rem;}
-.landing-title{font-size:clamp(2rem,6vw,3.2rem);font-weight:300;color:#fff;line-height:1.2;margin-bottom:1.2rem;}
+.landing-title{font-size:3.2rem;font-weight:300;color:#fff;line-height:1.2;margin-bottom:1.2rem;}
 .landing-title span{color:#e8d5a3;}
 .landing-sub{font-size:.95rem;color:#555;line-height:1.7;margin-bottom:2.5rem;}
 
@@ -39,7 +39,7 @@ body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;}
 .form-page{background:#080808;min-height:100vh;padding:2rem 1rem 4rem;}
 .form-wrap{max-width:720px;margin:0 auto;}
 .brand-sm{font-size:.8rem;letter-spacing:.3em;text-transform:uppercase;color:#e8d5a3;text-decoration:none;display:block;margin-bottom:2rem;}
-.form-title{font-size:clamp(1.6rem,4vw,2.2rem);font-weight:300;color:#fff;margin-bottom:.5rem;}
+.form-title{font-size:2.2rem;font-weight:300;color:#fff;margin-bottom:.5rem;}
 .form-sub{font-size:.85rem;color:#555;margin-bottom:2rem;line-height:1.6;}
 .inv-form{display:flex;flex-direction:column;gap:0;}
 
@@ -901,4 +901,87 @@ body[style*="background:#080808"]{
   .field-row{grid-template-columns:1fr;}
   .design-picker{grid-template-columns:1fr 1fr;}
   .form-progress{top:50px;}
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PACK LOCK — clean "style set for you" summary on /create
+   ═══════════════════════════════════════════════════════════════ */
+.pack-lock{background:linear-gradient(135deg,rgba(232,213,163,.07),rgba(232,213,163,.02));border:.5px solid rgba(232,213,163,.25);border-radius:14px;padding:1.1rem 1.2rem;}
+.pack-lock-row{display:flex;align-items:center;gap:14px;}
+.pack-lock-emoji{font-size:1.7rem;flex-shrink:0;line-height:1;}
+.pack-lock-text{flex:1;min-width:0;}
+.pack-lock-name{font-size:.95rem;font-weight:600;color:#e8d5a3;margin-bottom:2px;}
+.pack-lock-sub{font-size:.76rem;color:#777;line-height:1.5;}
+.pack-lock-swatches{display:flex;gap:5px;flex-shrink:0;}
+.pl-swatch{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.15);box-shadow:0 0 0 2px rgba(0,0,0,.3);}
+.pack-lock-edit{margin-top:.9rem;background:none;border:none;color:#888;font-size:.76rem;cursor:pointer;font-family:inherit;padding:0;transition:color .2s;}
+.pack-lock-edit:hover{color:#e8d5a3;}
+.fsec-done-tag{display:inline-block;font-size:.62rem;font-weight:600;letter-spacing:.04em;color:#1d9e75;background:rgba(29,158,117,.12);border-radius:12px;padding:2px 9px;margin-left:8px;vertical-align:middle;}
+.style-locked .fsec-step{background:rgba(29,158,117,.18)!important;color:#1d9e75!important;}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OPTIMISATION PASS — world-class on phones
+   Tap targets ≥44px, single-column flows, no horizontal scroll,
+   sticky safe-area-aware action bars.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Universal: never let anything cause sideways scroll on small screens */
+@media(max-width:768px){
+  html,body{max-width:100%;overflow-x:hidden;}
+  img,video,canvas,iframe{max-width:100%;height:auto;}
+  /* Comfortable inputs — 16px font stops iOS zoom-on-focus */
+  input,select,textarea{font-size:16px!important;}
+}
+
+@media(max-width:640px){
+  /* Forms breathe and stack */
+  .landing-title{font-size:2rem;}
+  .form-wrap{padding-left:.9rem;padding-right:.9rem;}
+  .form-title{font-size:1.6rem;}
+  .form-sub{font-size:.82rem;}
+  .field-row{grid-template-columns:1fr!important;gap:0;}
+  .design-picker{grid-template-columns:1fr 1fr!important;}
+  .pattern-picker,.effect-picker{grid-template-columns:repeat(3,1fr)!important;}
+  .colour-swatches{gap:8px;}
+  .swatch{width:30px;height:30px;}
+  .swatch-wrap input:checked + .swatch{outline-offset:3px;}
+
+  /* Section headers: bigger tap target */
+  .fsec-header{padding:15px 14px;}
+  .fsec-label{font-size:.95rem;}
+
+  /* Preset packs: 2-up cards, larger, easier to tap */
+  .preset-grid{grid-template-columns:repeat(2,1fr)!important;gap:10px;}
+  .preset-card{padding:14px 10px;}
+  .pc-emoji{font-size:1.7rem;}
+  .pc-name{font-size:.82rem;}
+  .preset-filters{gap:6px;overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:6px;}
+  .pf-btn{flex-shrink:0;}
+
+  /* Created / share page */
+  .created-wrap{padding:1.2rem .8rem 3rem;}
+  .created-title{font-size:1.6rem;}
+  .cc-block{padding:1.1rem;}
+  .cc-link-row{flex-direction:column;align-items:stretch;gap:8px;}
+  .cc-copy-btn{width:100%;padding:11px;}
+  .cc-share-row{flex-direction:column;}
+  .cc-btn{width:100%;justify-content:center;text-align:center;}
+
+  /* Buttons: full-width, thumb-friendly */
+  .btn,.sub-btn,.create-submit,button[type="submit"]{min-height:48px;}
+}
+
+@media(max-width:420px){
+  .design-picker{grid-template-columns:1fr!important;}
+  .pattern-picker,.effect-picker{grid-template-columns:repeat(2,1fr)!important;}
+  .created-title{font-size:1.4rem;}
+  .pack-lock-row{flex-wrap:wrap;}
+}
+
+/* Respect iOS safe areas on sticky bottom elements */
+@supports(padding:max(0px)){
+  @media(max-width:640px){
+    .float-preview-btn{bottom:max(18px,env(safe-area-inset-bottom));}
+    .form-page{padding-bottom:max(5rem,calc(4rem + env(safe-area-inset-bottom)));}
+  }
 }

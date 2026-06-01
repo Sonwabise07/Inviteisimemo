@@ -6,15 +6,15 @@
   <title>Payment Cancelled — Invitisimemo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <style>
-    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
-    .wrap{max-width:460px;width:90%;text-align:center;padding:2.5rem 2rem;background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:20px;}
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;padding:1rem;}
+    .wrap{max-width:460px;width:100%;text-align:center;padding:2.5rem 1.8rem;background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:20px;}
     .icon{font-size:3rem;margin-bottom:1.2rem;}
-    h1{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
-    p{font-size:.88rem;color:#666;line-height:1.7;margin-bottom:1.8rem;}
+    h1{font-family:Georgia,serif;font-size:1.55rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
+    p{font-size:.88rem;color:#888;line-height:1.7;margin-bottom:1.8rem;}
     .btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
-    .btn-primary{padding:12px 24px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:600;text-decoration:none;font-size:.84rem;transition:opacity .2s;}
+    .btn-primary{padding:13px 26px;background:#e8d5a3;color:#080808;border-radius:9px;font-weight:700;text-decoration:none;font-size:.86rem;transition:opacity .2s;}
     .btn-primary:hover{opacity:.88;}
-    .btn-ghost{padding:12px 24px;background:none;border:.5px solid rgba(255,255,255,.1);color:#888;border-radius:8px;text-decoration:none;font-size:.84rem;transition:color .2s;}
+    .btn-ghost{padding:13px 26px;background:none;border:.5px solid rgba(255,255,255,.12);color:#999;border-radius:9px;text-decoration:none;font-size:.86rem;transition:color .2s;}
     .btn-ghost:hover{color:#fff;}
   </style>
 </head>
@@ -22,10 +22,15 @@
   <div class="wrap">
     <div class="icon">👋</div>
     <h1>No problem!</h1>
-    <p>Your invitations are safely saved as drafts. Subscribe any time to publish them and start collecting RSVPs.</p>
+    <p>Your invitation is safely saved as a draft. You can publish it any time — pick the monthly plan or just unlock this one invite for R15.</p>
     <div class="btns">
-      <a href="{{ url_for('subscribe') }}" class="btn-primary">Try again</a>
-      <a href="{{ url_for('dashboard') }}" class="btn-ghost">Back to dashboard</a>
+      {% if token %}
+        <a href="{{ url_for('subscribe', event=token) }}" class="btn-primary">See publishing options</a>
+        <a href="{{ url_for('manage', token=token) }}" class="btn-ghost">Back to my invite</a>
+      {% else %}
+        <a href="{{ url_for('subscribe') }}" class="btn-primary">See publishing options</a>
+        <a href="{{ url_for('dashboard') }}" class="btn-ghost">Back to dashboard</a>
+      {% endif %}
     </div>
   </div>
 </body>

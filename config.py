@@ -70,4 +70,6 @@ class Config:
     PAYFAST_PASSPHRASE   = os.environ.get('PAYFAST_PASSPHRASE', '')
     PAYFAST_SANDBOX      = os.environ.get('PAYFAST_SANDBOX', 'true').lower() == 'true'
     SUBSCRIPTION_PRICE_ZAR = float(os.environ.get('SUBSCRIPTION_PRICE_ZAR', '99'))
+    # Pay-per-invite: one-off unlock for a single invitation (no subscription)
+    SINGLE_INVITE_PRICE_ZAR = float(os.environ.get('SINGLE_INVITE_PRICE_ZAR', '15'))
     APP_BASE_URL         = os.environ.get('APP_BASE_URL', '')

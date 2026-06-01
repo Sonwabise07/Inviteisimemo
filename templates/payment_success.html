@@ -6,23 +6,92 @@
   <title>Payment Received — Invitisimemo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <style>
-    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
-    .wrap{max-width:460px;width:90%;text-align:center;padding:2.5rem 2rem;background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:20px;}
-    .icon{font-size:3rem;margin-bottom:1.2rem;}
-    h1{font-family:Georgia,serif;font-size:1.6rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
-    p{font-size:.88rem;color:#666;line-height:1.7;margin-bottom:1.5rem;}
-    .note{font-size:.75rem;color:#333;margin-bottom:1.8rem;}
-    .btn{display:inline-block;padding:13px 28px;background:#e8d5a3;color:#080808;border-radius:8px;font-weight:600;text-decoration:none;font-size:.85rem;transition:opacity .2s;}
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;padding:1rem;}
+    .wrap{max-width:460px;width:100%;text-align:center;padding:2.6rem 1.8rem;background:#111;border:.5px solid rgba(232,213,163,.18);border-radius:20px;}
+    .icon{font-size:3rem;margin-bottom:1.1rem;}
+    h1{font-family:Georgia,serif;font-size:1.55rem;font-weight:400;color:#fff;margin-bottom:.7rem;}
+    p{font-size:.88rem;color:#888;line-height:1.7;margin-bottom:1.4rem;}
+    .spinner{width:34px;height:34px;border:2px solid rgba(232,213,163,.2);border-top-color:#e8d5a3;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1.3rem;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .btn{display:inline-block;padding:14px 30px;background:#e8d5a3;color:#080808;border-radius:9px;font-weight:700;text-decoration:none;font-size:.9rem;transition:opacity .2s;}
     .btn:hover{opacity:.88;}
+    .btn-ghost{display:inline-block;margin-top:12px;color:#666;font-size:.8rem;text-decoration:none;}
+    .btn-ghost:hover{color:#aaa;}
+    .hidden{display:none;}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="icon">🎉</div>
-    <h1>Payment received!</h1>
-    <p>Thank you for subscribing to Invitisimemo. Your payment is being processed by PayFast — your subscription will activate within a few seconds.</p>
-    <p class="note">If your account doesn't show as active after a minute, please refresh the page or contact us.</p>
-    <a href="{{ url_for('dashboard') }}" class="btn">Go to my dashboard →</a>
+    {% if ready %}
+      <!-- Already confirmed (sandbox, or ITN already landed) -->
+      <div class="icon">🎉</div>
+      <h1>{% if kind == 'single' %}Your invite is unlocked!{% else %}You're all set!{% endif %}</h1>
+      <p>
+        {% if kind == 'single' and event %}
+          <strong style="color:#e8d5a3;">{{ event.event_title }}</strong> is now live and ready to share with your guests.
+        {% elif kind == 'single' %}
+          Your invitation is now live and ready to share with your guests.
+        {% else %}
+          Your subscription is active — every invitation you create now publishes instantly.
+        {% endif %}
+      </p>
+      {% if token %}
+        <a href="{{ url_for('manage', token=token) }}" class="btn">Go to my invite →</a>
+      {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn">Go to dashboard →</a>
+      {% endif %}
+    {% else %}
+      <!-- Production: ITN may lag a few seconds — poll then redirect -->
+      <div class="spinner" id="spin"></div>
+      <h1 id="status-title">Confirming your payment…</h1>
+      <p id="status-msg">PayFast is verifying your payment. This usually takes just a few seconds — please don't close this window.</p>
+      <div id="ready-block" class="hidden">
+        {% if token %}
+          <a href="{{ url_for('manage', token=token) }}" class="btn" id="go-btn">Go to my invite →</a>
+        {% else %}
+          <a href="{{ url_for('dashboard') }}" class="btn" id="go-btn">Go to dashboard →</a>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('dashboard') }}" class="btn-ghost">Skip to dashboard</a>
+    {% endif %}
   </div>
+
+  {% if ready %}
+  <script>
+    var READY_URL = {{ (url_for('manage', token=token) if token else url_for('dashboard'))|tojson }};
+    setTimeout(function(){ window.location.href = READY_URL; }, 1000);
+  </script>
+  {% endif %}
+
+  {% if not ready %}
+  <script>
+    var TOKEN = {{ token|tojson }};
+    var MANAGE_URL = {{ (url_for('manage', token=token) if token else url_for('dashboard'))|tojson }};
+    var tries = 0, MAX = 20;
+    function check() {
+      tries++;
+      fetch('/api/payment-status?token=' + encodeURIComponent(TOKEN || ''))
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ready) {
+            document.getElementById('spin').style.display = 'none';
+            document.getElementById('status-title').textContent = 'Payment confirmed! 🎉';
+            document.getElementById('status-msg').textContent = 'Taking you to your invite…';
+            document.getElementById('ready-block').classList.remove('hidden');
+            setTimeout(function(){ window.location.href = MANAGE_URL; }, 900);
+          } else if (tries < MAX) {
+            setTimeout(check, 1500);
+          } else {
+            document.getElementById('spin').style.display = 'none';
+            document.getElementById('status-title').textContent = 'Almost there…';
+            document.getElementById('status-msg').textContent = 'Your payment is still being confirmed. It can occasionally take a minute — refresh this page or head to your dashboard, where it will update automatically.';
+            document.getElementById('ready-block').classList.remove('hidden');
+          }
+        })
+        .catch(function(){ if (tries < MAX) setTimeout(check, 2000); });
+    }
+    setTimeout(check, 1200);
+  </script>
+  {% endif %}
 </body>
 </html>

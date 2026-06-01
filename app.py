@@ -305,6 +305,9 @@ class Event(db.Model):
     image_3        = db.Column(db.String(300), default='')
     view_count     = db.Column(db.Integer, default=0)
     is_live        = db.Column(db.Boolean, default=False, nullable=False)
+    # True when this single invite was unlocked with a one-off R15 payment
+    # (as opposed to being live because the owner holds an active subscription)
+    single_paid    = db.Column(db.Boolean, default=False, nullable=False)
     is_archived    = db.Column(db.Boolean, default=False, nullable=False)
     created_at     = db.Column(db.DateTime, default=datetime.utcnow)
     rsvps          = db.relationship('RSVP', backref='event', lazy=True,
@@ -409,6 +412,10 @@ class Payment(db.Model):
     pf_sub_token  = db.Column(db.String(200), default='')
     amount        = db.Column(db.Numeric(10, 2), default=0)
     status        = db.Column(db.String(20), default='pending')
+    # 'subscription' (R99/mo recurring) or 'single_invite' (one-off R15)
+    kind          = db.Column(db.String(20), default='subscription')
+    # for single_invite payments: which event this unlocked
+    event_id      = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=True)
     created_at    = db.Column(db.DateTime, default=datetime.utcnow)
     user          = db.relationship('User', backref=db.backref('payments', lazy=True))
 
@@ -1287,7 +1294,9 @@ def create():
     return render_template('created.html', event=event,
                            invite_url=invite_url, manage_url=manage_url,
                            host_pin=event.host_pin,
-                           is_subscribed=_has_active_sub(current_user))
+                           is_subscribed=_has_active_sub(current_user),
+                           price=app.config.get('SUBSCRIPTION_PRICE_ZAR', 99),
+                           single_price=app.config.get('SINGLE_INVITE_PRICE_ZAR', 15))
 
 
 @app.route('/preview-draft', methods=['POST'])
@@ -1690,13 +1699,91 @@ def _app_base() -> str:
 # ── Routes: Subscription / Billing ───────────────────────────
 # ─────────────────────────────────────────────────────────────
 
+def _pf_base_fields(return_token: str = '', kind: str = 'sub') -> dict:
+    """Common PayFast fields, carrying the event token + kind so we can
+    return the user to the right invite and finalise the right unlock."""
+    base = _app_base()
+    name_parts = current_user.name.strip().split()
+    first = name_parts[0] if name_parts else current_user.name
+    last  = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+    return {
+        'merchant_id':   app.config.get('PAYFAST_MERCHANT_ID', ''),
+        'merchant_key':  app.config.get('PAYFAST_MERCHANT_KEY', ''),
+        'return_url':    f"{base}/payment/success",
+        'cancel_url':    f"{base}/payment/cancel",
+        'notify_url':    f"{base}/payfast/notify",
+        'name_first':    first,
+        'name_last':     last,
+        'email_address': current_user.email,
+        'm_payment_id':  f"{current_user.id}_{int(time.time())}",
+        'custom_str1':   str(current_user.id),   # who paid
+        'custom_str2':   return_token,           # which event to return to
+        'custom_str3':   kind,                   # 'sub' or 'single'
+    }
+
+
+def _payment_amount(amount) -> float:
+    try:
+        return float(amount or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _finalise_payment(user, kind: str, token: str, pf_payment_id: str = '',
+                      pf_sub_token: str = '', amount=0):
+    """Apply a successful payment. Used by the PayFast ITN (production) and by
+    the sandbox success shortcut."""
+    if pf_payment_id:
+        existing = Payment.query.filter_by(
+            pf_payment_id=pf_payment_id,
+            status='complete',
+        ).first()
+        if existing:
+            return existing
+
+    event = None
+    if kind == 'single':
+        event = Event.query.filter_by(token=token, user_id=user.id,
+                                      is_archived=False).first()
+
+    payment = Payment(
+        user_id=user.id, pf_payment_id=pf_payment_id, pf_sub_token=pf_sub_token,
+        amount=_payment_amount(amount), status='complete',
+        kind='single_invite' if kind == 'single' else 'subscription',
+        event_id=event.id if event else None,
+    )
+    db.session.add(payment)
+    if kind == 'single':
+        if event:
+            event.is_live = True
+            event.single_paid = True
+            _audit('single_invite_unlocked', f'token={token}', user_id=user.id)
+    else:
+        user.sub_status   = 'active'
+        user.sub_pf_token = pf_sub_token
+        for ev in Event.query.filter_by(user_id=user.id, is_archived=False).all():
+            if not ev.is_live:
+                ev.is_live = True
+        _audit('subscription_activated', f'user={user.email}', user_id=user.id)
+    db.session.commit()
+    return payment
+
+
 @app.route('/subscribe')
 @login_required
 def subscribe():
     if _has_active_sub(current_user):
         return redirect(url_for('billing'))
-    price = app.config.get('SUBSCRIPTION_PRICE_ZAR', 99)
-    return render_template('subscribe.html', price=price)
+    # Optional: came here to unlock a specific invite — remember it
+    token = _clean(request.args.get('event', ''), 20)
+    if token:
+        session['pay_return_token'] = token
+    return render_template(
+        'subscribe.html',
+        price=app.config.get('SUBSCRIPTION_PRICE_ZAR', 99),
+        single_price=app.config.get('SINGLE_INVITE_PRICE_ZAR', 15),
+        return_token=session.get('pay_return_token', ''),
+    )
 
 
 @app.route('/subscribe/checkout', methods=['POST'])
@@ -1705,35 +1792,52 @@ def subscribe_checkout():
     if _has_active_sub(current_user):
         return redirect(url_for('billing'))
 
-    base  = _app_base()
+    return_token = _clean(request.form.get('return_token', '')
+                          or session.get('pay_return_token', ''), 20)
+    session['pay_return_token'] = return_token
+    session['pay_kind'] = 'sub'
+
     price = float(app.config.get('SUBSCRIPTION_PRICE_ZAR', 99))
-
-    name_parts = current_user.name.strip().split()
-    first = name_parts[0] if name_parts else current_user.name
-    last  = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
-
-    pf_data = {
-        'merchant_id':       app.config.get('PAYFAST_MERCHANT_ID', ''),
-        'merchant_key':      app.config.get('PAYFAST_MERCHANT_KEY', ''),
-        'return_url':        f"{base}/payment/success",
-        'cancel_url':        f"{base}/payment/cancel",
-        'notify_url':        f"{base}/payfast/notify",
-        'name_first':        first,
-        'name_last':         last,
-        'email_address':     current_user.email,
-        'm_payment_id':      f"{current_user.id}_{int(time.time())}",
+    pf_data = _pf_base_fields(return_token, 'sub')
+    pf_data.update({
         'amount':            f"{price:.2f}",
         'item_name':         'Invitisimemo Monthly Subscription',
         'item_description':  'Full access — create & publish unlimited digital invitations',
-        'custom_str1':       str(current_user.id),
         'subscription_type': '1',
         'billing_date':      date.today().strftime('%Y-%m-%d'),
         'recurring_amount':  f"{price:.2f}",
         'frequency':         '3',
         'cycles':            '0',
-    }
+    })
     pf_data['signature'] = _pf_signature(pf_data)
+    return render_template('payfast_redirect.html',
+                           pf_url=_pf_url(), pf_data=pf_data)
 
+
+@app.route('/unlock/<token>/checkout', methods=['POST'])
+@login_required
+def single_invite_checkout(token):
+    """One-off R15 payment to unlock (publish) a single invitation — for
+    hosts who only have one event and don't want the monthly subscription."""
+    event = Event.query.filter_by(token=token).first_or_404()
+    if not _can_manage(event):
+        abort(403)
+    # Already live (subscriber or already unlocked) — nothing to buy
+    if event.is_live or _has_active_sub(current_user):
+        flash('This invitation is already live. ✦', 'success')
+        return redirect(url_for('manage', token=token))
+
+    session['pay_return_token'] = token
+    session['pay_kind'] = 'single'
+
+    price = float(app.config.get('SINGLE_INVITE_PRICE_ZAR', 15))
+    pf_data = _pf_base_fields(token, 'single')
+    pf_data.update({
+        'amount':           f"{price:.2f}",
+        'item_name':        'Invitisimemo — Single Invite Unlock',
+        'item_description': f'Publish & share one invitation: {event.event_title[:60]}',
+    })
+    pf_data['signature'] = _pf_signature(pf_data)
     return render_template('payfast_redirect.html',
                            pf_url=_pf_url(), pf_data=pf_data)
 
@@ -1765,7 +1869,9 @@ def payfast_notify():
         return 'INVALID', 400
 
     payment_status = posted.get('payment_status', '')
-    custom_str1    = posted.get('custom_str1', '')
+    custom_str1    = posted.get('custom_str1', '')   # user id
+    return_token   = posted.get('custom_str2', '')   # event token
+    pay_kind       = posted.get('custom_str3', 'sub')
     pf_payment_id  = posted.get('pf_payment_id', '')
     pf_sub_token   = posted.get('token', '')
     amount_gross   = posted.get('amount_gross', '0')
@@ -1777,41 +1883,76 @@ def payfast_notify():
     if not user:
         return 'OK', 200
 
-    db.session.add(Payment(
-        user_id=user.id,
-        pf_payment_id=pf_payment_id,
-        pf_sub_token=pf_sub_token,
-        amount=float(amount_gross) if amount_gross else 0,
-        status=payment_status.lower(),
-    ))
-
     if payment_status == 'COMPLETE':
-        user.sub_status   = 'active'
-        user.sub_pf_token = pf_sub_token
-        # Auto-publish all their draft events
-        for ev in Event.query.filter_by(user_id=user.id, is_archived=False).all():
-            if not ev.is_live:
-                ev.is_live = True
-        _audit('subscription_activated', f'user={user.email}', user_id=user.id)
-    elif payment_status in ('FAILED', 'CANCELLED'):
-        user.sub_status = 'expired'
-        _audit('subscription_lapsed', f'user={user.email} status={payment_status}',
-               user_id=user.id)
-
-    db.session.commit()
+        _finalise_payment(user, pay_kind, return_token,
+                          pf_payment_id=pf_payment_id,
+                          pf_sub_token=pf_sub_token, amount=amount_gross)
+    else:
+        db.session.add(Payment(
+            user_id=user.id, pf_payment_id=pf_payment_id,
+            pf_sub_token=pf_sub_token,
+            amount=_payment_amount(amount_gross),
+            status=payment_status.lower(),
+            kind='single_invite' if pay_kind == 'single' else 'subscription',
+        ))
+        if pay_kind != 'single' and payment_status in ('FAILED', 'CANCELLED'):
+            user.sub_status = 'expired'
+            _audit('subscription_lapsed',
+                   f'user={user.email} status={payment_status}', user_id=user.id)
+        db.session.commit()
     return 'OK', 200
 
 
 @app.route('/payment/success')
 @login_required
 def payment_success():
-    return render_template('payment_success.html')
+    token = session.get('pay_return_token', '')
+    kind  = session.get('pay_kind', 'sub')
+
+    event = None
+    if token:
+        event = Event.query.filter_by(token=token, user_id=current_user.id,
+                                      is_archived=False).first()
+
+    # In sandbox there is no real server-to-server ITN, so finalise here so
+    # devs can test the full flow. In production the ITN is the source of truth.
+    if app.config.get('PAYFAST_SANDBOX'):
+        already_ready = (kind == 'single' and event and event.is_live) or (
+            kind != 'single' and _has_active_sub(current_user)
+        )
+        if not already_ready:
+            _finalise_payment(current_user, kind, token)
+            if token:
+                event = Event.query.filter_by(token=token, user_id=current_user.id,
+                                              is_archived=False).first()
+
+    ready = bool(event and event.is_live) or _has_active_sub(current_user)
+    return render_template('payment_success.html',
+                           event=event, ready=ready,
+                           kind=kind, token=token)
+
+
+@app.route('/api/payment-status')
+@login_required
+def payment_status():
+    """Polled by the success page while we wait for the PayFast ITN."""
+    token = _clean(request.args.get('token', ''), 20)
+    live = False
+    if token:
+        ev = Event.query.filter_by(token=token, user_id=current_user.id).first()
+        live = bool(ev and ev.is_live)
+    return jsonify({
+        'ready': live or _has_active_sub(current_user),
+        'subscribed': _has_active_sub(current_user),
+        'token': token,
+    })
 
 
 @app.route('/payment/cancel')
 @login_required
 def payment_cancel():
-    return render_template('payment_cancel.html')
+    return render_template('payment_cancel.html',
+                           token=session.get('pay_return_token', ''))
 
 
 @app.route('/billing')
@@ -1832,8 +1973,8 @@ def publish_event(token):
     if not _can_manage(event):
         abort(403)
     if not _has_active_sub(current_user):
-        flash('Subscribe to publish your invitation and make it visible to guests.', 'info')
-        return redirect(url_for('subscribe'))
+        flash('Choose how to publish your invitation and make it visible to guests.', 'info')
+        return redirect(url_for('subscribe', event=token))
     event.is_live = True
     db.session.commit()
     _audit('event_publish', f'token={token}')

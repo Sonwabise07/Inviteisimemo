@@ -141,3 +141,20 @@ python -m flask db upgrade
 | `SESSION_COOKIE_SECURE` | production | Set `true` when serving over HTTPS. |
 | `RATELIMIT_STORAGE_URL` | production | Redis URL for distributed rate limiting. |
 | `ARCHIVE_AFTER_DAYS` | optional | Days before events are auto-archived. Default: `365`. |
+| `PAYFAST_MERCHANT_ID` | payments | PayFast merchant ID. |
+| `PAYFAST_MERCHANT_KEY` | payments | PayFast merchant key. |
+| `PAYFAST_PASSPHRASE` | payments | PayFast passphrase (set in your PayFast dashboard). |
+| `PAYFAST_SANDBOX` | payments | `true` for sandbox/testing, `false` for live. Default: `true`. |
+| `SUBSCRIPTION_PRICE_ZAR` | optional | Monthly subscription price in Rand. Default: `99`. |
+| `SINGLE_INVITE_PRICE_ZAR` | optional | One-off "unlock a single invite" price in Rand. Default: `15`. |
+
+## Payments — two ways to publish
+
+Hosts can make an invitation live two ways:
+
+1. **Single-invite unlock (R15)** — a one-off PayFast payment that publishes *only that one* invitation. Best for someone hosting a single event. Route: `POST /unlock/<token>/checkout`.
+2. **Monthly subscription (R99)** — unlimited invitations, all auto-published. Route: `POST /subscribe/checkout`.
+
+After payment, PayFast carries the event token (`custom_str2`) and a kind flag (`custom_str3`) back via the ITN. The user is returned to `/payment/success`, which finalises the unlock and redirects them straight to the invitation they were creating. In sandbox mode there is no real server-to-server ITN, so the success page finalises directly so you can test the whole flow.
+
+**New migration:** `e3f4a5b6c7d8_pay_per_invite` adds `event.single_paid`, `payment.kind`, and `payment.event_id`. It runs automatically on startup.

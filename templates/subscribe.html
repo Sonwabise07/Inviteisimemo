@@ -3,83 +3,142 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-  <title>Subscribe — Invitisimemo</title>
+  <title>Publish your invitation — Invitisimemo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
   <style>
     body{background:#080808;min-height:100vh;color:#fff;}
-    .sub-wrap{max-width:520px;margin:0 auto;padding:3rem 1.5rem 4rem;}
-    .sub-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:2rem;transition:color .2s;}
+    .sub-wrap{max-width:880px;margin:0 auto;padding:2.6rem 1.2rem 4rem;}
+    .sub-back{font-size:.75rem;color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:6px;margin-bottom:1.6rem;transition:color .2s;}
     .sub-back:hover{color:#aaa;}
-    .sub-header{text-align:center;margin-bottom:2.5rem;}
-    .sub-badge{display:inline-block;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#e8d5a3;border:.5px solid rgba(232,213,163,.3);border-radius:20px;padding:4px 12px;margin-bottom:1.2rem;}
-    .sub-title{font-family:Georgia,serif;font-size:2.2rem;font-weight:400;line-height:1.2;margin-bottom:.8rem;}
+    .sub-header{text-align:center;margin-bottom:2.2rem;}
+    .sub-badge{display:inline-block;font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:#e8d5a3;border:.5px solid rgba(232,213,163,.3);border-radius:20px;padding:4px 12px;margin-bottom:1.1rem;}
+    .sub-title{font-family:Georgia,serif;font-size:1.95rem;font-weight:400;line-height:1.2;margin-bottom:.7rem;}
     .sub-title span{color:#e8d5a3;}
-    .sub-sub{font-size:.9rem;color:#555;line-height:1.7;}
-    .price-card{background:#111;border:.5px solid rgba(255,255,255,.1);border-radius:18px;padding:2rem 1.8rem;margin-bottom:2rem;position:relative;overflow:hidden;}
-    .price-card::before{content:'';position:absolute;inset:-1px;border-radius:18px;background:linear-gradient(135deg,rgba(232,213,163,.25),transparent 60%);pointer-events:none;}
-    .price-top{display:flex;align-items:flex-end;gap:6px;margin-bottom:6px;}
-    .price-amount{font-size:3rem;font-weight:700;color:#fff;line-height:1;}
-    .price-currency{font-size:1.1rem;color:#888;margin-bottom:.5rem;}
-    .price-period{font-size:.8rem;color:#555;margin-bottom:1.4rem;}
-    .price-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:1.8rem;}
-    .price-features li{display:flex;align-items:center;gap:10px;font-size:.88rem;color:#ccc;}
-    .price-features li::before{content:'✓';color:#e8d5a3;font-weight:700;flex-shrink:0;}
-    .sub-btn{display:block;width:100%;padding:16px;background:#e8d5a3;color:#080808;border:none;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.06em;transition:opacity .2s;font-family:inherit;}
-    .sub-btn:hover{opacity:.88;}
-    .sub-guarantee{text-align:center;font-size:.7rem;color:#333;margin-top:14px;line-height:1.6;}
-    .sub-pf-logo{text-align:center;margin-top:1.2rem;font-size:.68rem;color:#2a2a2a;}
-    .sub-pf-logo span{color:#007bff;}
+    .sub-sub{font-size:.88rem;color:#666;line-height:1.7;max-width:480px;margin:0 auto;}
+
+    .plans{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+    .plan{background:#111;border:.5px solid rgba(255,255,255,.1);border-radius:18px;padding:1.8rem 1.6rem;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+    .plan-featured{border-color:rgba(232,213,163,.35);}
+    .plan-featured::before{content:'';position:absolute;inset:-1px;border-radius:18px;background:linear-gradient(135deg,rgba(232,213,163,.22),transparent 55%);pointer-events:none;}
+    .plan-flag{position:absolute;top:14px;right:14px;font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;background:#e8d5a3;color:#080808;font-weight:700;padding:3px 9px;border-radius:20px;}
+    .plan-kicker{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:#777;margin-bottom:.7rem;}
+    .plan-price{display:flex;align-items:flex-end;gap:5px;margin-bottom:3px;}
+    .plan-amount{font-size:2.6rem;font-weight:700;color:#fff;line-height:1;}
+    .plan-currency{font-size:1rem;color:#888;margin-bottom:.45rem;}
+    .plan-period{font-size:.78rem;color:#555;margin-bottom:1.3rem;}
+    .plan-features{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:1.5rem;flex:1;}
+    .plan-features li{display:flex;align-items:flex-start;gap:9px;font-size:.84rem;color:#bbb;line-height:1.5;}
+    .plan-features li::before{content:'✓';color:#e8d5a3;font-weight:700;flex-shrink:0;}
+    .plan-features li.muted{color:#555;}
+    .plan-features li.muted::before{content:'·';color:#444;}
+    .plan-btn{display:block;width:100%;padding:15px;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:opacity .2s,background .2s;font-family:inherit;border:none;text-align:center;text-decoration:none;}
+    .plan-btn-gold{background:#e8d5a3;color:#080808;}
+    .plan-btn-gold:hover{opacity:.88;}
+    .plan-btn-ghost{background:transparent;border:.5px solid rgba(232,213,163,.4);color:#e8d5a3;}
+    .plan-btn-ghost:hover{background:rgba(232,213,163,.08);}
+    .plan-note{text-align:center;font-size:.68rem;color:#3a3a3a;margin-top:11px;line-height:1.6;}
+    .plan-disabled{opacity:.5;}
+
+    .sub-foot{text-align:center;font-size:.7rem;color:#333;margin-top:1.8rem;line-height:1.7;}
+    .sub-foot span{color:#007bff;}
     {% if config.get('PAYFAST_SANDBOX') %}
-    .dev-panel{background:rgba(245,158,11,.06);border:.5px solid rgba(245,158,11,.2);border-radius:12px;padding:1rem 1.2rem;margin-top:1.5rem;}
-    .dev-panel p{font-size:.75rem;color:#f59e0b;margin-bottom:.8rem;}
-    .dev-btn{display:block;width:100%;padding:10px;background:rgba(245,158,11,.12);border:.5px solid rgba(245,158,11,.3);border-radius:8px;color:#f59e0b;font-size:.78rem;cursor:pointer;font-family:inherit;}
+    .dev-panel{background:rgba(245,158,11,.06);border:.5px solid rgba(245,158,11,.2);border-radius:12px;padding:1rem 1.2rem;margin-top:1.4rem;max-width:520px;margin-left:auto;margin-right:auto;}
+    .dev-panel p{font-size:.75rem;color:#f59e0b;margin-bottom:.7rem;}
+    .dev-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .dev-btn{flex:1;min-width:140px;padding:10px;background:rgba(245,158,11,.12);border:.5px solid rgba(245,158,11,.3);border-radius:8px;color:#f59e0b;font-size:.74rem;cursor:pointer;font-family:inherit;}
     {% endif %}
+    @media(max-width:640px){
+      .plans{grid-template-columns:1fr;}
+      .sub-title{font-size:1.65rem;}
+      .plan{padding:1.5rem 1.3rem;}
+    }
   </style>
 </head>
 <body>
 {% include '_nav.html' %}
 
 <div class="sub-wrap">
-  <a class="sub-back" href="{{ url_for('dashboard') }}">← Back to dashboard</a>
+  <a class="sub-back" href="{% if return_token %}{{ url_for('manage', token=return_token) }}{% else %}{{ url_for('dashboard') }}{% endif %}">← Back</a>
 
   <div class="sub-header">
-    <div class="sub-badge">✦ Invitisimemo</div>
-    <h1 class="sub-title">Create invitations that <span>truly impress</span></h1>
-    <p class="sub-sub">One simple monthly plan. Unlimited invitations. Publish instantly and share with the world.</p>
+    <div class="sub-badge">✦ Publish your invitation</div>
+    <h1 class="sub-title">Make it <span>live</span> &amp; shareable</h1>
+    <p class="sub-sub">Guests can only open and RSVP once your invite is published. Choose what suits you — a one-off unlock for a single event, or unlimited invites every month.</p>
   </div>
 
-  <div class="price-card">
-    <div class="price-top">
-      <span class="price-currency">R</span>
-      <span class="price-amount">{{ price | int }}</span>
+  <div class="plans">
+
+    <!-- ── Single invite — R15 ── -->
+    <div class="plan {% if not return_token %}plan-disabled{% endif %}">
+      <div class="plan-kicker">Just this one</div>
+      <div class="plan-price">
+        <span class="plan-currency">R</span>
+        <span class="plan-amount">{{ single_price | int }}</span>
+      </div>
+      <div class="plan-period">one-off · no subscription</div>
+      <ul class="plan-features">
+        <li>Publishes <strong>this one</strong> invitation</li>
+        <li>Full design, RSVP &amp; sharing features</li>
+        <li>Personalised guest links &amp; QR code</li>
+        <li>Yours to manage — no monthly fee</li>
+        <li class="muted">Each new invite is a separate R{{ single_price | int }}</li>
+      </ul>
+      {% if return_token %}
+      <form method="POST" action="{{ url_for('single_invite_checkout', token=return_token) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="plan-btn plan-btn-ghost">Unlock this invite — R{{ single_price | int }}</button>
+      </form>
+      <p class="plan-note">Best if you're hosting a single event.</p>
+      {% else %}
+      <a href="{{ url_for('dashboard') }}" class="plan-btn plan-btn-ghost">Pick an invite first</a>
+      <p class="plan-note">Open an invitation from your dashboard to unlock it individually.</p>
+      {% endif %}
     </div>
-    <div class="price-period">per month · cancel any time</div>
-    <ul class="price-features">
-      <li>Unlimited digital invitations</li>
-      <li>23 stunning designs &amp; 20 patterns</li>
-      <li>Live RSVP collection &amp; management</li>
-      <li>Personalised per-guest invite links</li>
-      <li>WhatsApp sharing + QR codes</li>
-      <li>14 animated effects &amp; photo filters</li>
-      <li>Emoji reactions &amp; guest comments</li>
-      <li>CSV export &amp; daily RSVP summaries</li>
-      <li>Gift registry &amp; capacity management</li>
-    </ul>
-    <form method="POST" action="{{ url_for('subscribe_checkout') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <button type="submit" class="sub-btn">Subscribe now — R{{ price | int }}/month</button>
-    </form>
-    <p class="sub-guarantee">🔒 Secure payment via PayFast · Your card details are never stored on our servers</p>
-    <div class="sub-pf-logo">Powered by <span>PayFast</span></div>
+
+    <!-- ── Monthly — R99 ── -->
+    <div class="plan plan-featured">
+      <div class="plan-flag">Best value</div>
+      <div class="plan-kicker">Unlimited</div>
+      <div class="plan-price">
+        <span class="plan-currency">R</span>
+        <span class="plan-amount">{{ price | int }}</span>
+      </div>
+      <div class="plan-period">per month · cancel any time</div>
+      <ul class="plan-features">
+        <li><strong>Unlimited</strong> invitations, published instantly</li>
+        <li>All 23 designs, 20 patterns &amp; 14 effects</li>
+        <li>Live RSVP collection &amp; management</li>
+        <li>Personalised per-guest links + QR codes</li>
+        <li>CSV export &amp; daily RSVP summaries</li>
+        <li>Gift registry, reactions &amp; guest comments</li>
+      </ul>
+      <form method="POST" action="{{ url_for('subscribe_checkout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="return_token" value="{{ return_token }}"/>
+        <button type="submit" class="plan-btn plan-btn-gold">Subscribe — R{{ price | int }}/month</button>
+      </form>
+      <p class="plan-note">Cancel any time · best if you host often.</p>
+    </div>
+
   </div>
+
+  <p class="sub-foot">🔒 Secure payment via PayFast · your card details are never stored on our servers<br/>Powered by <span>PayFast</span></p>
 
   {% if config.get('PAYFAST_SANDBOX') %}
   <div class="dev-panel">
     <p>⚡ Sandbox mode — activate without a real payment for testing:</p>
-    <form method="POST" action="{{ url_for('payfast_dev_activate') }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <button type="submit" class="dev-btn">Activate subscription (dev shortcut)</button>
-    </form>
+    <div class="dev-row">
+      <form method="POST" action="{{ url_for('payfast_dev_activate') }}" style="flex:1;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="dev-btn">Activate subscription</button>
+      </form>
+      {% if return_token %}
+      <form method="POST" action="{{ url_for('single_invite_checkout', token=return_token) }}" style="flex:1;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="dev-btn">Test single unlock</button>
+      </form>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>
