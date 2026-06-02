@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{{ event.event_title }} — Coming Soon</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/designs.css') }}"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;}
+    .draft-wrap{max-width:440px;width:90%;text-align:center;padding:2.8rem 2rem;}
+    .draft-icon{font-size:2.5rem;margin-bottom:1.4rem;opacity:.5;}
+    .draft-pretag{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:#555;margin-bottom:.8rem;}
+    .draft-title{font-family:Georgia,serif;font-size:1.9rem;font-weight:400;color:#fff;line-height:1.25;margin-bottom:.6rem;}
+    .draft-host{font-size:.82rem;color:#444;margin-bottom:1.8rem;}
+    .draft-msg{font-size:.84rem;color:#555;line-height:1.7;border:.5px solid rgba(255,255,255,.06);border-radius:12px;padding:1rem 1.2rem;background:#111;}
+    .draft-msg strong{color:#888;}
+  </style>
+</head>
+<body>
+  <div class="draft-wrap">
+    <div class="draft-icon">✉️</div>
+    <div class="draft-pretag">{{ event.event_type }}</div>
+    <h1 class="draft-title">{{ event.event_title }}</h1>
+    <p class="draft-host">Hosted by {{ event.host_name }}</p>
+    <div class="draft-msg">
+      <strong>This invitation isn't live yet.</strong><br/>
+      The host is putting the finishing touches on your invite — check back shortly.
+    </div>
+  </div>
+</body>
+</html>

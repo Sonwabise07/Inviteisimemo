@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{{ code }} — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    .err-wrap { max-width: 480px; margin: 0 auto; padding: 5rem 2rem; text-align: center; }
+    .err-code { font-family: Georgia, serif; font-size: 5rem; color: rgba(232,213,163,0.2); font-weight: 700; line-height: 1; margin-bottom: .5rem; }
+    .err-title { font-family: Georgia, serif; font-size: 1.5rem; color: #fff; margin-bottom: .8rem; }
+    .err-msg { color: #666; font-size: .9rem; line-height: 1.7; margin-bottom: 2rem; }
+    .err-btn { display: inline-block; background: rgba(232,213,163,0.1); color: #e8d5a3; border: 1px solid rgba(232,213,163,0.2); border-radius: 8px; padding: 10px 24px; font-size: .85rem; text-decoration: none; }
+    .err-btn:hover { background: rgba(232,213,163,0.18); }
+  </style>
+</head>
+<body style="background:#080808; min-height:100vh;">
+{% include '_nav.html' %}
+<div class="err-wrap">
+  <div class="err-code">{{ code }}</div>
+  <div class="err-title">
+    {% if code == 403 %}Access denied{% elif code == 404 %}Page not found{% else %}Something went wrong{% endif %}
+  </div>
+  <div class="err-msg">{{ message }}</div>
+  <a class="err-btn" href="{{ url_for('index') }}">← Back to Invitisimemo</a>
+</div>
+</body>
+</html>

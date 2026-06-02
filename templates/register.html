@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Create Account — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    .auth-wrap { max-width: 440px; margin: 0 auto; padding: 3rem 1.5rem; }
+    .auth-logo { font-family: Georgia, serif; font-size: 1.5rem; color: #e8d5a3; letter-spacing: .05em; text-align: center; margin-bottom: 2.5rem; display: block; text-decoration: none; }
+    .auth-title { font-family: Georgia, serif; font-size: 1.9rem; color: #fff; text-align: center; margin-bottom: .4rem; }
+    .auth-sub { color: #666; font-size: .88rem; text-align: center; margin-bottom: 2rem; }
+    .auth-card { background: #111; border: 1px solid rgba(232,213,163,0.1); border-radius: 14px; padding: 2rem; }
+    .auth-field { margin-bottom: 1.2rem; }
+    .auth-field label { display: block; font-size: .78rem; font-weight: 500; color: #999; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .45rem; }
+    .auth-field input { width: 100%; background: #080808; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: .75rem 1rem; color: #e0e0e0; font-size: .9rem; outline: none; transition: border-color .2s; }
+    .auth-field input:focus { border-color: rgba(232,213,163,0.4); }
+    .auth-hint { font-size: .72rem; color: #555; margin-top: .3rem; }
+    .auth-btn { width: 100%; background: #e8d5a3; color: #080808; border: none; border-radius: 8px; padding: .85rem; font-size: .9rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .auth-btn:hover { background: #d4be88; }
+    .auth-divider { text-align: center; margin: 1.5rem 0; color: #444; font-size: .8rem; }
+    .auth-link { display: block; text-align: center; color: #e8d5a3; font-size: .84rem; text-decoration: none; }
+    .auth-link:hover { text-decoration: underline; }
+    .flash-msg { border-radius: 8px; padding: .75rem 1rem; margin-bottom: 1rem; font-size: .84rem; }
+    .flash-msg.error { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.2); }
+    .flash-msg.success { background: rgba(29,158,117,0.12); color: #1d9e75; border: 1px solid rgba(29,158,117,0.2); }
+    .terms-note { font-size: .72rem; color: #444; text-align: center; margin-top: 1.2rem; line-height: 1.6; }
+  </style>
+</head>
+<body style="background:#080808; min-height:100vh;">
+<div class="auth-wrap">
+  <a class="auth-logo" href="{{ url_for('index') }}">Invitisimemo</a>
+  <div class="auth-title">Create your account</div>
+  <div class="auth-sub">Build beautiful invitations and track your RSVPs</div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+      <div class="flash-msg {{ cat }}">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="auth-card">
+    <form method="POST" action="{{ url_for('register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="auth-field">
+        <label for="name">Your full name</label>
+        <input type="text" id="name" name="name" value="{{ name or '' }}"
+               placeholder="Thembi Dlamini" required autocomplete="name"/>
+      </div>
+
+      <div class="auth-field">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" value="{{ email or '' }}"
+               placeholder="thembi@email.com" required autocomplete="email"/>
+      </div>
+
+      <div class="auth-field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password"
+               placeholder="At least 8 characters" required autocomplete="new-password"
+               minlength="8"/>
+        <div class="auth-hint">Minimum 8 characters</div>
+      </div>
+
+      <div class="auth-field">
+        <label for="confirm_password">Confirm password</label>
+        <input type="password" id="confirm_password" name="confirm_password"
+               placeholder="Repeat your password" required autocomplete="new-password"/>
+      </div>
+
+      <button type="submit" class="auth-btn">Create account →</button>
+
+      <div class="terms-note">
+        By creating an account you agree that events and RSVP data
+        you create belong to you and can be deleted at any time.
+      </div>
+    </form>
+
+    <div class="auth-divider">— already have an account? —</div>
+    <a class="auth-link" href="{{ url_for('login') }}">Sign in</a>
+  </div>
+</div>
+</body>
+</html>

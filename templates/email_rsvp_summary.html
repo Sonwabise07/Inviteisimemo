@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+    .card { background: #fff; max-width: 600px; margin: 0 auto; border-radius: 8px; overflow: hidden; }
+    .header { background: #0a0a0a; color: #e8d5a3; padding: 28px 32px; }
+    .header h1 { font-size: 20px; font-weight: 300; margin: 0 0 4px; }
+    .header p  { font-size: 13px; color: #777; margin: 0; }
+    .stats { display: flex; border-bottom: 1px solid #f0f0f0; }
+    .stat { flex: 1; padding: 20px; text-align: center; }
+    .stat-n { font-size: 28px; font-weight: 300; }
+    .stat-l { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: .12em; margin-top: 4px; }
+    .yes-n { color: #1d9e75; }
+    .no-n  { color: #d85a30; }
+    .section { padding: 20px 32px; }
+    .section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .15em; color: #999; margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 8px 0; font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: #bbb; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 10px 0; border-bottom: 1px solid #f5f5f5; color: #333; }
+    .footer { background: #f9f9f9; padding: 16px 32px; text-align: center; font-size: 12px; color: #aaa; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <h1>RSVP Summary — {{ event.event_title }}</h1>
+    <p>{{ event.event_date }} · {{ event.venue_name }}</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-n yes-n">{{ yes_list | length }}</div>
+      <div class="stat-l">Attending</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n no-n">{{ no_list | length }}</div>
+      <div class="stat-l">Can't attend</div>
+    </div>
+    <div class="stat">
+      <div class="stat-n">{{ (yes_list | length) + (no_list | length) }}</div>
+      <div class="stat-l">Total responses</div>
+    </div>
+  </div>
+
+  {% if yes_list %}
+  <div class="section">
+    <h2>✓ Attending ({{ yes_list | length }})</h2>
+    <table>
+      <tr><th>Name</th><th>Email</th><th>RSVPd</th></tr>
+      {% for r in yes_list %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td>{{ r.email if r.email else '—' }}</td>
+        <td>{{ r.timestamp.strftime('%d %b, %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if no_list %}
+  <div class="section">
+    <h2>✗ Cannot attend ({{ no_list | length }})</h2>
+    <table>
+      <tr><th>Name</th><th>Email</th><th>RSVPd</th></tr>
+      {% for r in no_list %}
+      <tr>
+        <td>{{ r.name }}</td>
+        <td>{{ r.email if r.email else '—' }}</td>
+        <td>{{ r.timestamp.strftime('%d %b, %H:%M') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="footer">Invitisimemo · Summary generated on request · {{ event.host_email }}</div>
+</div>
+</body>
+</html>

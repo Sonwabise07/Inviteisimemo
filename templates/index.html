@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Invitisimemo — Beautiful Digital Invitations for Every SA Celebration</title>
+  <meta name="description" content="Create stunning digital invitations for birthdays, weddings, umemulo, lobola, graduations and more. Share via WhatsApp. Collect RSVPs. Start free."/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#080808;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;overflow-x:hidden;}
+    /* NAV */
+    .lp-nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 2rem;max-width:1100px;margin:0 auto;}
+    .lp-brand{font-family:Georgia,serif;font-size:1.1rem;color:#e8d5a3;text-decoration:none;letter-spacing:.04em;}
+    .lp-nav-links{display:flex;align-items:center;gap:1rem;}
+    .lp-nav-link{font-size:.82rem;color:#555;text-decoration:none;transition:color .2s;}
+    .lp-nav-link:hover{color:#aaa;}
+    .lp-nav-cta{padding:9px 20px;background:#e8d5a3;color:#080808;border-radius:6px;font-size:.8rem;font-weight:600;text-decoration:none;transition:opacity .2s;}
+    .lp-nav-cta:hover{opacity:.88;}
+    /* HERO */
+    .hero-section{max-width:780px;margin:0 auto;padding:5rem 2rem 4rem;text-align:center;}
+    .hero-pretag{display:inline-block;font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:#e8d5a3;border:.5px solid rgba(232,213,163,.25);border-radius:20px;padding:4px 14px;margin-bottom:2rem;}
+    .hero-title{font-family:Georgia,serif;font-size:clamp(2.2rem,6vw,3.8rem);font-weight:400;line-height:1.15;margin-bottom:1.4rem;color:#fff;}
+    .hero-title span{color:#e8d5a3;}
+    .hero-sub{font-size:1rem;color:#555;line-height:1.8;margin-bottom:2.4rem;max-width:560px;margin-left:auto;margin-right:auto;}
+    .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .hero-btn-main{padding:15px 32px;background:#e8d5a3;color:#080808;border-radius:8px;font-size:.88rem;font-weight:700;text-decoration:none;letter-spacing:.04em;transition:opacity .2s;}
+    .hero-btn-main:hover{opacity:.88;}
+    .hero-btn-ghost{padding:15px 32px;background:transparent;color:#888;border:.5px solid rgba(255,255,255,.12);border-radius:8px;font-size:.88rem;text-decoration:none;transition:color .2s,border-color .2s;}
+    .hero-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,.3);}
+    .hero-note{font-size:.72rem;color:#333;margin-top:1.2rem;}
+    /* DESIGN STRIP */
+    .strip-section{overflow:hidden;padding:3rem 0;border-top:.5px solid rgba(255,255,255,.04);border-bottom:.5px solid rgba(255,255,255,.04);}
+    .strip-label{text-align:center;font-size:.65rem;letter-spacing:.16em;text-transform:uppercase;color:#333;margin-bottom:1.8rem;}
+    .strip-row{display:flex;gap:12px;animation:scrollStrip 28s linear infinite;width:max-content;}
+    .strip-section:hover .strip-row{animation-play-state:paused;}
+    @keyframes scrollStrip{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+    .design-pill{flex-shrink:0;padding:10px 18px;border-radius:30px;font-size:.72rem;font-weight:500;letter-spacing:.04em;white-space:nowrap;border:.5px solid rgba(255,255,255,.08);}
+    .dp-1{background:#030308;color:#00ff99;} .dp-2{background:#0a0700;color:#fbbf24;}
+    .dp-3{background:#fdf6ee;color:#9a4c2e;} .dp-4{background:#06020f;color:#c084fc;}
+    .dp-5{background:#0e0308;color:#e8d5a3;} .dp-6{background:#f6f8f5;color:#5a7a52;}
+    .dp-7{background:#02020f;color:#c4b5fd;} .dp-8{background:#0e0800;color:#d97706;}
+    .dp-9{background:#08060c;color:#e8d5a3;} .dp-10{background:#080808;color:#e8d5a3;}
+    .dp-11{background:#020d16;color:#2dd4bf;}.dp-12{background:#000;color:#fff;}
+    /* HOW IT WORKS */
+    .how-section{max-width:900px;margin:0 auto;padding:5rem 2rem;}
+    .section-eyebrow{font-size:.65rem;letter-spacing:.16em;text-transform:uppercase;color:#e8d5a3;margin-bottom:.8rem;}
+    .section-title{font-family:Georgia,serif;font-size:clamp(1.6rem,4vw,2.4rem);font-weight:400;color:#fff;line-height:1.25;margin-bottom:.6rem;}
+    .section-sub{font-size:.9rem;color:#555;line-height:1.7;margin-bottom:3rem;max-width:540px;}
+    .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;}
+    @media(max-width:640px){.steps{grid-template-columns:1fr;}}
+    .step{padding:1.6rem;background:#111;border:.5px solid rgba(255,255,255,.06);border-radius:14px;}
+    .step-num{font-size:.65rem;letter-spacing:.12em;color:#e8d5a3;text-transform:uppercase;margin-bottom:.7rem;}
+    .step-icon{font-size:1.6rem;margin-bottom:.7rem;}
+    .step-title{font-size:.95rem;font-weight:600;color:#fff;margin-bottom:.4rem;}
+    .step-desc{font-size:.8rem;color:#555;line-height:1.6;}
+    /* FEATURES */
+    .features-section{max-width:1000px;margin:0 auto;padding:3rem 2rem 5rem;}
+    .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
+    @media(max-width:700px){.features-grid{grid-template-columns:1fr 1fr;}}
+    @media(max-width:440px){.features-grid{grid-template-columns:1fr;}}
+    .feat{padding:1.4rem;background:#0d0d0d;border:.5px solid rgba(255,255,255,.06);border-radius:12px;transition:border-color .2s;}
+    .feat:hover{border-color:rgba(232,213,163,.15);}
+    .feat-icon{font-size:1.4rem;margin-bottom:.7rem;}
+    .feat-title{font-size:.88rem;font-weight:600;color:#e0e0e0;margin-bottom:.35rem;}
+    .feat-desc{font-size:.75rem;color:#555;line-height:1.6;}
+    /* SA CALLOUT */
+    .sa-section{max-width:820px;margin:0 auto;padding:0 2rem 5rem;}
+    .sa-card{background:linear-gradient(135deg,rgba(232,213,163,.06) 0%,rgba(232,213,163,.02) 100%);border:.5px solid rgba(232,213,163,.15);border-radius:18px;padding:2.5rem 2rem;text-align:center;}
+    .sa-title{font-family:Georgia,serif;font-size:1.5rem;color:#fff;margin-bottom:.6rem;}
+    .sa-sub{font-size:.85rem;color:#555;line-height:1.7;max-width:520px;margin:0 auto 1.5rem;}
+    .sa-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+    .sa-tag{font-size:.72rem;padding:5px 12px;background:rgba(232,213,163,.07);border:.5px solid rgba(232,213,163,.15);border-radius:20px;color:#e8d5a3;}
+    /* PRICING */
+    .pricing-section{max-width:500px;margin:0 auto;padding:3rem 2rem 5rem;}
+    .price-card-lp{background:#111;border:.5px solid rgba(232,213,163,.18);border-radius:20px;padding:2.5rem 2rem;position:relative;overflow:hidden;}
+    .price-card-lp::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#e8d5a3,transparent);}
+    .price-badge-lp{display:inline-block;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(232,213,163,.1);color:#e8d5a3;border:.5px solid rgba(232,213,163,.25);border-radius:20px;padding:3px 10px;margin-bottom:1.2rem;}
+    .price-amount-lp{font-size:3.5rem;font-weight:700;color:#fff;line-height:1;}
+    .price-currency-lp{font-size:1.2rem;color:#888;vertical-align:super;font-weight:400;}
+    .price-period-lp{font-size:.78rem;color:#444;margin:6px 0 1.6rem;}
+    .price-features-lp{list-style:none;display:flex;flex-direction:column;gap:9px;margin-bottom:2rem;text-align:left;}
+    .price-features-lp li{display:flex;align-items:center;gap:8px;font-size:.84rem;color:#bbb;}
+    .price-features-lp li::before{content:'✓';color:#e8d5a3;font-weight:700;flex-shrink:0;}
+    .price-cta-lp{display:block;width:100%;padding:15px;background:#e8d5a3;color:#080808;border:none;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;transition:opacity .2s;font-family:inherit;}
+    .price-cta-lp:hover{opacity:.88;}
+    .price-sub-lp{text-align:center;font-size:.7rem;color:#333;margin-top:12px;}
+    /* FOOTER */
+    .lp-footer{border-top:.5px solid rgba(255,255,255,.05);padding:2.5rem 2rem;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+    .lp-footer-brand{font-family:Georgia,serif;font-size:.95rem;color:#e8d5a3;}
+    .lp-footer-links{display:flex;gap:1.2rem;flex-wrap:wrap;}
+    .lp-footer-link{font-size:.72rem;color:#444;text-decoration:none;transition:color .2s;}
+    .lp-footer-link:hover{color:#888;}
+    .lp-footer-copy{font-size:.68rem;color:#2a2a2a;width:100%;}
+  </style>
+</head>
+<body>
+
+<nav><div class="lp-nav">
+  <a class="lp-brand" href="{{ url_for('index') }}">Invitisimemo</a>
+  <div class="lp-nav-links">
+    <a class="lp-nav-link" href="#how">How it works</a>
+    <a class="lp-nav-link" href="#pricing">Pricing</a>
+    <a class="lp-nav-link" href="{{ url_for('about') }}">About</a>
+    <a class="lp-nav-link" href="{{ url_for('contact') }}">Contact</a>
+    {% if current_user.is_authenticated %}
+    <a class="lp-nav-link" href="{{ url_for('dashboard') }}">My Events</a>
+    <a class="lp-nav-cta" href="{{ url_for('create') }}">+ Create</a>
+    {% else %}
+    <a class="lp-nav-link" href="{{ url_for('login') }}">Sign in</a>
+    <a class="lp-nav-cta" href="{{ url_for('register') }}">Get started</a>
+    {% endif %}
+  </div>
+</div></nav>
+
+<section class="hero-section">
+  <div class="hero-pretag">✦ South Africa's digital invitation platform</div>
+  <h1 class="hero-title">Invitations that make people feel <span>something</span></h1>
+  <p class="hero-sub">Cinematic digital invitations for every celebration — birthdays, weddings, umemulo, lobola, graduations and more. Share via WhatsApp. Collect RSVPs in real time.</p>
+  <div class="hero-ctas">
+    {% if current_user.is_authenticated %}
+    <a class="hero-btn-main" href="{{ url_for('create') }}">Create an invitation</a>
+    <a class="hero-btn-ghost" href="{{ url_for('dashboard') }}">My events →</a>
+    {% else %}
+    <a class="hero-btn-main" href="{{ url_for('register') }}">Start free — no card needed</a>
+    <a class="hero-btn-ghost" href="{{ url_for('login') }}">Sign in →</a>
+    {% endif %}
+  </div>
+  <p class="hero-note">Build &amp; preview free · Publish from R99/month · Cancel any time</p>
+</section>
+
+<section class="strip-section">
+  <div class="strip-label">23 stunning designs to choose from</div>
+  <div class="strip-row">
+    <span class="design-pill dp-1">Neon Nights</span><span class="design-pill dp-2">Kente Gold</span>
+    <span class="design-pill dp-3">Boho Dream</span><span class="design-pill dp-4">Afrofuturism</span>
+    <span class="design-pill dp-5">Lobola Red</span><span class="design-pill dp-6">Cape Fynbos</span>
+    <span class="design-pill dp-7">Galaxy Dream</span><span class="design-pill dp-8">Safari Dusk</span>
+    <span class="design-pill dp-9">Art Deco</span><span class="design-pill dp-10">Classic Dark</span>
+    <span class="design-pill dp-11">Ocean Deep</span><span class="design-pill dp-12">Editorial Black</span>
+    <span class="design-pill dp-1">Neon Nights</span><span class="design-pill dp-2">Kente Gold</span>
+    <span class="design-pill dp-3">Boho Dream</span><span class="design-pill dp-4">Afrofuturism</span>
+    <span class="design-pill dp-5">Lobola Red</span><span class="design-pill dp-6">Cape Fynbos</span>
+    <span class="design-pill dp-7">Galaxy Dream</span><span class="design-pill dp-8">Safari Dusk</span>
+    <span class="design-pill dp-9">Art Deco</span><span class="design-pill dp-10">Classic Dark</span>
+    <span class="design-pill dp-11">Ocean Deep</span><span class="design-pill dp-12">Editorial Black</span>
+  </div>
+</section>
+
+<section class="how-section" id="how">
+  <div class="section-eyebrow">How it works</div>
+  <h2 class="section-title">From idea to invitation in minutes</h2>
+  <p class="section-sub">No design experience needed. Pick a preset, add your details, share the link.</p>
+  <div class="steps">
+    <div class="step"><div class="step-num">Step 01</div><div class="step-icon">🎨</div><div class="step-title">Pick your vibe</div><div class="step-desc">Choose from 16 one-tap preset packs — design, font, pattern and animated effect matched to your event type.</div></div>
+    <div class="step"><div class="step-num">Step 02</div><div class="step-icon">✍️</div><div class="step-title">Add your details</div><div class="step-desc">Event info, photos, gift registry, dress code, venue map, personal notes and music — all in one form.</div></div>
+    <div class="step"><div class="step-num">Step 03</div><div class="step-icon">📲</div><div class="step-title">Share &amp; collect RSVPs</div><div class="step-desc">Share via WhatsApp or QR code. Guests RSVP on the invite — you see every response instantly.</div></div>
+  </div>
+</section>
+
+<section class="features-section">
+  <div style="text-align:center;margin-bottom:2.5rem;">
+    <div class="section-eyebrow">Everything included</div>
+    <h2 class="section-title">One platform, every celebration</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feat"><div class="feat-icon">🎭</div><div class="feat-title">23 stunning designs</div><div class="feat-desc">From Afrofuturism to Art Deco. 20 cultural patterns. 14 animated canvas effects.</div></div>
+    <div class="feat"><div class="feat-icon">📲</div><div class="feat-title">WhatsApp-first sharing</div><div class="feat-desc">One tap to share on WhatsApp with a pre-filled message. QR codes built in.</div></div>
+    <div class="feat"><div class="feat-icon">💌</div><div class="feat-title">Live RSVP collection</div><div class="feat-desc">Yes/No/Waitlist, dietary notes, group RSVPs. Daily email summaries sent to you.</div></div>
+    <div class="feat"><div class="feat-icon">✨</div><div class="feat-title">Personalised guest links</div><div class="feat-desc">Each guest gets a unique link showing their name on the reveal screen.</div></div>
+    <div class="feat"><div class="feat-icon">🎁</div><div class="feat-title">Gift registry</div><div class="feat-desc">Guests claim items so there's no duplication. No external sites needed.</div></div>
+    <div class="feat"><div class="feat-icon">📊</div><div class="feat-title">Host dashboard</div><div class="feat-desc">RSVP list, stats, CSV export, broadcast announcements to all confirmed guests.</div></div>
+    <div class="feat"><div class="feat-icon">🔥</div><div class="feat-title">Emoji reactions</div><div class="feat-desc">Guests react to the invite with fire, hearts, party emojis — counts update live.</div></div>
+    <div class="feat"><div class="feat-icon">⏱️</div><div class="feat-title">Animated countdown</div><div class="feat-desc">Flip-clock countdown to the event date on every invitation, live in real time.</div></div>
+    <div class="feat"><div class="feat-icon">🗺️</div><div class="feat-title">Venue map</div><div class="feat-desc">Embedded Leaflet map with Google Maps and device navigation links built in.</div></div>
+  </div>
+</section>
+
+<section class="sa-section">
+  <div class="sa-card">
+    <div style="font-size:2rem;margin-bottom:1rem;">🇿🇦</div>
+    <h2 class="sa-title">Built for South Africa</h2>
+    <p class="sa-sub">Every event type, every culture, every language. Invitisimemo understands SA celebrations the way no generic platform does.</p>
+    <div class="sa-tags">
+      <span class="sa-tag">Umemulo</span><span class="sa-tag">Lobola</span><span class="sa-tag">Umgidi</span>
+      <span class="sa-tag">Matric Farewell</span><span class="sa-tag">Umkhosi woMhlanga</span>
+      <span class="sa-tag">Imbeleko</span><span class="sa-tag">Stokvel</span>
+      <span class="sa-tag">Kitchen Tea</span><span class="sa-tag">Bridal Shower</span>
+      <span class="sa-tag">Graduation</span><span class="sa-tag">Gender Reveal</span><span class="sa-tag">Wedding</span>
+    </div>
+  </div>
+</section>
+
+<section class="pricing-section" id="pricing">
+  <div style="text-align:center;margin-bottom:2rem;">
+    <div class="section-eyebrow">Pricing</div>
+    <h2 class="section-title">Simple, honest pricing</h2>
+    <p style="font-size:.88rem;color:#555;">Build and preview free. Pay to publish and share with guests.</p>
+  </div>
+  <div class="price-card-lp">
+    <div class="price-badge-lp">Monthly plan</div>
+    <div><span class="price-currency-lp">R</span><span class="price-amount-lp">99</span></div>
+    <div class="price-period-lp">per month · cancel any time</div>
+    <ul class="price-features-lp">
+      <li>Unlimited digital invitations</li>
+      <li>All 23 designs, 20 patterns, 14 effects</li>
+      <li>Live RSVP collection &amp; management</li>
+      <li>Personalised per-guest invite links</li>
+      <li>WhatsApp sharing + QR codes</li>
+      <li>Gift registry &amp; capacity management</li>
+      <li>CSV export &amp; daily RSVP summaries</li>
+      <li>Emoji reactions &amp; guest comments</li>
+    </ul>
+    {% if current_user.is_authenticated %}
+    <a class="price-cta-lp" href="{{ url_for('subscribe') }}">Subscribe — R99/month</a>
+    {% else %}
+    <a class="price-cta-lp" href="{{ url_for('register') }}">Get started free</a>
+    {% endif %}
+    <p class="price-sub-lp">🔒 Secure payments via PayFast · No card details stored on our servers</p>
+  </div>
+</section>
+
+<footer>
+  <div class="lp-footer">
+    <div class="lp-footer-brand">Invitisimemo</div>
+    <div class="lp-footer-links">
+      <a class="lp-footer-link" href="{{ url_for('register') }}">Get started</a>
+      <a class="lp-footer-link" href="{{ url_for('login') }}">Sign in</a>
+      <a class="lp-footer-link" href="{{ url_for('about') }}">About</a>
+      <a class="lp-footer-link" href="{{ url_for('contact') }}">Contact</a>
+      <a class="lp-footer-link" href="{{ url_for('terms') }}">Terms</a>
+      <a class="lp-footer-link" href="{{ url_for('privacy') }}">Privacy &amp; POPIA</a>
+    </div>
+    <div class="lp-footer-copy">© 2026 Invitisimemo · Made with ♥ in South Africa</div>
+  </div>
+</footer>
+</body>
+</html>

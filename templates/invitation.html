@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>{{ event.event_title }} — You're Invited</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/designs.css') }}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  {% if event.font in ['Cormorant','Cormorant Garamond'] %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&display=swap"/>
+  {% elif event.font == 'Jakarta' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap"/>
+  {% elif event.font == 'Modern' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"/>
+  {% elif event.font == 'Cinzel' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap"/>
+  {% elif event.font == 'Great Vibes' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap"/>
+  {% elif event.font == 'Montserrat' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap"/>
+  {% elif event.font == 'Dancing Script' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&display=swap"/>
+  {% elif event.font == 'Raleway' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600&display=swap"/>
+  {% elif event.font == 'Space Mono' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap"/>
+  {% elif event.font == 'Josefin Sans' %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@300;400;500;600&display=swap"/>
+  {% endif %}
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"/>
+  <style>
+    :root {
+      --accent:  {{ event.accent_colour }};
+      --accent2: {{ event.accent_colour_2 if event.accent_colour_2 else event.accent_colour }};
+      --accent-rgb: {{ event.accent_colour | replace('#','') }};
+      --pattern-opacity: {{ (event.pattern_opacity if event.pattern_opacity else 40) / 100 }};
+      {% if event.font == 'Elegant Serif' %}--inv-font:Georgia,'Times New Roman',serif;
+      {% elif event.font == 'Cormorant' %}--inv-font:'Cormorant Garamond',Georgia,serif;
+      {% elif event.font == 'Jakarta' %}--inv-font:'Plus Jakarta Sans','Helvetica Neue',sans-serif;
+      {% elif event.font == 'Playful Script' %}--inv-font:'Brush Script MT',cursive;
+      {% elif event.font == 'Classic Mono' %}--inv-font:'Courier New',monospace;
+      {% elif event.font == 'Modern' %}--inv-font:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;
+      {% elif event.font == 'Cinzel' %}--inv-font:'Cinzel',Georgia,serif;
+      {% elif event.font == 'Great Vibes' %}--inv-font:'Great Vibes',cursive;
+      {% elif event.font == 'Montserrat' %}--inv-font:'Montserrat','Helvetica Neue',sans-serif;
+      {% elif event.font == 'Dancing Script' %}--inv-font:'Dancing Script',cursive;
+      {% elif event.font == 'Raleway' %}--inv-font:'Raleway','Helvetica Neue',sans-serif;
+      {% elif event.font == 'Space Mono' %}--inv-font:'Space Mono','Courier New',monospace;
+      {% elif event.font == 'Josefin Sans' %}--inv-font:'Josefin Sans','Helvetica Neue',sans-serif;
+      {% else %}--inv-font:'Inter','Helvetica Neue',Helvetica,Arial,sans-serif;{% endif %}
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+
+    /* ── BASE ─────────────────────────────────────── */
+    #inv {
+      font-family: var(--inv-font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── PATTERN LAYER ────────────────────────────── */
+    #pattern-layer {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none; overflow: hidden;
+      opacity: var(--pattern-opacity, 0.4);
+    }
+    #deco-layer {
+      position: fixed; inset: 0; z-index: 3;
+      pointer-events: none; overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       REVEAL SCREEN
+    ══════════════════════════════════════════════ */
+    #reveal {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 2rem;
+      transition: opacity 1.4s cubic-bezier(.4,0,.2,1),
+                  transform 1.4s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+    }
+    #reveal.gone { opacity:0; transform:scale(1.05); pointer-events:none; }
+    .rv-bg-img {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      z-index: 0; transform: scale(1.08);
+      filter: blur(14px) brightness(.7);
+    }
+    .rv-overlay { position:absolute; inset:0; z-index:1; }
+    .rv-content {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column;
+      align-items: center; max-width: 560px; width: 100%;
+    }
+
+    /* Corner ornaments */
+    .rv-corner {
+      position: absolute; width: 32px; height: 32px;
+      opacity: 0; animation: fi 1s ease .4s forwards;
+    }
+    .rv-corner.tl { top:24px; left:24px; }
+    .rv-corner.tr { top:24px; right:24px; transform:scaleX(-1); }
+    .rv-corner.bl { bottom:24px; left:24px; transform:scaleY(-1); }
+    .rv-corner.br { bottom:24px; right:24px; transform:scale(-1); }
+
+    /* Horizontal lines */
+    .rv-line-top, .rv-line-bottom {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      height: .5px; background: var(--accent); opacity: 0;
+      animation: lineExpand 1.4s ease .3s forwards;
+    }
+    .rv-line-top { top: 48px; }
+    .rv-line-bottom { bottom: 48px; }
+    @keyframes lineExpand { 0%{opacity:0;width:0} 100%{opacity:.4;width:120px} }
+
+    .rv-pretag {
+      font-size: .6rem; letter-spacing: .45em; text-transform: uppercase;
+      opacity: 0; animation: fi 1s ease .5s forwards;
+      padding: 6px 22px; border: .5px solid var(--accent);
+      border-radius: 40px; color: var(--accent); margin-bottom: 28px;
+      display: inline-block;
+    }
+    .rv-greeting {
+      font-size: .7rem; letter-spacing: .3em; text-transform: uppercase;
+      opacity: 0; animation: slideUp 1.2s ease .9s forwards;
+      margin-bottom: 10px;
+    }
+    .rv-name {
+      font-family: 'Playfair Display', var(--inv-font);
+      font-size: clamp(2.6rem, 9vw, 5.2rem);
+      font-weight: 400; letter-spacing: -.01em;
+      line-height: 1.08; opacity: 0;
+      animation: slideUp 1.6s ease 1.2s forwards;
+      margin-bottom: 4px;
+    }
+    .rv-event-type {
+      font-size: .7rem; letter-spacing: .32em; text-transform: uppercase;
+      opacity: 0; animation: fi 1.2s ease 1.8s forwards;
+      margin-top: 20px;
+    }
+    .rv-date {
+      font-size: .72rem; letter-spacing: .18em;
+      opacity: 0; animation: fi 1s ease 2.1s forwards;
+      margin-top: 8px;
+    }
+    .rv-divider {
+      width: 40px; height: .5px; background: var(--accent);
+      margin: 32px auto; opacity: 0;
+      animation: fi 1s ease 2s forwards;
+    }
+    .rv-btn {
+      padding: 17px 56px; background: transparent;
+      font-size: .76rem; letter-spacing: .3em; text-transform: uppercase;
+      cursor: pointer; opacity: 0; animation: fi 1s ease 2.5s forwards;
+      transition: all .35s; border-radius: 4px;
+      font-family: var(--inv-font);
+      border: 1px solid var(--accent); color: var(--accent);
+      position: relative; overflow: hidden;
+    }
+    .rv-btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: var(--accent); transform: translateX(-100%);
+      transition: transform .35s; z-index: -1;
+    }
+    .rv-btn:hover { color: #080808; letter-spacing: .34em; }
+    .rv-btn:hover::before { transform: translateX(0); }
+    .rv-hosted {
+      font-size: .64rem; letter-spacing: .2em;
+      opacity: 0; animation: fi 1s ease 2.8s forwards;
+      margin-top: 28px;
+    }
+    @keyframes fi { to { opacity:1; } }
+    @keyframes slideUp {
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ══════════════════════════════════════════════
+       MAIN CONTENT
+    ══════════════════════════════════════════════ */
+    #main { opacity:0; transition:opacity 1s ease; }
+    #main.on { opacity:1; }
+
+    /* ── HERO ─────────────────────────────────────── */
+    .hero {
+      position: relative; min-height: 65vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      text-align: center; padding: 0 1.5rem 3rem;
+      overflow: hidden;
+    }
+    .hero-bg { position:absolute; inset:0; z-index:0; }
+    .hero-photos {
+      position: absolute; inset: 0;
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 2px; z-index: 1;
+    }
+    .hero-photo {
+      background-size: cover; background-position: center;
+      opacity: .45; transition: opacity 2s ease;
+    }
+    .hero::after {
+      content: ''; position: absolute; inset: 0; z-index: 2;
+    }
+    /* Single image hero mode */
+    .hero.single-photo .hero-photos { grid-template-columns:1fr; }
+    .hero.single-photo .hero-photo { opacity:.5; }
+
+    .hero-content { position:relative; z-index:3; }
+    .hero-badge {
+      display: inline-block; font-size: .62rem;
+      letter-spacing: .4em; text-transform: uppercase;
+      border: .5px solid; padding: 6px 20px;
+      border-radius: 40px; margin-bottom: 20px;
+    }
+    .hero-title {
+      font-family: 'Playfair Display', var(--inv-font);
+      font-size: clamp(2.2rem, 7vw, 4.4rem);
+      font-weight: 400; letter-spacing: -.02em;
+      line-height: 1.1;
+    }
+    .hero-meta {
+      margin-top: 12px; font-size: .88rem;
+      letter-spacing: .12em;
+    }
+    .hero-divider {
+      width: 40px; height: .5px; margin: 24px auto;
+    }
+    .hero-host { font-size: .78rem; letter-spacing: .1em; }
+
+    /* ── BODY WRAPPER ─────────────────────────────── */
+    .inv-body {
+      max-width: 720px; margin: 0 auto;
+      padding: 0 1.25rem 4rem; position: relative; z-index: 10;
+    }
+
+    /* ── SECTION HEADER ──────────────────────────── */
+    .inv-section { margin-top: 2.5rem; }
+    .inv-section[data-reveal] {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .inv-section[data-reveal].revealed {
+      opacity: 1; transform: translateY(0);
+    }
+    .section-header {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 1rem;
+    }
+    .section-label-new {
+      font-size: .6rem; letter-spacing: .35em;
+      text-transform: uppercase; font-weight: 500;
+    }
+    .section-line {
+      flex: 1; height: .5px; opacity: .15;
+      background: currentColor;
+    }
+
+    /* ── PERSONAL NOTE ────────────────────────────── */
+    .personal-note {
+      margin: 1.5rem 0;
+      padding: 1.6rem 1.5rem;
+      text-align: center;
+      border-radius: 16px;
+      position: relative; overflow: hidden;
+    }
+    .personal-note::before {
+      content: '"';
+      position: absolute; top: -10px; left: 16px;
+      font-family: 'Playfair Display', serif;
+      font-size: 5rem; line-height: 1;
+      opacity: .08; pointer-events: none;
+    }
+    .pn-name {
+      font-size: .65rem; letter-spacing: .3em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: .8rem;
+    }
+    .pn-msg { font-size: 1rem; line-height: 1.75; font-style: italic; }
+
+    /* ── COUNTDOWN ────────────────────────────────── */
+    .countdown-wrap {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 10px; margin-top: .5rem;
+    }
+    .cd-unit { text-align: center; }
+    .cd-card {
+      border-radius: 16px; padding: 20px 8px 16px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 8px; position: relative; overflow: hidden;
+    }
+    .cd-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 12%, transparent),
+        transparent 70%);
+      pointer-events: none;
+    }
+    .cd-num {
+      font-family: 'Playfair Display', var(--inv-font);
+      font-size: clamp(1.8rem,5vw,2.4rem);
+      font-weight: 700; color: var(--accent); line-height: 1;
+      display: block;
+    }
+    .cd-lbl {
+      font-size: .52rem; letter-spacing: .28em;
+      text-transform: uppercase; margin-top: 2px;
+    }
+    .cd-sep {
+      display: flex; align-items: center;
+      font-size: 1.6rem; color: var(--accent);
+      margin-top: -8px; opacity: .4;
+      padding-top: 20px;
+    }
+    .cd-passed {
+      grid-column: 1/-1; text-align: center;
+      padding: 20px; font-size: .88rem;
+      color: var(--accent); letter-spacing: .12em;
+    }
+
+    /* ── DETAIL CARDS ─────────────────────────────── */
+    .detail-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px; margin-top: .5rem;
+    }
+    .detail-card {
+      border-radius: 16px; padding: 18px 16px;
+      display: flex; gap: 14px; align-items: flex-start;
+      transition: transform .2s ease, box-shadow .2s ease;
+      position: relative; overflow: hidden;
+    }
+    .detail-card:hover { transform: translateY(-2px); }
+    .detail-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 6%, transparent),
+        transparent 60%);
+      pointer-events: none;
+    }
+    .dc-icon {
+      font-size: 1.3rem; line-height: 1;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .dc-body { flex: 1; min-width: 0; }
+    .dc-label {
+      font-size: .55rem; letter-spacing: .28em;
+      text-transform: uppercase; margin-bottom: 5px;
+      opacity: .55;
+    }
+    .dc-value { font-size: .92rem; line-height: 1.4; }
+    .dc-value.accent { color: var(--accent); }
+
+    /* Full-width card */
+    .detail-card.full { grid-column: 1/-1; }
+
+    /* ── PROGRAMME ─────────────────────────────────── */
+    .programme-wrap { margin-top: .5rem; }
+    .prog-item {
+      display: flex; gap: 14px; padding: 14px 16px;
+      border-radius: 12px; margin-bottom: 6px;
+      align-items: flex-start;
+      transition: transform .15s;
+    }
+    .prog-item:hover { transform: translateX(4px); }
+    .prog-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); margin-top: 5px; flex-shrink: 0;
+    }
+    .prog-time {
+      font-size: .68rem; letter-spacing: .08em;
+      color: var(--accent); min-width: 44px;
+      margin-top: 2px;
+    }
+    .prog-text { font-size: .9rem; line-height: 1.5; }
+
+    /* ── NOTES BOX ────────────────────────────────── */
+    .notes-card {
+      border-radius: 16px; padding: 18px 20px;
+      margin-top: 10px; font-size: .9rem;
+      line-height: 1.7; font-style: italic;
+    }
+
+    /* ── CALENDAR ─────────────────────────────────── */
+    .cal-strip {
+      display: flex; gap: 8px; margin-top: 10px;
+    }
+    .cal-btn {
+      flex: 1; padding: 13px 8px; text-align: center;
+      font-size: .7rem; letter-spacing: .1em;
+      text-transform: uppercase; border-radius: 12px;
+      text-decoration: none; cursor: pointer;
+      transition: all .2s; font-family: inherit;
+      display: block; border: .5px solid;
+    }
+
+    /* ── MUSIC PLAYER ─────────────────────────────── */
+    .music-player {
+      border-radius: 20px; padding: 20px;
+      display: flex; gap: 16px; align-items: center;
+      margin-top: .5rem; position: relative; overflow: hidden;
+    }
+    .music-player::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 10%, transparent),
+        transparent 55%);
+      pointer-events: none;
+    }
+    .music-art {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+      background: color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+    .music-info { flex: 1; min-width: 0; }
+    .music-title {
+      font-size: .92rem; font-weight: 500;
+      white-space: nowrap; overflow: hidden;
+      text-overflow: ellipsis; margin-bottom: 2px;
+    }
+    .music-artist { font-size: .74rem; margin-bottom: 10px; opacity: .55; }
+    /* Waveform bars */
+    .waveform {
+      display: flex; gap: 3px; align-items: flex-end;
+      height: 22px; margin-bottom: 6px;
+    }
+    .waveform-bar {
+      width: 3px; border-radius: 2px;
+      background: var(--accent); opacity: .35;
+      animation: wave 1.4s ease-in-out infinite;
+      transform-origin: bottom;
+    }
+    .waveform-bar:nth-child(1)  { height:8px;  animation-delay:0s; }
+    .waveform-bar:nth-child(2)  { height:14px; animation-delay:.1s; }
+    .waveform-bar:nth-child(3)  { height:20px; animation-delay:.2s; }
+    .waveform-bar:nth-child(4)  { height:12px; animation-delay:.3s; }
+    .waveform-bar:nth-child(5)  { height:18px; animation-delay:.15s; }
+    .waveform-bar:nth-child(6)  { height:10px; animation-delay:.25s; }
+    .waveform-bar:nth-child(7)  { height:16px; animation-delay:.05s; }
+    .waveform-bar:nth-child(8)  { height:8px;  animation-delay:.35s; }
+    @keyframes wave {
+      0%,100% { transform:scaleY(1); opacity:.3; }
+      50%      { transform:scaleY(.4); opacity:.7; }
+    }
+    .waveform.playing .waveform-bar { opacity:.7; }
+    .waveform.playing .waveform-bar:nth-child(odd) {
+      animation-name: waveActive;
+    }
+    @keyframes waveActive {
+      0%,100% { transform:scaleY(.4); }
+      50%      { transform:scaleY(1); }
+    }
+    .music-status { font-size: .65rem; color: var(--accent); letter-spacing: .08em; }
+    .play-btn {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--accent); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; transition: all .2s;
+      flex-shrink: 0; font-family: inherit;
+      border: none; color: #080808;
+      box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+    .play-btn:hover { transform: scale(1.08); }
+
+    /* ── MAP ──────────────────────────────────────── */
+    .map-wrap {
+      border-radius: 20px; overflow: hidden;
+      margin-top: .5rem;
+    }
+    #lmap { height: 240px; width: 100%; }
+    .map-actions {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1px;
+    }
+    .map-link {
+      display: block; padding: 14px; text-align: center;
+      font-size: .72rem; letter-spacing: .14em;
+      text-transform: uppercase; text-decoration: none;
+      transition: all .2s; color: var(--accent);
+    }
+
+    /* ── GIFTS ────────────────────────────────────── */
+    .gifts-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-top: .5rem;
+    }
+    .gift-card {
+      border-radius: 16px; padding: 18px 16px;
+      transition: transform .2s; position: relative;
+      overflow: hidden;
+    }
+    .gift-card:hover { transform: translateY(-2px); }
+    .gift-card::before {
+      content: '🎁';
+      position: absolute; top: 12px; right: 14px;
+      font-size: 1.2rem; opacity: .12;
+    }
+    .gift-name { font-size: .9rem; margin-bottom: 4px; font-weight: 500; }
+    .gift-store { font-size: .74rem; opacity: .5; margin-bottom: 12px; }
+    .gift-badge {
+      display: inline-block; font-size: .62rem;
+      letter-spacing: .12em; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 40px;
+    }
+
+    /* ── RSVP ─────────────────────────────────────── */
+    .rsvp-card {
+      border-radius: 20px; padding: 28px 22px;
+      margin-top: .5rem; position: relative; overflow: hidden;
+    }
+    .rsvp-card::before {
+      content: ''; position: absolute; top: 0; left: 0;
+      right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+    }
+    .rsvp-q {
+      font-size: .78rem; letter-spacing: .22em;
+      text-transform: uppercase; text-align: center;
+      margin-bottom: 22px;
+    }
+    .rsvp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .rbtn {
+      padding: 22px 14px; border: 1.5px solid; background: transparent;
+      cursor: pointer; font-size: .9rem; letter-spacing: .06em;
+      border-radius: 14px; transition: all .25s;
+      font-family: inherit; display: flex;
+      align-items: center; justify-content: center; gap: 9px;
+      min-height: 72px; -webkit-tap-highlight-color: transparent;
+    }
+    .rbtn .rbtn-icon { font-size: 1.5rem; }
+    @media (max-width: 480px) {
+      .rsvp-btns { grid-template-columns: 1fr; gap: 10px; }
+      .rbtn { padding: 20px; font-size: .95rem; min-height: 64px; }
+      .rinput { padding: 16px; font-size: .95rem; }
+      .rsub { padding: 18px; font-size: .88rem; }
+    }
+    .existing-rsvp { display: grid; gap: 10px; text-align: center; padding: 8px 0; }
+    .existing-rsvp-icon { font-size: 2.5rem; line-height: 1; }
+    .existing-rsvp-title { font-size: 1.3rem; color: var(--accent); }
+    .existing-rsvp-meta { font-size: .88rem; opacity: .7; display: grid; gap: 4px; }
+
+    /* RSVP Form */
+    #rform, #rform-waitlist { margin-top: 4px; }
+    .rinput {
+      width: 100%; border-radius: 10px; padding: 14px 16px;
+      font-size: .88rem; font-family: inherit;
+      margin-bottom: 8px; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      border: 1.5px solid;
+    }
+    .rinput:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+    .rsub {
+      width: 100%; padding: 15px;
+      background: var(--accent); border: none;
+      border-radius: 12px; color: #080808;
+      font-size: .82rem; font-weight: 600;
+      letter-spacing: .16em; text-transform: uppercase;
+      cursor: pointer; transition: opacity .2s, transform .1s;
+      font-family: inherit; margin-top: 4px;
+    }
+    .rsub:hover { opacity: .88; }
+    .rsub:active { transform: scale(.98); }
+    .rsvp-privacy {
+      margin-top: 16px; text-align: center;
+      font-size: .68rem; line-height: 1.6; opacity: .4;
+    }
+    #rsuccess { text-align: center; padding: 12px 0; }
+    .sicon { font-size: 32px; margin-bottom: 10px; }
+    .smsg { font-size: 1.1rem; color: var(--accent); margin-bottom: 6px; font-weight: 500; }
+    .ssub { font-size: .8rem; opacity: .6; }
+    .rsvp-closed, .capacity-full-msg {
+      text-align: center; padding: 20px; border-radius: 12px;
+      font-size: .88rem; line-height: 1.6;
+      border: 1.5px dashed color-mix(in srgb, var(--accent) 30%, transparent);
+      color: var(--accent);
+    }
+    .hidden { display:none!important; }
+
+    /* ── WEATHER ──────────────────────────────────── */
+    .weather-widget {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 14px;
+    }
+    .weather-icon { font-size: 1.8rem; }
+    .weather-text { font-size: .85rem; line-height: 1.5; }
+
+    /* ── WHATSAPP ─────────────────────────────────── */
+    .wa-group-banner {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 18px; border-radius: 16px;
+      text-decoration: none; transition: transform .2s;
+      border: 1.5px solid color-mix(in srgb, #25d366 30%, transparent);
+      background: color-mix(in srgb, #25d366 8%, transparent);
+    }
+    .wa-group-banner:hover { transform: translateY(-2px); }
+    .wa-group-icon { font-size: 1.6rem; }
+    .wa-group-text { font-size: .88rem; color: #25d366; font-weight: 500; }
+
+    /* ── HASHTAG ──────────────────────────────────── */
+    .hashtag-banner {
+      text-align: center; padding: 20px 1.5rem;
+      font-size: .82rem; letter-spacing: .14em;
+      border-top: .5px solid; border-color: color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+    .hashtag-banner span { color: var(--accent); font-size: 1rem; font-weight: 600; }
+
+    /* ── COMMENTS ─────────────────────────────────── */
+    .comments-section { margin-top: 2.5rem; }
+    .comments-title {
+      font-size: .7rem; letter-spacing: .28em;
+      text-transform: uppercase; margin-bottom: 16px;
+      opacity: .55;
+    }
+    .comment-form { margin-bottom: 20px; }
+    .comment-form input, .comment-form textarea {
+      width: 100%; border-radius: 12px; padding: 13px 15px;
+      font-size: .88rem; font-family: inherit;
+      margin-bottom: 8px; outline: none;
+      transition: border-color .2s; border: 1.5px solid;
+      resize: none;
+    }
+    .comment-submit {
+      padding: 12px 24px; border-radius: 12px;
+      border: 1.5px solid var(--accent); background: transparent;
+      color: var(--accent); font-size: .78rem;
+      letter-spacing: .14em; text-transform: uppercase;
+      cursor: pointer; transition: all .2s;
+      font-family: inherit;
+    }
+    .comment-submit:hover { background: var(--accent); color: #080808; }
+    #comment-status { margin-top: 8px; }
+    .comment-item {
+      padding: 14px 16px; border-radius: 14px;
+      margin-bottom: 8px; position: relative;
+    }
+    .comment-name {
+      font-size: .72rem; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 4px; font-weight: 500;
+    }
+    .comment-msg { font-size: .9rem; line-height: 1.6; }
+    .comment-time { font-size: .65rem; margin-top: 6px; opacity: .4; }
+
+    /* ── VIDEO NOTE ───────────────────────────────── */
+    .vidnote-bar {
+      position: fixed; bottom: 80px; right: 18px; z-index: 100;
+      background: var(--accent); color: #080808;
+      border-radius: 50px; padding: 12px 18px;
+      display: flex; align-items: center; gap: 10px;
+      cursor: pointer; box-shadow: 0 8px 28px rgba(0,0,0,.3);
+      transition: transform .2s; font-family: var(--inv-font);
+    }
+    .vidnote-bar:hover { transform: scale(1.04); }
+    .vidnote-icon { font-size: 1rem; }
+    .vidnote-label { font-size: .74rem; font-weight: 600; letter-spacing: .04em; }
+    .vidnote-label small { display: block; font-size: .62rem; font-weight: 400; opacity: .7; }
+    .vidnote-modal {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s;
+    }
+    .vidnote-modal.open { opacity: 1; pointer-events: all; }
+    .vidnote-inner {
+      background: #111; border-radius: 20px;
+      padding: 24px; max-width: 480px; width: 90%;
+      position: relative;
+    }
+    .vidnote-close {
+      position: absolute; top: 12px; right: 14px;
+      background: none; border: none; font-size: 1.1rem;
+      color: #888; cursor: pointer; padding: 4px 8px;
+    }
+
+    /* ── EVENT PASSED BANNER ─────────────────────── */
+    .event-passed-banner {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--accent); color: #080808;
+      text-align: center; padding: 12px;
+      font-size: .8rem; letter-spacing: .1em; z-index: 90;
+    }
+
+    /* ── SOCIAL TICKER ───────────────────────────── */
+    .social-ticker {
+      position: fixed; bottom: 20px; left: 16px; z-index: 80;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+      color: #fff; border-radius: 40px; padding: 10px 16px;
+      font-size: .72rem; letter-spacing: .08em;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .4s, transform .4s;
+      border: .5px solid rgba(255,255,255,.12);
+    }
+    .social-ticker.show { opacity:1; transform:translateY(0); }
+
+    /* ── NAV ──────────────────────────────────────── */
+    .inv-nav {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: .75rem 1.25rem;
+      position: sticky; top: 0; z-index: 200;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .inv-nav-logo {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.05rem; text-decoration: none;
+      opacity: .8; font-weight: 400;
+    }
+    .inv-nav-cta {
+      font-size: .75rem; font-weight: 600;
+      text-decoration: none; padding: 6px 16px;
+      border-radius: 8px; transition: opacity .2s;
+    }
+    .inv-nav-cta:hover { opacity: .85; }
+
+    /* ── SAVE THE DATE ─────────────────────────────── */
+    .std-banner {
+      border-radius: 20px; padding: 28px 22px;
+      text-align: center; margin-top: 1rem;
+    }
+    .std-banner h2 { font-size: 1.4rem; margin-bottom: 8px; }
+    .std-banner p { font-size: .9rem; line-height: 1.7; opacity: .7; }
+
+    /* ── FOOTER ───────────────────────────────────── */
+    footer {
+      text-align: center; padding: 2rem 1.5rem 5rem;
+      font-size: .62rem; letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    /* ── CONFETTI / DECOS ─────────────────────────── */
+    @keyframes confettiFall {
+      0%   { transform:translateY(-10px) rotate(0deg); opacity:1; }
+      100% { transform:translateY(100vh) rotate(720deg); opacity:0; }
+    }
+    @keyframes emojiFloat {
+      0%   { transform:translateY(0) scale(1);    opacity:1; }
+      60%  { transform:translateY(-70px) scale(1.3); opacity:.9; }
+      100% { transform:translateY(-120px) scale(.8); opacity:0; }
+    }
+    @keyframes flipTick {
+      0%   { transform:scaleY(1) translateY(0);   opacity:1; }
+      35%  { transform:scaleY(.3) translateY(-4px); opacity:0; }
+      65%  { transform:scaleY(.3) translateY(4px);  opacity:0; }
+      100% { transform:scaleY(1) translateY(0);   opacity:1; }
+    }
+    .cd-num.tick { animation:flipTick .45s cubic-bezier(.4,0,.2,1); }
+    .cd-sep { font-size:1.6rem; font-weight:700; color:var(--accent); opacity:.6; align-self:flex-start; padding-top:.3rem; }
+    .balloon-wrap, .flower-wrap { position:fixed; pointer-events:none; z-index:3; }
+    @keyframes balloonRise {
+      0%   { transform:translateY(110vh) rotate(-4deg); opacity:0; }
+      5%   { opacity:1; }
+      50%  { transform:translateY(50vh) rotate(4deg); }
+      95%  { opacity:1; }
+      100% { transform:translateY(-20vh) rotate(-4deg); opacity:0; }
+    }
+    @keyframes flowerFall {
+      0%   { transform:translateY(-60px) rotate(0deg); opacity:0; }
+      8%   { opacity:.9; }
+      92%  { opacity:.9; }
+      100% { transform:translateY(110vh) rotate(360deg); opacity:0; }
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 520px) {
+      .detail-cards { grid-template-columns: 1fr; }
+      .gifts-grid   { grid-template-columns: 1fr; }
+      .rsvp-btns    { grid-template-columns: 1fr; gap: 8px; }
+      .map-actions  { grid-template-columns: 1fr; }
+      .countdown-wrap { gap: 6px; }
+      .cd-card { padding: 14px 6px 12px; }
+    }
+  </style>
+</head>
+<body>
+
+{% if is_preview is defined and is_preview %}
+<!-- PREVIEW BANNER -->
+<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#e8d5a3;color:#080808;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;font-size:.8rem;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.4);">
+  <span>👁 Preview mode — this is how your invitation will look</span>
+  <button onclick="window.close()" style="background:#080808;color:#e8d5a3;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.75rem;font-weight:600;">✕ Close preview</button>
+</div>
+<div style="height:42px;"></div>
+{% endif %}
+
+<!-- NAV -->
+<nav class="inv-nav">
+  <a href="{{ url_for('index') }}" class="inv-nav-logo">Invitisimemo</a>
+  <a href="{{ url_for('register') }}" class="inv-nav-cta">Create your own →</a>
+</nav>
+
+<div id="inv" class="design-{{ event.design }}">
+
+  <!-- PATTERN LAYER -->
+  <div id="pattern-layer">
+    {% if event.pattern == 'xhosa' %}
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="opacity:.1;">
+      <defs><pattern id="xhosa-pat" x="0" y="0" width="80" height="80" patternUnits="userSpaceOnUse">
+        <polyline points="0,20 20,0 40,20 60,0 80,20" fill="none" stroke="{{ event.accent_colour }}" stroke-width="2.5"/>
+        <polyline points="0,60 20,40 40,60 60,40 80,60" fill="none" stroke="{{ event.accent_colour }}" stroke-width="2.5"/>
+        <polygon points="40,28 52,40 40,52 28,40" fill="{{ event.accent_colour }}" opacity=".6"/>
+        <line x1="0" y1="0" x2="80" y2="0" stroke="{{ event.accent_colour }}" stroke-width="1.5"/>
+        <line x1="0" y1="80" x2="80" y2="80" stroke="{{ event.accent_colour }}" stroke-width="1.5"/>
+      </pattern></defs>
+      <rect width="100%" height="100%" fill="url(#xhosa-pat)"/>
+    </svg>
+    {% elif event.pattern == 'venda' %}
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="opacity:.08;">
+      <defs><pattern id="venda-pat" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+        <rect x="0" y="0" width="30" height="30" fill="{{ event.accent_colour }}" opacity=".4"/>
+        <rect x="30" y="30" width="30" height="30" fill="{{ event.accent_colour }}" opacity=".4"/>
+        <polygon points="30,0 60,0 60,30" fill="{{ event.accent_colour }}" opacity=".55"/>
+        <polygon points="0,30 30,60 0,60" fill="{{ event.accent_colour }}" opacity=".55"/>
+      </pattern></defs>
+      <rect width="100%" height="100%" fill="url(#venda-pat)"/>
+    </svg>
+    {% elif event.pattern == 'royal' %}
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="opacity:.5;">
+      <rect x="10" y="10" width="calc(100% - 20px)" height="calc(100% - 20px)" fill="none" stroke="{{ event.accent_colour }}" stroke-width="2.5" rx="6"/>
+      <rect x="20" y="20" width="calc(100% - 40px)" height="calc(100% - 40px)" fill="none" stroke="{{ event.accent_colour }}" stroke-width="1" rx="3" opacity=".5"/>
+    </svg>
+    {% elif event.pattern == 'ndebele' %}
+    <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" style="opacity:.09;">
+      <defs><pattern id="ndebele-pat" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+        <polygon points="0,10 10,0 20,10 10,20" fill="{{ event.accent_colour }}" opacity=".7"/>
+        <polygon points="20,30 30,20 40,30 30,40" fill="{{ event.accent_colour }}" opacity=".7"/>
+        <line x1="0" y1="0" x2="40" y2="40" stroke="{{ event.accent_colour }}" stroke-width="1" opacity=".4"/>
+        <line x1="40" y1="0" x2="0" y2="40" stroke="{{ event.accent_colour }}" stroke-width="1" opacity=".4"/>
+      </pattern></defs>
+      <rect width="100%" height="100%" fill="url(#ndebele-pat)"/>
+    </svg>
+    {% elif event.pattern in ['fine_grid','dot_matrix','soft_glow','diagonal','cape_malay','linen','corner_frame','celestial_swirl','zulu_shield','zulu_beads','kanga_print','san_art','venda_spiral','hexagon','waves'] %}
+    <div style="position:absolute;inset:0;opacity:.65;
+      {% if event.pattern == 'fine_grid' %}background:repeating-linear-gradient(90deg,{{ event.accent_colour }}18 0,{{ event.accent_colour }}18 1px,transparent 1px,transparent 24px),repeating-linear-gradient(0deg,{{ event.accent_colour }}18 0,{{ event.accent_colour }}18 1px,transparent 1px,transparent 24px);
+      {% elif event.pattern == 'dot_matrix' %}background:radial-gradient(circle at 10px 10px,{{ event.accent_colour }}28 2px,transparent 2px);background-size:22px 22px;
+      {% elif event.pattern == 'soft_glow' %}background:radial-gradient(ellipse at 50% 0%,{{ event.accent_colour }}28 0,transparent 55%),radial-gradient(ellipse at 50% 100%,{{ event.accent_colour }}22 0,transparent 55%);
+      {% elif event.pattern == 'diagonal' %}background:repeating-linear-gradient(45deg,transparent 0,transparent 10px,{{ event.accent_colour }}16 10px,{{ event.accent_colour }}16 11px);
+      {% elif event.pattern == 'cape_malay' %}background:linear-gradient(135deg,{{ event.accent_colour }}14 25%,transparent 25%,transparent 75%,{{ event.accent_colour }}14 75%),linear-gradient(135deg,{{ event.accent_colour }}14 25%,transparent 25%,transparent 75%,{{ event.accent_colour }}14 75%);background-size:24px 24px;background-position:0 0,12px 12px;
+      {% elif event.pattern == 'linen' %}background:repeating-linear-gradient(0deg,{{ event.accent_colour }}14 0,{{ event.accent_colour }}14 1px,transparent 1px,transparent 8px);
+      {% elif event.pattern == 'corner_frame' %}background:linear-gradient(to right,{{ event.accent_colour }}22 0,transparent 20%,transparent 80%,{{ event.accent_colour }}22 100%),linear-gradient(to bottom,{{ event.accent_colour }}22 0,transparent 20%,transparent 80%,{{ event.accent_colour }}22 100%);
+      {% elif event.pattern == 'celestial_swirl' %}background:conic-gradient(from 0deg at 50% 50%,{{ event.accent_colour }}14,transparent,{{ event.accent_colour }}14);background-size:40px 40px;
+      {% elif event.pattern == 'zulu_shield' %}background:repeating-linear-gradient(90deg,transparent 0,transparent 16px,{{ event.accent_colour }}18 16px,{{ event.accent_colour }}18 17px),repeating-linear-gradient(0deg,transparent 0,transparent 5px,{{ event.accent_colour }}10 5px,{{ event.accent_colour }}10 6px);
+      {% elif event.pattern == 'zulu_beads' %}background:repeating-linear-gradient(90deg,{{ event.accent_colour }}22 0,{{ event.accent_colour }}22 3px,transparent 3px,transparent 10px),repeating-linear-gradient(0deg,{{ event.accent_colour }}22 0,{{ event.accent_colour }}22 3px,transparent 3px,transparent 10px);background-size:10px 10px;
+      {% elif event.pattern == 'kanga_print' %}background:repeating-linear-gradient(30deg,{{ event.accent_colour }}18 0,{{ event.accent_colour }}18 1px,transparent 1px,transparent 14px),repeating-linear-gradient(-30deg,{{ event.accent_colour }}18 0,{{ event.accent_colour }}18 1px,transparent 1px,transparent 14px);background-size:14px 24px;
+      {% elif event.pattern == 'san_art' %}background:radial-gradient(circle at 20% 30%,{{ event.accent_colour }}28 2px,transparent 2px),radial-gradient(circle at 60% 70%,{{ event.accent_colour }}22 1.5px,transparent 1.5px),repeating-linear-gradient(15deg,transparent 0,transparent 18px,{{ event.accent_colour }}12 18px,{{ event.accent_colour }}12 19px);background-size:40px 40px,40px 40px,40px 40px;
+      {% elif event.pattern == 'venda_spiral' %}background:conic-gradient(from 0deg at 50% 50%,{{ event.accent_colour }}16 0deg,transparent 60deg,{{ event.accent_colour }}16 120deg,transparent 180deg,{{ event.accent_colour }}16 240deg,transparent 300deg,{{ event.accent_colour }}16 360deg);background-size:28px 28px;
+      {% elif event.pattern == 'hexagon' %}background:radial-gradient(circle at 50% 0%,{{ event.accent_colour }}22 1px,transparent 1px),radial-gradient(circle at 0% 50%,{{ event.accent_colour }}22 1px,transparent 1px),radial-gradient(circle at 100% 50%,{{ event.accent_colour }}22 1px,transparent 1px);background-size:20px 20px,20px 20px,20px 20px;
+      {% elif event.pattern == 'waves' %}background:repeating-radial-gradient(ellipse at 50% 0%,transparent 0,transparent 7px,{{ event.accent_colour }}18 7px,{{ event.accent_colour }}18 8px,transparent 8px,transparent 15px);background-size:30px 30px;
+      {% endif %}"></div>
+    {% endif %}
+  </div>
+
+  <!-- EFFECTS CANVAS -->
+  <canvas id="fx-canvas" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
+
+  <div id="deco-layer"></div>
+
+  <!-- ════ REVEAL SCREEN ════ -->
+  <div id="reveal">
+    {% if event.image_1 %}
+    <div class="rv-bg-img" style="background-image:url('{{ upload_url(event.image_1) }}');"></div>
+    {% endif %}
+    <div class="rv-overlay"></div>
+
+    <div class="rv-corner tl"><svg viewBox="0 0 26 26" fill="none"><path d="M2 24 L2 2 L24 2" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="2" r="2.5" fill="var(--accent)"/></svg></div>
+    <div class="rv-corner tr"><svg viewBox="0 0 26 26" fill="none"><path d="M2 24 L2 2 L24 2" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="2" r="2.5" fill="var(--accent)"/></svg></div>
+    <div class="rv-corner bl"><svg viewBox="0 0 26 26" fill="none"><path d="M2 24 L2 2 L24 2" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="2" r="2.5" fill="var(--accent)"/></svg></div>
+    <div class="rv-corner br"><svg viewBox="0 0 26 26" fill="none"><path d="M2 24 L2 2 L24 2" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/><circle cx="2" cy="2" r="2.5" fill="var(--accent)"/></svg></div>
+    <div class="rv-line-top"></div>
+    <div class="rv-line-bottom"></div>
+
+    <div class="rv-content">
+      <div class="rv-pretag">{{ event.event_type }}</div>
+      {% set greetings = {'Zulu':'Wamkelekile','Xhosa':'Wamkelekile','Sotho':'Re a u amohela','Afrikaans':'Welkom','Tswana':'O amogelwa','Venda':'Ni khou ambiwa','Tsonga':'Mi amukelwa'} %}
+      {% if event.greeting_lang and event.greeting_lang != 'English' and greetings.get(event.greeting_lang) %}
+      <div class="rv-greeting" style="font-style:italic;margin-bottom:4px;">{{ greetings[event.greeting_lang] }}</div>
+      {% endif %}
+      <div class="rv-greeting">{% if link is defined and link %}Dear {{ event.guest_name }}{% else %}You are cordially invited to{% endif %}</div>
+      <div class="rv-name">{{ event.event_title }}</div>
+      <div class="rv-event-type">{{ event.event_type }}</div>
+      <div class="rv-date">{{ event.event_date }}</div>
+      <div class="rv-divider"></div>
+      <button class="rv-btn" onclick="openInv()">Open your invitation</button>
+      <div class="rv-hosted">Hosted by {{ event.host_name }}</div>
+    </div>
+  </div>
+
+  {% if event.music_url %}
+  <div id="yt-wrap" style="position:absolute;width:1px;height:1px;overflow:hidden;top:-9999px;">
+    <iframe id="yt-player" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+  </div>
+  {% endif %}
+
+  <!-- ════ MAIN CONTENT ════ -->
+  <div id="main">
+
+    {% if event.save_the_date %}
+    <!-- ── SAVE THE DATE ── -->
+    <div class="hero">
+      <div class="hero-bg"></div>
+      {% if event.image_1 or event.image_2 or event.image_3 %}
+      {% set pf = event.photo_filter if event.photo_filter else 'none' %}
+      {% set pf_css = {
+        'warm':    'sepia(0.35) saturate(1.4) brightness(1.05)',
+        'cool':    'saturate(0.8) hue-rotate(20deg) brightness(0.95)',
+        'noir':    'grayscale(1) contrast(1.1)',
+        'vintage': 'sepia(0.5) contrast(0.9) brightness(0.9) saturate(0.8)',
+        'vivid':   'saturate(1.8) contrast(1.1)',
+        'fade':    'brightness(1.1) contrast(0.85) saturate(0.7)',
+        'golden':  'sepia(0.25) saturate(1.6) brightness(1.1) hue-rotate(-10deg)',
+        'dreamy':  'brightness(1.15) contrast(0.9) saturate(0.9) blur(0.5px)',
+      } %}
+      {% set filter_str = pf_css.get(pf, 'none') %}
+      <div class="hero-photos">
+        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_1) }}');filter:{{ filter_str }};"></div>{% endif %}
+        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_2) }}');filter:{{ filter_str }};"></div>{% endif %}
+        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_3) }}');filter:{{ filter_str }};"></div>{% endif %}
+      </div>
+      {% endif %}
+      <div class="hero::after"></div>
+      <div class="hero-content">
+        <div class="hero-badge">Save the Date</div>
+        <h1 class="hero-title">{{ event.event_title }}</h1>
+        <p class="hero-meta">{{ event.event_date }} · {{ event.venue_name }}</p>
+        <div class="hero-divider"></div>
+        <p class="hero-host">Full invitation coming soon from {{ event.host_name }}</p>
+      </div>
+    </div>
+    <div class="inv-body">
+      <div class="inv-section" data-reveal>
+        <div class="std-banner">
+          <h2>Mark your calendar ✦</h2>
+          <p>Full details are on their way. In the meantime, keep {{ event.event_date }} free.</p>
+        </div>
+        <div class="cal-strip">
+          <a id="cal-google" class="cal-btn" target="_blank">+ Google Calendar</a>
+          <a id="cal-ics" class="cal-btn" download="event.ics">+ Download .ics</a>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <!-- ── FULL INVITATION ── -->
+
+    <!-- HERO -->
+    <div class="hero{% if event.image_1 and not event.image_2 and not event.image_3 %} single-photo{% endif %}">
+      <div class="hero-bg"></div>
+      {% if event.image_1 or event.image_2 or event.image_3 %}
+      {% set pf2 = event.photo_filter if event.photo_filter else 'none' %}
+      {% set pf_css2 = {
+        'warm':    'sepia(0.35) saturate(1.4) brightness(1.05)',
+        'cool':    'saturate(0.8) hue-rotate(20deg) brightness(0.95)',
+        'noir':    'grayscale(1) contrast(1.1)',
+        'vintage': 'sepia(0.5) contrast(0.9) brightness(0.9) saturate(0.8)',
+        'vivid':   'saturate(1.8) contrast(1.1)',
+        'fade':    'brightness(1.1) contrast(0.85) saturate(0.7)',
+        'golden':  'sepia(0.25) saturate(1.6) brightness(1.1) hue-rotate(-10deg)',
+        'dreamy':  'brightness(1.15) contrast(0.9) saturate(0.9)',
+      } %}
+      {% set filter_str2 = pf_css2.get(pf2, 'none') %}
+      <div class="hero-photos">
+        {% if event.image_1 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_1) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+        {% if event.image_2 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_2) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+        {% if event.image_3 %}<div class="hero-photo" style="background-image:url('{{ upload_url(event.image_3) }}');filter:{{ filter_str2 }};"></div>{% endif %}
+      </div>
+      {% endif %}
+      <div class="hero-content">
+        <div class="hero-badge">{{ event.event_type }}</div>
+        <h1 class="hero-title">{{ event.event_title }}</h1>
+        <p class="hero-meta">{{ event.event_date }} · {{ event.venue_name }}</p>
+        <div class="hero-divider"></div>
+        <p class="hero-host">Hosted by {{ event.host_name }}</p>
+      </div>
+    </div>
+
+    <div class="inv-body">
+
+      <!-- Personal note -->
+      {% if link is defined and link and (link.guest_surname or link.personal_msg) %}
+      <div class="personal-note" data-reveal>
+        <div class="pn-name">A message for you, {{ event.guest_name }}</div>
+        {% if link.personal_msg %}<div class="pn-msg">{{ link.personal_msg }}</div>{% endif %}
+      </div>
+      {% endif %}
+
+      <!-- COUNTDOWN -->
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">⏳ &nbsp;Counting down</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="countdown-wrap" id="cd-row">
+          <div class="cd-unit">
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-d">--</span></div>
+            <div class="cd-lbl">Days</div>
+          </div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit">
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-h">--</span></div>
+            <div class="cd-lbl">Hours</div>
+          </div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit">
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-m">--</span></div>
+            <div class="cd-lbl">Mins</div>
+          </div>
+          <div class="cd-sep">:</div>
+          <div class="cd-unit">
+            <div class="cd-card flip-card"><span class="cd-num" id="cd-s">--</span></div>
+            <div class="cd-lbl">Secs</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAILS -->
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">✨ &nbsp;Event details</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="detail-cards">
+          <div class="detail-card">
+            <div class="dc-icon">📅</div>
+            <div class="dc-body">
+              <div class="dc-label">Date</div>
+              <div class="dc-value accent">{{ event.event_date }}</div>
+            </div>
+          </div>
+          <div class="detail-card">
+            <div class="dc-icon">🕐</div>
+            <div class="dc-body">
+              <div class="dc-label">Time</div>
+              <div class="dc-value">{{ event.event_time }}</div>
+            </div>
+          </div>
+          <div class="detail-card">
+            <div class="dc-icon">📍</div>
+            <div class="dc-body">
+              <div class="dc-label">Venue</div>
+              <div class="dc-value">{{ event.venue_name }}</div>
+            </div>
+          </div>
+          {% if event.dress_code %}
+          <div class="detail-card">
+            <div class="dc-icon">👗</div>
+            <div class="dc-body">
+              <div class="dc-label">Dress code</div>
+              <div class="dc-value accent">{{ event.dress_code }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if event.theme %}
+          <div class="detail-card">
+            <div class="dc-icon">🎨</div>
+            <div class="dc-body">
+              <div class="dc-label">Theme</div>
+              <div class="dc-value">{{ event.theme }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if event.colour_palette %}
+          <div class="detail-card">
+            <div class="dc-icon">🎭</div>
+            <div class="dc-body">
+              <div class="dc-label">Colour palette</div>
+              <div class="dc-value">{{ event.colour_palette }}</div>
+            </div>
+          </div>
+          {% endif %}
+          {% if event.extra_notes %}
+          <div class="detail-card full">
+            <div class="dc-icon">📝</div>
+            <div class="dc-body">
+              <div class="dc-label">Notes from the host</div>
+              <div class="dc-value" style="font-style:italic;">{{ event.extra_notes }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        <!-- Calendar -->
+        <div class="cal-strip" style="margin-top:12px;">
+          <a id="cal-google" class="cal-btn" target="_blank">+ Google Calendar</a>
+          <a id="cal-ics" class="cal-btn" download="event.ics">+ Download .ics</a>
+        </div>
+      </div>
+
+      <!-- PROGRAMME -->
+      {% if event.programme %}
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">📋 &nbsp;Programme</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="programme-wrap">
+          {% for line in event.programme.split('\n') %}
+            {% if line.strip() %}
+              {% set parts = line.strip().split(' ', 1) %}
+              <div class="prog-item">
+                <div class="prog-dot"></div>
+                {% if parts|length > 1 and ':' in parts[0] %}
+                  <div class="prog-time">{{ parts[0] }}</div>
+                  <div class="prog-text">{{ parts[1] }}</div>
+                {% else %}
+                  <div class="prog-text" style="padding-left:4px;">{{ line.strip() }}</div>
+                {% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- MUSIC -->
+      {% if event.music_url %}
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">🎵 &nbsp;Host's soundtrack</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="music-player">
+          <div class="music-art">🎶</div>
+          <div class="music-info">
+            <div class="music-title">{{ event.music_title or 'Now Playing' }}</div>
+            <div class="music-artist">{{ event.music_artist or "Host's pick for the evening" }}</div>
+            <div class="waveform" id="waveform">
+              <div class="waveform-bar"></div><div class="waveform-bar"></div>
+              <div class="waveform-bar"></div><div class="waveform-bar"></div>
+              <div class="waveform-bar"></div><div class="waveform-bar"></div>
+              <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            </div>
+            <div class="music-status" id="mstatus">Tap ▶ to play</div>
+            <!-- Hidden bar for JS compatibility -->
+            <div style="display:none;"><div id="mbar"></div></div>
+          </div>
+          <button class="play-btn" id="playbtn" onclick="toggleMusic()">▶</button>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- WEATHER WIDGET -->
+      {% if event.event_date_iso and not event_passed %}
+      <div id="weather-widget" style="display:none;margin-top:10px;"></div>
+      {% endif %}
+
+      <!-- MAP -->
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">📍 &nbsp;Venue &amp; directions</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="map-wrap">
+          <div id="lmap"></div>
+          <div class="map-actions">
+            <a class="map-link" href="https://www.google.com/maps/search/{{ event.venue_address | urlencode }}" target="_blank">Google Maps →</a>
+            <a class="map-link" href="geo:{{ event.venue_lat }},{{ event.venue_lng }}?q={{ event.venue_address | urlencode }}" style="border-left:.5px solid;">Maps app →</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHATSAPP GROUP -->
+      {% if event.whatsapp_group %}
+      <div class="inv-section" data-reveal>
+        <a href="{{ event.whatsapp_group }}" target="_blank" class="wa-group-banner">
+          <span class="wa-group-icon">💬</span>
+          <span class="wa-group-text">Join the WhatsApp group for this event →</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- GIFTS -->
+      {% if event.gifts %}
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">🎁 &nbsp;Gift ideas</span>
+          <div class="section-line"></div>
+        </div>
+        <div class="gifts-grid">
+          {% for gift in event.gifts %}
+          <div class="gift-card" id="gift-{{ gift.id }}">
+            <div class="gift-name">{{ gift.name }}</div>
+            {% if gift.store %}<div class="gift-store">{{ gift.store }}</div>{% endif %}
+            {% if gift.taken %}
+              <span class="gift-badge taken">Taken{% if gift.taken_by %} by {{ gift.taken_by }}{% endif %}</span>
+            {% else %}
+              <span class="gift-badge open" onclick="claimGift({{ gift.id }})" style="cursor:pointer;">Available — claim it ✓</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- RSVP -->
+      <div class="inv-section" data-reveal>
+        <div class="section-header">
+          <span class="section-label-new">💌 &nbsp;Your RSVP</span>
+          <div class="section-line"></div>
+        </div>
+        {% if event.capacity and event.capacity > 0 and not event_passed %}
+        {% set cap_yes = yes_count %}
+        {% set cap_pct = [(cap_yes * 100 // event.capacity), 100] | min %}
+        {% set cap_left = [event.capacity - cap_yes, 0] | max %}
+        <div class="capacity-wrap">
+          <div class="cap-meta">
+            <span class="cap-spots">{{ cap_left }} spot{{ '' if cap_left == 1 else 's' }} remaining</span>
+            <span class="cap-ratio">{{ cap_yes }} / {{ event.capacity }}</span>
+          </div>
+          <div class="cap-bar-track">
+            <div class="cap-bar-fill{% if cap_pct >= 85 %} urgent{% elif cap_pct >= 60 %} warning{% endif %}" style="width:{{ cap_pct }}%;"></div>
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="rsvp-card">
+          {% if existing_rsvp %}
+          <div class="existing-rsvp" id="rsvp-confirmed-block">
+            <div class="existing-rsvp-icon">{% if existing_rsvp.waitlist %}⏳{% elif existing_rsvp.attending == 'yes' %}✅{% else %}💔{% endif %}</div>
+            <div class="existing-rsvp-title">
+              {% if existing_rsvp.waitlist %}You're on the waitlist{% elif existing_rsvp.attending == 'yes' %}You're confirmed!{% else %}We'll miss you{% endif %}
+            </div>
+            <div class="existing-rsvp-meta">
+              <div>{{ existing_rsvp.name }}</div>
+              <div>{% if existing_rsvp.attending == 'yes' %}Attending{% else %}Not attending{% endif %}</div>
+              {% if existing_rsvp.email %}<div>{{ existing_rsvp.email }}</div>{% endif %}
+              <div>{{ existing_rsvp.timestamp.strftime('%d %b %Y, %H:%M') }}</div>
+            </div>
+            {% if rsvp_open and not existing_rsvp.waitlist and link is defined and link %}
+            <button class="rsvp-edit-btn" onclick="showRSVPEdit()">✏️ Update my RSVP</button>
+            {% endif %}
+          </div>
+          {% if rsvp_open and not existing_rsvp.waitlist and link is defined and link %}
+          <div id="rsvp-edit-block" style="display:none;margin-top:14px;">
+            <div class="rsvp-q" style="margin-bottom:10px;">Change your response:</div>
+            <div class="rsvp-btns">
+              <button class="rbtn yes" id="edit-yes-btn" onclick="editPick('yes')"
+                      {% if existing_rsvp.attending == 'yes' %}style="background:var(--accent,#e8d5a3)22;border-color:var(--accent,#e8d5a3);color:var(--accent,#e8d5a3);"{% endif %}>
+                <span class="rbtn-icon">🎉</span> Yes, I'll be there!
+              </button>
+              <button class="rbtn no" id="edit-no-btn" onclick="editPick('no')"
+                      {% if existing_rsvp.attending == 'no' %}style="background:var(--accent,#e8d5a3)22;border-color:var(--accent,#e8d5a3);color:var(--accent,#e8d5a3);"{% endif %}>
+                <span class="rbtn-icon">💔</span> Can't make it
+              </button>
+            </div>
+            <input class="rinput" type="text" id="edit-dietary"
+                   placeholder="Dietary requirements (optional)"
+                   value="{{ existing_rsvp.dietary or '' }}"
+                   style="margin-top:10px;"/>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="rsub" style="flex:1;" onclick="submitRSVPEdit()">Save changes</button>
+              <button class="rsub" style="flex:0;padding:12px 16px;background:rgba(255,255,255,.05);color:#888;" onclick="hideRSVPEdit()">Cancel</button>
+            </div>
+            <div id="edit-msg" style="display:none;font-size:.78rem;margin-top:8px;color:#1d9e75;text-align:center;"></div>
+          </div>
+          {% endif %}
+          {% else %}
+          <div id="rsuccess" class="hidden">
+            <div class="sicon" id="sicon">🎉</div>
+            <div class="smsg" id="smsg">You're confirmed!</div>
+            <div class="ssub" id="ssub">Check your email — a confirmation is on its way.</div>
+          </div>
+          <div id="rui">
+            {% if not rsvp_open %}
+            <div class="rsvp-closed">RSVP is now closed — the deadline has passed.</div>
+            {% elif capacity_full %}
+            <div class="capacity-full-msg">This event is at capacity. Join the waitlist below and we'll notify you if a spot opens.</div>
+            <div id="rform-waitlist" style="margin-top:18px;">
+              <div class="rsvp-q">Join the waitlist?</div>
+              <input class="rinput" type="text"  id="rname"  placeholder="Your name" value="{{ guest_name_prefill }}"/>
+              <input class="rinput" type="email" id="remail" placeholder="Email — we'll notify you if a spot opens" required/>
+              <button class="rsub" style="background:#fcd34d;" onclick="submitWaitlist()">Join waitlist</button>
+            </div>
+            {% else %}
+            <div class="rsvp-q">Will you be joining us?</div>
+            <div class="rsvp-btns">
+              <button class="rbtn yes" onclick="pick('yes')"><span class="rbtn-icon">🎉</span> Yes, I'll be there!</button>
+              <button class="rbtn no"  onclick="pick('no')"><span class="rbtn-icon">💔</span> Can't make it</button>
+            </div>
+            <div id="rform" class="hidden">
+              <input class="rinput" type="text"  id="rname"    placeholder="Your name *" value="{{ guest_name_prefill }}" required/>
+              <input class="rinput" type="email" id="remail"   placeholder="Email{% if not (link is defined and link) %} — required for confirmation{% else %} — optional{% endif %}"
+                     {% if not (link is defined and link) %}required{% endif %}/>
+              <input class="rinput" type="text"  id="rdietary" placeholder="Any dietary requirements? (optional)"/>
+              <select class="rinput" id="rplus-count" style="display:none;">
+                <option value="0">Just me</option>
+                <option value="1">+ 1 guest</option>
+                <option value="2">+ 2 guests</option>
+                <option value="3">+ 3 guests</option>
+                <option value="4">+ 4 guests</option>
+              </select>
+              <input class="rinput" type="text"  id="rplus"    placeholder="Guest name(s) — optional" style="display:none;"/>
+              <button class="rsub" onclick="submitR()">Confirm my RSVP →</button>
+              <p style="font-size:.65rem;text-align:center;margin-top:10px;line-height:1.6;opacity:.35;">Your name and RSVP status are shared with the host only. Your email is used solely for event updates.</p>
+            </div>
+            {% endif %}
+          </div>
+          <div class="rsvp-privacy">🔒 Your RSVP is shared only with the event host.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- COMMENTS WALL -->
+      <div class="inv-section comments-section" data-reveal>
+        <div class="comments-title">💬 Leave a message for {{ event.host_name.split()[0] }}</div>
+        <div class="comment-form">
+          <input type="text" id="comment-name" placeholder="Your name" maxlength="60"/>
+          <textarea id="comment-msg" placeholder="Write something lovely..." maxlength="500" rows="3"></textarea>
+          <button class="comment-submit" onclick="submitComment()">Post message</button>
+          <div id="comment-status" style="font-size:.75rem;color:#1d9e75;display:none;margin-top:6px;">Message posted! 🎉</div>
+        </div>
+        <div class="comment-list" id="comment-list">
+          <div style="text-align:center;font-size:.78rem;padding:1rem 0;opacity:.4;">Loading messages...</div>
+        </div>
+      </div>
+
+      <!-- HASHTAG -->
+      {% if event.hashtag %}
+      <div class="hashtag-banner">
+        Share your memories with <span>#{{ event.hashtag }}</span>
+      </div>
+      {% endif %}
+
+    </div><!-- /inv-body -->
+    {% endif %}
+
+    <footer>{{ event.event_title }} · {{ event.event_date }} · {{ event.venue_name }}</footer>
+  </div><!-- /main -->
+
+  {% if event_passed %}
+  <div class="event-passed-banner">This event has passed — thank you for celebrating {{ event.event_title }} with us 🎉</div>
+  {% endif %}
+
+  <div class="social-ticker" id="social-ticker"></div>
+
+</div><!-- /inv -->
+
+<!-- ════ EMOJI REACTION BAR ════ -->
+{% if not is_preview is defined or not is_preview %}
+<div class="reaction-bar" id="reaction-bar">
+  <span class="reaction-label">Vibe check</span>
+  <div class="reaction-emojis">
+    <button class="re-btn" onclick="sendReaction('🔥')" data-emoji="🔥"><span class="re-emoji">🔥</span><small id="r-fire">0</small></button>
+    <button class="re-btn" onclick="sendReaction('❤️')" data-emoji="❤️"><span class="re-emoji">❤️</span><small id="r-heart">0</small></button>
+    <button class="re-btn" onclick="sendReaction('😍')" data-emoji="😍"><span class="re-emoji">😍</span><small id="r-love">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🎉')" data-emoji="🎉"><span class="re-emoji">🎉</span><small id="r-party">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🥳')" data-emoji="🥳"><span class="re-emoji">🥳</span><small id="r-celebrate">0</small></button>
+  </div>
+  <button class="qr-trigger" onclick="showQR()" title="Share via QR code">📲</button>
+</div>
+{% else %}
+<div class="reaction-bar" id="reaction-bar">
+  <span class="reaction-label">Vibe check</span>
+  <div class="reaction-emojis">
+    <button class="re-btn" onclick="sendReaction('🔥')" data-emoji="🔥"><span class="re-emoji">🔥</span><small id="r-fire">0</small></button>
+    <button class="re-btn" onclick="sendReaction('❤️')" data-emoji="❤️"><span class="re-emoji">❤️</span><small id="r-heart">0</small></button>
+    <button class="re-btn" onclick="sendReaction('😍')" data-emoji="😍"><span class="re-emoji">😍</span><small id="r-love">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🎉')" data-emoji="🎉"><span class="re-emoji">🎉</span><small id="r-party">0</small></button>
+    <button class="re-btn" onclick="sendReaction('🥳')" data-emoji="🥳"><span class="re-emoji">🥳</span><small id="r-celebrate">0</small></button>
+  </div>
+</div>
+{% endif %}
+
+<!-- VIDEO NOTE MODAL -->
+{% if event.video_note %}
+<div class="vidnote-bar" onclick="openVideoNote()" id="vidnote-bar">
+  <div class="vidnote-icon">▶</div>
+  <div class="vidnote-label">Message from {{ event.host_name.split()[0] }}<small>Tap to watch</small></div>
+</div>
+<div class="vidnote-modal" id="vidnote-modal">
+  <div class="vidnote-inner">
+    <button class="vidnote-close" onclick="closeVideoNote()">✕</button>
+    <p style="font-size:.78rem;color:#888;margin:0 0 .8rem;text-align:center;">A message from {{ event.host_name.split()[0] }}</p>
+    <video id="vidnote-player" controls preload="none"
+           style="width:100%;border-radius:12px;background:#000;display:block;"
+           src="{{ upload_url(event.video_note) }}">
+    </video>
+  </div>
+</div>
+{% endif %}
+
+<!-- QR SHARE MODAL -->
+<div class="qr-modal" id="qr-modal" onclick="closeQR()">
+  <div class="qr-inner" onclick="event.stopPropagation()">
+    <button class="qr-close" onclick="closeQR()">✕</button>
+    <div class="qr-title">Scan to open invitation</div>
+    <div class="qr-subtitle">Or copy the link below</div>
+    <div id="qr-canvas" class="qr-canvas-wrap"></div>
+    <div class="qr-url" id="qr-url-display"></div>
+    <button class="qr-copy-btn" id="qr-copy-btn" onclick="copyInviteLink()">Copy link</button>
+    <a class="qr-wa-btn" id="qr-wa-btn" target="_blank">Share on WhatsApp</a>
+  </div>
+</div>
+
+<!-- SVG SYMBOLS -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none;">
+  <symbol id="svg-balloon" viewBox="0 0 60 90">
+    <ellipse cx="30" cy="28" rx="22" ry="27" fill="currentColor"/>
+    <ellipse cx="22" cy="16" rx="6" ry="8" fill="white" opacity=".25"/>
+    <path d="M28,55 Q30,60 32,55 Q30,58 28,55Z" fill="currentColor" opacity=".8"/>
+    <path d="M30,58 Q25,68 30,78 Q35,88 30,90" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/>
+  </symbol>
+  <symbol id="svg-flower" viewBox="0 0 60 60">
+    <ellipse cx="30" cy="12" rx="7" ry="12" fill="currentColor" transform="rotate(0,30,30)"/>
+    <ellipse cx="30" cy="12" rx="7" ry="12" fill="currentColor" transform="rotate(72,30,30)"/>
+    <ellipse cx="30" cy="12" rx="7" ry="12" fill="currentColor" transform="rotate(144,30,30)"/>
+    <ellipse cx="30" cy="12" rx="7" ry="12" fill="currentColor" transform="rotate(216,30,30)"/>
+    <ellipse cx="30" cy="12" rx="7" ry="12" fill="currentColor" transform="rotate(288,30,30)"/>
+    <circle cx="30" cy="30" r="9" fill="white" opacity=".9"/>
+    <circle cx="30" cy="30" r="6" fill="currentColor" opacity=".6"/>
+    <circle cx="30" cy="30" r="3" fill="white" opacity=".8"/>
+  </symbol>
+  <symbol id="svg-petal" viewBox="0 0 20 40">
+    <ellipse cx="10" cy="20" rx="8" ry="18" fill="currentColor" opacity=".7"/>
+  </symbol>
+</svg>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+/* ── JS VARIABLES ── */
+var TOKEN      = '{{ event.token }}';
+var LINK_TOKEN = {{ link.link_token | tojson if link is defined and link else 'null' }};
+var LAT        = {{ event.venue_lat }};
+var LNG        = {{ event.venue_lng }};
+var MUSIC_BASE = '{{ event.music_url }}';
+var HAS_MUSIC  = {{ 'true' if event.music_url else 'false' }};
+var ACCENT     = '{{ event.accent_colour }}';
+var DECO       = '{{ event.decorations }}';
+var EVENT_DATE = '{{ event.event_date_iso or event.event_date }}';
+var EVENT_TIME = '{{ event.event_time }}';
+var EVENT_TITLE= {{ event.event_title | tojson }};
+var VENUE_NAME = {{ event.venue_name | tojson }};
+var RECENT     = {{ recent_rsvps | tojson }};
+var HAS_SPOTIFY = {{ 'true' if event.spotify_url else 'false' }};
+var SPOTIFY_URL = '{{ event.spotify_url or "" }}';
+var EVENT_LAT  = {{ event.venue_lat }};
+var EVENT_LNG  = {{ event.venue_lng }};
+
+var CAPACITY  = {{ event.capacity or 0 }};
+var YES_COUNT = {{ yes_count if yes_count is defined else 0 }};
+var choice = null, musicOn = false, prog = 0, ticker = null;
+var IS_PREVIEW = {{ 'true' if is_preview is defined and is_preview else 'false' }};
+
+/* Auto-open for preview mode */
+if (IS_PREVIEW) {
+  document.addEventListener('DOMContentLoaded', function() {
+    var reveal = document.getElementById('reveal');
+    if (reveal) reveal.style.display = 'none';
+    var main = document.getElementById('main');
+    if (main) main.classList.add('on');
+    setTimeout(function() { startCountdown(); buildCalendarLinks(); initReveal(); initEffect(); }, 200);
+  });
+}
+
+/* ── OPEN INVITATION ── */
+function openInv() {
+  document.getElementById('reveal').classList.add('gone');
+  setTimeout(function() {
+    document.getElementById('main').classList.add('on');
+    initMap();
+    startCountdown();
+    buildCalendarLinks();
+    spawnDecorations();
+    showSocialProof();
+    initReveal();
+    initEffect();
+    if (HAS_MUSIC && !musicOn) {
+      toggleMusic();
+    }
+  }, 700);
+}
+
+/* ── SCROLL REVEAL ── */
+function initReveal() {
+  var els = document.querySelectorAll('[data-reveal]');
+  if (!els.length) return;
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('revealed');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(function(el, i) {
+    el.style.transitionDelay = (i * 0.04) + 's';
+    io.observe(el);
+  });
+}
+
+/* ── VIDEO NOTE ── */
+function openVideoNote() {
+  document.getElementById('vidnote-modal').classList.add('open');
+  var v = document.getElementById('vidnote-player');
+  if (v) v.play();
+}
+function closeVideoNote() {
+  document.getElementById('vidnote-modal').classList.remove('open');
+  var v = document.getElementById('vidnote-player');
+  if (v) { v.pause(); v.currentTime = 0; }
+}
+document.addEventListener('DOMContentLoaded', function() {
+  var modal = document.getElementById('vidnote-modal');
+  if (modal) modal.addEventListener('click', function(e) { if (e.target === this) closeVideoNote(); });
+});
+
+/* ── COMMENTS ── */
+function loadComments() {
+  fetch('/api/comments/' + TOKEN)
+    .then(function(r) { return r.json(); })
+    .then(function(comments) {
+      var list = document.getElementById('comment-list');
+      if (!list) return;
+      if (!comments.length) {
+        list.innerHTML = '<div style="text-align:center;font-size:.78rem;padding:1rem 0;opacity:.4;">Be the first to leave a message 💫</div>';
+        return;
+      }
+      list.innerHTML = comments.map(function(c) {
+        return '<div class="comment-item"><div class="comment-name">' + escHtml(c.name) + '</div>' +
+               '<div class="comment-msg">' + escHtml(c.message) + '</div>' +
+               '<div class="comment-time">' + c.time + '</div></div>';
+      }).join('');
+    }).catch(function() {});
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function submitComment() {
+  var name = (document.getElementById('comment-name').value || '').trim();
+  var msg  = (document.getElementById('comment-msg').value  || '').trim();
+  if (!name || !msg) { alert('Please enter your name and a message.'); return; }
+  var btn = document.querySelector('.comment-submit');
+  btn.textContent = 'Posting…'; btn.disabled = true;
+  fetch('/api/comments/' + TOKEN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, message: msg })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.status === 'ok') {
+      document.getElementById('comment-name').value = '';
+      document.getElementById('comment-msg').value  = '';
+      var status = document.getElementById('comment-status');
+      status.style.display = 'block';
+      setTimeout(function() { status.style.display = 'none'; }, 3000);
+      loadComments();
+    }
+    btn.textContent = 'Post message'; btn.disabled = false;
+  }).catch(function() { btn.textContent = 'Post message'; btn.disabled = false; });
+}
+
+/* ── WEATHER ── */
+function loadWeather() {
+  var widget = document.getElementById('weather-widget');
+  if (!widget || !EVENT_DATE) return;
+  var evDate   = new Date(EVENT_DATE);
+  var today    = new Date();
+  var diffDays = Math.round((evDate - today) / 86400000);
+  if (diffDays < 0 || diffDays > 7) return;
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + EVENT_LAT +
+    '&longitude=' + EVENT_LNG +
+    '&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=8';
+  fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+    var idx = data.daily.time.indexOf(EVENT_DATE);
+    if (idx === -1) return;
+    var code = data.daily.weathercode[idx];
+    var maxT = Math.round(data.daily.temperature_2m_max[idx]);
+    var minT = Math.round(data.daily.temperature_2m_min[idx]);
+    var icon = code <= 1 ? '☀️' : code <= 3 ? '⛅' : code <= 67 ? '🌧️' : code <= 77 ? '❄️' : '🌩️';
+    var desc = code <= 1 ? 'Clear skies' : code <= 3 ? 'Partly cloudy' : code <= 48 ? 'Cloudy' : code <= 67 ? 'Rain expected' : '⛄ Snow';
+    widget.style.display = 'block';
+    widget.innerHTML = '<div class="weather-widget"><span class="weather-icon">' + icon +
+      '</span><div class="weather-text">Event day forecast: <strong>' + desc +
+      '</strong> · ' + minT + '°–' + maxT + '°C</div></div>';
+  }).catch(function() {});
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadComments();
+  loadWeather();
+});
+
+/* ── MAP ── */
+function initMap() {
+  var lat = LAT || -29.7274, lng = LNG || 31.0819;
+  var map = L.map('lmap', { zoomControl: false, scrollWheelZoom: false, dragging: false });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+  map.setView([lat, lng], 15);
+  var icon = L.divIcon({
+    html: '<div style="width:22px;height:22px;background:' + ACCENT + ';border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(0,0,0,.25);box-shadow:0 3px 10px rgba(0,0,0,.4)"></div>',
+    className: '', iconSize: [22, 22], iconAnchor: [11, 22]
+  });
+  L.marker([lat, lng], { icon: icon }).addTo(map).bindPopup('<b>' + VENUE_NAME + '</b>').openPopup();
+  setTimeout(function() { map.invalidateSize(); }, 300);
+}
+
+/* ── COUNTDOWN (flip animation) ── */
+function startCountdown() {
+  var cdRow = document.getElementById('cd-row');
+  if (!cdRow) return;
+  var target = new Date(EVENT_DATE + 'T' + ((EVENT_TIME.match(/\d+:\d+/) || ['00:00'])[0]));
+  if (isNaN(target)) { cdRow.style.display = 'none'; return; }
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function setFlip(id, val) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var str = String(val);
+    if (el.textContent === str) return;
+    el.classList.remove('tick');
+    void el.offsetWidth;
+    el.textContent = str;
+    el.classList.add('tick');
+  }
+  function tick() {
+    var diff = target - new Date();
+    if (diff <= 0) {
+      cdRow.innerHTML = '<div class="cd-passed">✨ We hope you celebrated beautifully ✨</div>';
+      return;
+    }
+    setFlip('cd-d', Math.floor(diff / 86400000));
+    setFlip('cd-h', pad(Math.floor((diff % 86400000) / 3600000)));
+    setFlip('cd-m', pad(Math.floor((diff % 3600000) / 60000)));
+    setFlip('cd-s', pad(Math.floor((diff % 60000) / 1000)));
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+/* ── CALENDAR ── */
+function buildCalendarLinks() {
+  var d = new Date(EVENT_DATE);
+  if (isNaN(d)) return;
+  function fmt(x) { return x.getFullYear() + String(x.getMonth()+1).padStart(2,'0') + String(x.getDate()).padStart(2,'0'); }
+  var s = fmt(d), e = fmt(new Date(d.getTime() + 86400000));
+  var gCal = document.getElementById('cal-google');
+  if (gCal) gCal.href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(EVENT_TITLE) + '&dates=' + s + '/' + e + '&location=' + encodeURIComponent(VENUE_NAME);
+  var ics = 'BEGIN:VCALENDAR\nVERSION:2.0\nBEGIN:VEVENT\nDTSTART:' + s + '\nDTEND:' + e + '\nSUMMARY:' + EVENT_TITLE + '\nLOCATION:' + VENUE_NAME + '\nEND:VEVENT\nEND:VCALENDAR';
+  var calIcs = document.getElementById('cal-ics');
+  if (calIcs) calIcs.href = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+}
+
+/* ── MUSIC ── */
+function toggleMusic() {
+  musicOn = !musicOn;
+  var btn      = document.getElementById('playbtn');
+  var st       = document.getElementById('mstatus');
+  var waveform = document.getElementById('waveform');
+  var iframe   = document.getElementById('yt-player');
+  if (musicOn) {
+    btn.textContent = '⏸'; st.textContent = 'Now playing…';
+    if (waveform) waveform.classList.add('playing');
+    var sep = MUSIC_BASE.includes('?') ? '&' : '?';
+    if (iframe) iframe.src = MUSIC_BASE + sep + 'autoplay=1';
+  } else {
+    btn.textContent = '▶'; st.textContent = 'Tap ▶ to play';
+    if (waveform) waveform.classList.remove('playing');
+    if (iframe) iframe.src = '';
+  }
+}
+
+/* ── RSVP ── */
+function pick(c) {
+  choice = c;
+  document.querySelectorAll('.rbtn').forEach(function(b) {
+    b.classList.remove('sel');
+    b.style.background = '';
+    b.style.color = '';
+    b.style.borderColor = '';
+  });
+  var sel = document.querySelector('.rbtn.' + c);
+  if (sel) {
+    sel.classList.add('sel');
+    sel.style.background = ACCENT + '22';
+    sel.style.borderColor = ACCENT;
+    sel.style.color = ACCENT;
+  }
+  var form = document.getElementById('rform');
+  if (form) {
+    form.classList.remove('hidden');
+    setTimeout(function() {
+      var nameInput = document.getElementById('rname');
+      if (nameInput) {
+        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        nameInput.focus();
+      }
+    }, 120);
+  }
+  var dietary   = document.getElementById('rdietary');
+  var plusCount = document.getElementById('rplus-count');
+  var plus      = document.getElementById('rplus');
+  if (dietary)   dietary.style.display   = (c === 'yes') ? '' : 'none';
+  if (plusCount) plusCount.style.display = (c === 'yes') ? '' : 'none';
+  if (plus)      plus.style.display      = (c === 'yes') ? '' : 'none';
+}
+
+function submitR() {
+  if (!choice) { alert('Please select Yes or No first.'); return; }
+  var name      = (document.getElementById('rname')       ? document.getElementById('rname').value       : '').trim();
+  var email     = (document.getElementById('remail')      ? document.getElementById('remail').value      : '').trim();
+  var dietary   = (document.getElementById('rdietary')    ? document.getElementById('rdietary').value    : '').trim();
+  var plus      = (document.getElementById('rplus')       ? document.getElementById('rplus').value       : '').trim();
+  var plusOnes  = parseInt((document.getElementById('rplus-count') ? document.getElementById('rplus-count').value : '0') || '0', 10);
+  if (!name) { document.getElementById('rname').focus(); return; }
+  var isPersonalised = {{ 'true' if (link is defined and link) else 'false' }};
+  if (!isPersonalised && !email) {
+    var re = document.getElementById('remail');
+    if (re) { re.focus(); re.style.borderColor='#f87171'; setTimeout(function(){ re.style.borderColor=''; }, 2000); }
+    return;
+  }
+  var rsvpGuardKey = 'invitisimemo_rsvp_' + TOKEN + '_' + email.toLowerCase();
+  if (!isPersonalised && email && localStorage.getItem(rsvpGuardKey)) {
+    if (!confirm("This browser has already sent an RSVP for this email. Send it again anyway?")) return;
+  }
+  var btn = document.querySelector('.rsub');
+  if (btn) { btn.textContent = 'Confirming…'; btn.disabled = true; }
+  fetch('/api/rsvp/' + TOKEN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, attending: choice, dietary: dietary, plus_one: plus, plus_ones: plusOnes, link_token: LINK_TOKEN })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.redirect) { window.location.href = d.redirect; return; }
+    if (d.status === 'duplicate') {
+      var rui = document.getElementById('rui');
+      if (rui) rui.style.display = 'none';
+      document.getElementById('sicon').textContent = choice === 'yes' ? '✅' : '💔';
+      document.getElementById('smsg').textContent  = choice === 'yes' ? "You're already confirmed!" : "Your response is already recorded.";
+      document.getElementById('ssub').textContent  = d.message || "You've already RSVP'd for this event.";
+      document.getElementById('rsuccess').classList.remove('hidden');
+      return;
+    }
+    if (d.status === 'error') {
+      alert(d.message || 'Please check your RSVP details.');
+      if (btn) { btn.textContent = 'Confirm my RSVP →'; btn.disabled = false; }
+      return;
+    }
+    if (!isPersonalised && email) {
+      localStorage.setItem(rsvpGuardKey, '1');
+      document.cookie = 'invitisimemo_rsvp_' + TOKEN + '=1; max-age=2592000; path=/; samesite=lax';
+    }
+    afterRSVP(name, d);
+  }).catch(function() {
+    if (btn) { btn.textContent = 'Confirm my RSVP →'; btn.disabled = false; }
+    alert('Could not save your RSVP. Please try again.');
+  });
+}
+
+function submitWaitlist() {
+  var name  = (document.getElementById('rname')  ? document.getElementById('rname').value  : '').trim();
+  var email = (document.getElementById('remail') ? document.getElementById('remail').value : '').trim();
+  if (!name) { document.getElementById('rname').focus(); return; }
+  if (!email) { document.getElementById('remail').focus(); return; }
+  var waitlistGuardKey = 'invitisimemo_rsvp_' + TOKEN + '_' + email.toLowerCase();
+  if (!LINK_TOKEN && localStorage.getItem(waitlistGuardKey)) {
+    if (!confirm("This browser has already sent an RSVP for this email. Send it again anyway?")) return;
+  }
+  fetch('/api/rsvp/' + TOKEN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, attending: 'yes', link_token: LINK_TOKEN })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.redirect) { window.location.href = d.redirect; return; }
+    var wl = document.getElementById('rform-waitlist');
+    if (wl) wl.style.display = 'none';
+    if (!LINK_TOKEN) {
+      localStorage.setItem(waitlistGuardKey, '1');
+      document.cookie = 'invitisimemo_rsvp_' + TOKEN + '=1; max-age=2592000; path=/; samesite=lax';
+    }
+    document.getElementById('sicon').textContent = '⏳';
+    document.getElementById('smsg').textContent  = "You're on the waitlist!";
+    document.getElementById('ssub').textContent  = "We'll email you if a spot opens up.";
+    document.getElementById('rsuccess').classList.remove('hidden');
+  });
+}
+
+function afterRSVP(name, d) {
+  var sm = document.getElementById('smsg');
+  var ss = document.getElementById('ssub');
+  if (d.waitlist) {
+    document.getElementById('sicon').textContent = '⏳';
+    sm.textContent = "You're on the waitlist!";
+    ss.textContent = "We'll email you if a spot opens up.";
+  } else if (choice === 'yes') {
+    sm.textContent = name ? 'You\'re confirmed, ' + name.split(' ')[0] + '! 🎉' : 'You\'re confirmed! 🎉';
+    ss.textContent = 'Check your email — a confirmation is on its way.';
+    launchConfetti();
+  } else {
+    sm.textContent = 'We\'ll miss you! 💔';
+    ss.textContent = 'Thanks for letting us know.';
+  }
+  var rui = document.getElementById('rui');
+  if (rui) rui.style.display = 'none';
+  document.getElementById('rsuccess').classList.remove('hidden');
+}
+
+/* ── RSVP EDIT (personalised link only) ── */
+var editChoice = '{{ existing_rsvp.attending if existing_rsvp else "" }}';
+
+function showRSVPEdit() {
+  document.getElementById('rsvp-edit-block').style.display = '';
+  document.getElementById('rsvp-confirmed-block').style.opacity = '.4';
+}
+function hideRSVPEdit() {
+  document.getElementById('rsvp-edit-block').style.display = 'none';
+  document.getElementById('rsvp-confirmed-block').style.opacity = '1';
+}
+function editPick(c) {
+  editChoice = c;
+  ['yes','no'].forEach(function(v){
+    var b = document.getElementById('edit-' + v + '-btn');
+    if (!b) return;
+    b.style.background = (c === v) ? 'rgba(var(--accent-rgb,232,213,163),.15)' : '';
+    b.style.borderColor = (c === v) ? ACCENT : '';
+    b.style.color       = (c === v) ? ACCENT : '';
+  });
+}
+function submitRSVPEdit() {
+  if (!editChoice) return;
+  var dietary = (document.getElementById('edit-dietary') ? document.getElementById('edit-dietary').value : '').trim();
+  var btn = document.querySelector('#rsvp-edit-block .rsub');
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+  fetch('/api/rsvp/' + TOKEN + '/update', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({link_token: LINK_TOKEN, attending: editChoice, dietary: dietary})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    var msg = document.getElementById('edit-msg');
+    if (d.status === 'ok') {
+      if (msg) { msg.textContent = 'RSVP updated ✓'; msg.style.display = ''; }
+      setTimeout(function(){ window.location.reload(); }, 1200);
+    } else {
+      if (msg) { msg.textContent = d.message || 'Could not update. Try again.'; msg.style.color = '#f87171'; msg.style.display = ''; }
+      if (btn) { btn.textContent = 'Save changes'; btn.disabled = false; }
+    }
+  }).catch(function(){
+    if (btn) { btn.textContent = 'Save changes'; btn.disabled = false; }
+  });
+}
+
+/* ── GIFT CLAIM ── */
+function claimGift(id) {
+  var name = prompt('Your name:');
+  if (!name) return;
+  fetch('/api/claim-gift/' + id, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name })
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.status === 'ok') {
+      var b = document.querySelector('#gift-' + id + ' .gift-badge');
+      b.className = 'gift-badge taken';
+      b.textContent = 'Taken by ' + name;
+      b.onclick = null;
+    } else { alert(d.message); }
+  });
+}
+
+/* ── CONFETTI ── */
+function launchConfetti() {
+  for (var i = 0; i < 90; i++) {
+    var c   = document.createElement('div');
+    var sz  = (5 + Math.random() * 9) + 'px';
+    var col = [ACCENT, '#fff', '#ffd700', '#ff6b9d', '#6bcb77', '#74c0fc'][Math.floor(Math.random() * 6)];
+    c.style.cssText = 'position:fixed;left:' + Math.random() * 100 + 'vw;top:-10px;width:' + sz + ';height:' + sz +
+      ';background:' + col + ';border-radius:' + (Math.random() > .5 ? '50%' : '2px') +
+      ';pointer-events:none;z-index:9999;animation:confettiFall ' + (1.5 + Math.random()) +
+      's ease-in forwards;animation-delay:' + Math.random() * .8 + 's;';
+    document.body.appendChild(c);
+    setTimeout(function() { if (c.parentNode) c.parentNode.removeChild(c); }, 3200);
+  }
+}
+
+/* ── SOCIAL PROOF ── */
+var tickerIdx = 0;
+function showSocialProof() {
+  if (!RECENT || !RECENT.length) return;
+  var el = document.getElementById('social-ticker');
+  function show() {
+    var r = RECENT[tickerIdx % RECENT.length]; tickerIdx++;
+    el.textContent = r.name + ' just confirmed ✓';
+    el.classList.add('show');
+    setTimeout(function() { el.classList.remove('show'); }, 3200);
+    setTimeout(show, 7000);
+  }
+  setTimeout(show, 5000);
+}
+
+/* ── EMOJI REACTIONS ── */
+var REACTION_EMOJIS = ['🔥','❤️','😍','🎉','🥳'];
+var REACTION_IDS    = {'🔥':'r-fire','❤️':'r-heart','😍':'r-love','🎉':'r-party','🥳':'r-celebrate'};
+var myReacted       = {};
+
+function loadReactions() {
+  if (IS_PREVIEW || TOKEN === 'preview') return;
+  fetch('/api/reactions/' + TOKEN)
+    .then(function(r){ return r.json(); })
+    .then(function(d){ updateReactionCounts(d.counts || {}); })
+    .catch(function(){});
+}
+
+function updateReactionCounts(counts) {
+  REACTION_EMOJIS.forEach(function(e) {
+    var id = REACTION_IDS[e];
+    var el = document.getElementById(id);
+    if (el) el.textContent = counts[e] || 0;
+  });
+}
+
+function sendReaction(emoji) {
+  floatEmoji(emoji);
+  if (IS_PREVIEW || TOKEN === 'preview') return;
+  fetch('/api/react/' + TOKEN, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({emoji: emoji})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.counts) updateReactionCounts(d.counts);
+    var btn = document.querySelector('[data-emoji="' + emoji + '"]');
+    if (btn) btn.classList.toggle('reacted', !!d.toggled);
+  }).catch(function(){});
+}
+
+function floatEmoji(emoji) {
+  var el = document.createElement('div');
+  el.textContent = emoji;
+  var left = 15 + Math.random() * 70;
+  el.style.cssText = 'position:fixed;bottom:80px;left:' + left + 'vw;font-size:1.8rem;pointer-events:none;z-index:9000;animation:emojiFloat 1.6s ease-out forwards;';
+  document.body.appendChild(el);
+  setTimeout(function(){ if (el.parentNode) el.parentNode.removeChild(el); }, 1700);
+}
+
+document.addEventListener('DOMContentLoaded', loadReactions);
+
+/* ── QR CODE SHARE ── */
+var _qrInstance = null;
+
+function showQR() {
+  var modal = document.getElementById('qr-modal');
+  var url   = window.location.href.split('?')[0].split('#')[0];
+  var urlEl = document.getElementById('qr-url-display');
+  var waBtn = document.getElementById('qr-wa-btn');
+  if (urlEl) urlEl.textContent = url;
+  if (waBtn) waBtn.href = 'https://wa.me/?text=' + encodeURIComponent('You\'re invited! ' + url);
+  if (!_qrInstance) {
+    var container = document.getElementById('qr-canvas');
+    if (container) {
+      _qrInstance = new QRCode(container, {
+        text: url, width: 200, height: 200,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  }
+  if (modal) modal.classList.add('open');
+}
+
+function closeQR() {
+  var modal = document.getElementById('qr-modal');
+  if (modal) modal.classList.remove('open');
+}
+
+function copyInviteLink() {
+  var url = window.location.href.split('?')[0].split('#')[0];
+  var btn = document.getElementById('qr-copy-btn');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function(){
+      if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 2200); }
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    if (btn) { btn.textContent = 'Copied! ✓'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 2200); }
+  }
+}
+
+/* ── EFFECTS SYSTEM ── */
+var EFFECT = '{{ event.effect or "none" }}';
+var fxCanvas = document.getElementById('fx-canvas');
+var fxCtx = fxCanvas ? fxCanvas.getContext('2d') : null;
+var fxParticles = [];
+var fxRunning = false;
+
+function initEffect() {
+  if (!fxCanvas || EFFECT === 'none') return;
+  fxCanvas.width  = window.innerWidth;
+  fxCanvas.height = window.innerHeight;
+  window.addEventListener('resize', function() {
+    fxCanvas.width  = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+  });
+  var initFn = {
+    confetti: initConfetti, particles: initParticles, petals: initPetals,
+    stars: initStars, fireflies: initFireflies, bokeh: initBokeh,
+    glitter: initGlitter, neon_glow: initNeonGlow, gold_foil: initGoldFoil,
+    typewriter: initTypewriter, aurora: initAurora, bubbles: initBubbles, snow: initSnow,
+  }[EFFECT];
+  if (initFn) { fxRunning = true; initFn(); }
+}
+
+/* Shared helpers */
+function rnd(a, b) { return a + Math.random() * (b - a); }
+function hex2rgb(h) { var r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b2 = parseInt(h.slice(5,7),16); return [r,g,b2]; }
+var _rgb = (ACCENT && ACCENT.length >= 7) ? hex2rgb(ACCENT) : [232,213,163];
+
+function initParticles() {
+  for (var i = 0; i < 60; i++) fxParticles.push({ x:rnd(0,fxCanvas.width), y:rnd(0,fxCanvas.height), r:rnd(2,6), vx:rnd(-0.4,0.4), vy:rnd(-0.6,-0.1), alpha:rnd(0.3,0.8), col:'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','});
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    fxParticles.forEach(function(p) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -20) { p.y = fxCanvas.height + 10; p.x = rnd(0,fxCanvas.width); }
+      fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      fxCtx.fillStyle = p.col + p.alpha + ')'; fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initStars() {
+  var stars = [];
+  for (var i = 0; i < 120; i++) stars.push({ x:rnd(0,fxCanvas.width), y:rnd(0,fxCanvas.height), r:rnd(0.5,2.5), alpha:rnd(0.2,1), speed:rnd(0.005,0.02), t:rnd(0,Math.PI*2) });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    stars.forEach(function(s) {
+      s.t += s.speed;
+      var a = Math.abs(Math.sin(s.t)) * s.alpha;
+      fxCtx.beginPath(); fxCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+      fxCtx.fillStyle = 'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','+a+')'; fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initFireflies() {
+  var ff = [];
+  for (var i = 0; i < 40; i++) ff.push({ x:rnd(0,fxCanvas.width), y:rnd(0,fxCanvas.height), r:rnd(2,5), vx:rnd(-0.5,0.5), vy:rnd(-0.5,0.5), t:rnd(0,Math.PI*2), speed:rnd(0.01,0.04) });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    ff.forEach(function(f) {
+      f.t += f.speed; f.x += f.vx + Math.sin(f.t)*0.5; f.y += f.vy + Math.cos(f.t)*0.5;
+      if (f.x < 0) f.x = fxCanvas.width; if (f.x > fxCanvas.width) f.x = 0;
+      if (f.y < 0) f.y = fxCanvas.height; if (f.y > fxCanvas.height) f.y = 0;
+      var a = (Math.sin(f.t)+1)/2 * 0.7 + 0.1;
+      var g = fxCtx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*3);
+      g.addColorStop(0,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','+a+')');
+      g.addColorStop(1,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0)');
+      fxCtx.beginPath(); fxCtx.arc(f.x,f.y,f.r*3,0,Math.PI*2);
+      fxCtx.fillStyle = g; fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initBokeh() {
+  var bk = [];
+  for (var i = 0; i < 25; i++) bk.push({ x:rnd(0,fxCanvas.width), y:rnd(0,fxCanvas.height), r:rnd(15,50), alpha:rnd(0.04,0.12), vy:rnd(-0.15,0.15), t:rnd(0,Math.PI*2) });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    bk.forEach(function(b) {
+      b.t += 0.005; b.y += b.vy; b.x += Math.sin(b.t) * 0.3;
+      if (b.y < -b.r*2) { b.y = fxCanvas.height + b.r; b.x = rnd(0,fxCanvas.width); }
+      if (b.y > fxCanvas.height + b.r*2) { b.y = -b.r; }
+      fxCtx.beginPath(); fxCtx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      fxCtx.strokeStyle = 'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','+b.alpha+')';
+      fxCtx.lineWidth = 1.5; fxCtx.stroke();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initGlitter() {
+  var gl = [];
+  function addGlitter() {
+    for (var i = 0; i < 3; i++) gl.push({ x:rnd(0,fxCanvas.width), y:rnd(0,fxCanvas.height), r:rnd(1,3), alpha:1, decay:rnd(0.02,0.06) });
+  }
+  setInterval(addGlitter, 60);
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    gl = gl.filter(function(g) { return g.alpha > 0; });
+    gl.forEach(function(g) {
+      g.alpha -= g.decay;
+      fxCtx.beginPath(); fxCtx.arc(g.x,g.y,g.r,0,Math.PI*2);
+      fxCtx.fillStyle = 'rgba(255,215,0,'+g.alpha+')'; fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initGoldFoil() {
+  var gf = { t: 0 };
+  (function loop() {
+    if (!fxRunning) return;
+    gf.t += 0.008;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    for (var y = 0; y < fxCanvas.height; y += 40) {
+      var grad = fxCtx.createLinearGradient(0, y, fxCanvas.width, y + 40);
+      grad.addColorStop(0,'rgba(212,175,55,0)');
+      grad.addColorStop(0.3 + 0.2*Math.sin(gf.t+y*0.01),'rgba(255,215,80,0.06)');
+      grad.addColorStop(0.6 + 0.1*Math.cos(gf.t*1.3),'rgba(255,235,120,0.04)');
+      grad.addColorStop(1,'rgba(212,175,55,0)');
+      fxCtx.fillStyle = grad;
+      fxCtx.fillRect(0, y, fxCanvas.width, 40);
+    }
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initNeonGlow() {
+  var t = 0;
+  (function loop() {
+    if (!fxRunning) return;
+    t += 0.02;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    var intensity = (Math.sin(t)+1)/2 * 0.12;
+    var grad = fxCtx.createRadialGradient(fxCanvas.width/2, fxCanvas.height/2, 0, fxCanvas.width/2, fxCanvas.height/2, fxCanvas.width*0.6);
+    grad.addColorStop(0,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','+intensity+')');
+    grad.addColorStop(1,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0)');
+    fxCtx.fillStyle = grad; fxCtx.fillRect(0,0,fxCanvas.width,fxCanvas.height);
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initAurora() {
+  var t = 0;
+  (function loop() {
+    if (!fxRunning) return;
+    t += 0.004;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    for (var i = 0; i < 3; i++) {
+      var y = fxCanvas.height * (0.1 + 0.15*i) + Math.sin(t + i*1.5) * fxCanvas.height * 0.08;
+      var h = fxCanvas.height * 0.15;
+      var g = fxCtx.createLinearGradient(0, y, 0, y+h);
+      var a = 0.06 + 0.03*Math.sin(t*1.2);
+      g.addColorStop(0,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0)');
+      g.addColorStop(0.5,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+','+a+')');
+      g.addColorStop(1,'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0)');
+      fxCtx.fillStyle = g;
+      fxCtx.beginPath();
+      fxCtx.moveTo(0,y);
+      for (var x = 0; x <= fxCanvas.width; x += 20) {
+        fxCtx.lineTo(x, y + Math.sin(t*0.7 + x*0.008 + i) * h * 0.4);
+      }
+      fxCtx.lineTo(fxCanvas.width, y+h); fxCtx.lineTo(0, y+h); fxCtx.closePath();
+      fxCtx.fill();
+    }
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initBubbles() {
+  var bubs = [];
+  for (var i = 0; i < 30; i++) bubs.push({ x:rnd(0,fxCanvas.width), y:rnd(fxCanvas.height, fxCanvas.height*2), r:rnd(5,22), vy:rnd(-0.5,-0.15), t:rnd(0,Math.PI*2) });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    bubs.forEach(function(b) {
+      b.t += 0.02; b.y += b.vy; b.x += Math.sin(b.t) * 0.5;
+      if (b.y < -b.r*2) { b.y = fxCanvas.height + b.r; b.x = rnd(0,fxCanvas.width); }
+      fxCtx.beginPath(); fxCtx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      fxCtx.strokeStyle = 'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0.2)';
+      fxCtx.lineWidth = 1; fxCtx.stroke();
+      fxCtx.fillStyle = 'rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0.03)';
+      fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initSnow() {
+  var flakes = [];
+  for (var i = 0; i < 80; i++) flakes.push({ x:rnd(0,fxCanvas.width), y:rnd(-fxCanvas.height, fxCanvas.height), r:rnd(1,4), vy:rnd(0.3,1.2), vx:rnd(-0.3,0.3), t:rnd(0,Math.PI*2) });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    flakes.forEach(function(f) {
+      f.t += 0.015; f.y += f.vy; f.x += f.vx + Math.sin(f.t)*0.3;
+      if (f.y > fxCanvas.height + 10) { f.y = -10; f.x = rnd(0,fxCanvas.width); }
+      fxCtx.beginPath(); fxCtx.arc(f.x,f.y,f.r,0,Math.PI*2);
+      fxCtx.fillStyle = 'rgba(255,255,255,0.7)'; fxCtx.fill();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initPetals() {
+  var petals = [];
+  for (var i = 0; i < 35; i++) petals.push({ x:rnd(0,fxCanvas.width), y:rnd(-200, fxCanvas.height), vy:rnd(0.6,1.8), rot:rnd(0,360), rotSpd:rnd(-1.5,1.5), t:rnd(0,Math.PI*2) });
+  var petalCols = ['rgba(255,150,180,0.6)','rgba(255,182,193,0.6)','rgba(255,105,135,0.5)','rgba('+_rgb[0]+','+_rgb[1]+','+_rgb[2]+',0.5)'];
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    petals.forEach(function(p) {
+      p.t += 0.018; p.y += p.vy; p.x += Math.sin(p.t)*1.5; p.rot += p.rotSpd;
+      if (p.y > fxCanvas.height + 40) { p.y = -40; p.x = rnd(0,fxCanvas.width); }
+      fxCtx.save(); fxCtx.translate(p.x, p.y); fxCtx.rotate(p.rot * Math.PI/180);
+      var col = petalCols[Math.floor(Math.random()*petalCols.length)];
+      fxCtx.beginPath(); fxCtx.ellipse(0,0,5,12,0,0,Math.PI*2);
+      fxCtx.fillStyle = petalCols[Math.floor(p.y*7%petalCols.length)]; fxCtx.fill();
+      fxCtx.restore();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initConfetti() {
+  var confParts = [];
+  for (var i = 0; i < 100; i++) confParts.push({
+    x: rnd(0,fxCanvas.width), y: rnd(-fxCanvas.height, 0),
+    vy: rnd(1,3.5), vx: rnd(-1,1), rot: rnd(0,360), rotSpd: rnd(-3,3),
+    w: rnd(6,12), h: rnd(4,8),
+    col: ['#e8d5a3','#f87171','#60a5fa','#34d399','#a78bfa','#fb923c','#fff'][Math.floor(Math.random()*7)]
+  });
+  (function loop() {
+    if (!fxRunning) return;
+    fxCtx.clearRect(0,0,fxCanvas.width,fxCanvas.height);
+    confParts.forEach(function(c) {
+      c.y += c.vy; c.x += c.vx + Math.sin(c.y*0.02)*0.5; c.rot += c.rotSpd;
+      if (c.y > fxCanvas.height + 20) { c.y = -20; c.x = rnd(0,fxCanvas.width); }
+      fxCtx.save(); fxCtx.translate(c.x,c.y); fxCtx.rotate(c.rot*Math.PI/180);
+      fxCtx.fillStyle = c.col; fxCtx.fillRect(-c.w/2,-c.h/2,c.w,c.h); fxCtx.restore();
+    });
+    requestAnimationFrame(loop);
+  })();
+}
+
+function initTypewriter() {
+  /* Typewriter: reveals the hero title letter by letter on page open */
+  var hero = document.querySelector('.hero-title');
+  if (!hero) return;
+  var fullText = hero.textContent || hero.innerText;
+  hero.textContent = '';
+  var i = 0;
+  function typeNext() {
+    if (i < fullText.length) { hero.textContent += fullText[i++]; setTimeout(typeNext, 60); }
+  }
+  setTimeout(typeNext, 800);
+}
+
+/* ── DECORATIONS ── */
+var BALLOON_COLOURS = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff','#ff922b','#cc5de8','#f783ac','#38d9a9','#74c0fc'];
+var FLOWER_COLOURS  = ['#ff6b9d','#ff9ff3','#ffd8e4','#c3fae8','#fcc419','#fd7eb8','#e599f7','#ffdeab','#b2f2bb'];
+
+function makeBalloon(left, delay, dur, scale) {
+  var col  = BALLOON_COLOURS[Math.floor(Math.random() * BALLOON_COLOURS.length)];
+  var wrap = document.createElement('div'); wrap.className = 'balloon-wrap';
+  var w = Math.round(40 * (scale || 1)), h = Math.round(60 * (scale || 1));
+  wrap.style.cssText = 'left:' + left + 'vw;bottom:0;animation:balloonRise ' + dur + 's ease-in-out infinite;animation-delay:' + delay + 's;';
+  wrap.innerHTML = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 60 90" style="fill:' + col + ';color:' + col + '"><use href="#svg-balloon"/></svg>';
+  return wrap;
+}
+function makeFlower(left, delay, dur, scale) {
+  var col  = FLOWER_COLOURS[Math.floor(Math.random() * FLOWER_COLOURS.length)];
+  var wrap = document.createElement('div'); wrap.className = 'flower-wrap';
+  var sz   = Math.round(40 * (scale || 1));
+  wrap.style.cssText = 'left:' + left + 'vw;top:-60px;animation:flowerFall ' + dur + 's linear infinite;animation-delay:' + delay + 's;';
+  wrap.innerHTML = '<svg width="' + sz + '" height="' + sz + '" viewBox="0 0 60 60" style="fill:' + col + '"><use href="#svg-flower"/></svg>';
+  return wrap;
+}
+function makePetal(left, delay, dur) {
+  var col  = FLOWER_COLOURS[Math.floor(Math.random() * FLOWER_COLOURS.length)];
+  var wrap = document.createElement('div'); wrap.className = 'flower-wrap';
+  wrap.style.cssText = 'left:' + left + 'vw;top:-40px;animation:flowerFall ' + dur + 's linear infinite;animation-delay:' + delay + 's;transform:rotate(' + Math.random() * 360 + 'deg);';
+  wrap.innerHTML = '<svg width="16" height="30" viewBox="0 0 20 40" style="fill:' + col + '"><use href="#svg-petal"/></svg>';
+  return wrap;
+}
+function spawnDecorations() {
+  if (DECO === 'none' || !DECO) return;
+  var layer = document.getElementById('deco-layer');
+  if (DECO === 'balloons' || DECO === 'both')
+    for (var i = 0; i < 14; i++)
+      layer.appendChild(makeBalloon(2 + Math.random() * 96, Math.random() * 14, 14 + Math.random() * 10, 0.6 + Math.random() * .8));
+  if (DECO === 'flowers' || DECO === 'both') {
+    for (var j = 0; j < 18; j++)
+      layer.appendChild(makeFlower(Math.random() * 100, Math.random() * 10, 12 + Math.random() * 10, 0.5 + Math.random() * .7));
+    for (var k = 0; k < 22; k++)
+      layer.appendChild(makePetal(Math.random() * 100, Math.random() * 8, 8 + Math.random() * 8));
+  }
+}
+</script>
+</body>
+</html>

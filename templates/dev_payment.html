@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Dev Payment — Invitisimemo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <style>
+    body{background:#080808;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Helvetica Neue',sans-serif;padding:1rem;}
+    .dev-wrap{max-width:420px;width:100%;background:#111;border:1px solid rgba(245,158,11,.35);border-radius:18px;overflow:hidden;}
+    .dev-head{background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.25);padding:12px 18px;display:flex;align-items:center;gap:8px;}
+    .dev-tag{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;background:#f59e0b;color:#080808;padding:3px 9px;border-radius:20px;}
+    .dev-head span{font-size:.78rem;color:#f59e0b;}
+    .dev-body{padding:2rem 1.8rem;text-align:center;}
+    .dev-icon{font-size:2.4rem;margin-bottom:.8rem;}
+    .dev-amount{font-size:2.6rem;font-weight:700;color:#fff;line-height:1;margin-bottom:6px;}
+    .dev-amount span{font-size:1.1rem;color:#888;}
+    .dev-item{font-size:.84rem;color:#888;margin-bottom:.4rem;}
+    .dev-note{font-size:.72rem;color:#555;line-height:1.6;margin-bottom:1.8rem;}
+    .dev-btn{display:block;width:100%;padding:15px;border-radius:10px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;border:none;margin-bottom:10px;transition:opacity .2s,background .2s;text-decoration:none;text-align:center;}
+    .dev-btn-success{background:#1d9e75;color:#fff;}
+    .dev-btn-success:hover{opacity:.9;}
+    .dev-btn-cancel{background:transparent;border:.5px solid rgba(255,255,255,.15);color:#999;}
+    .dev-btn-cancel:hover{color:#fff;}
+    .dev-foot{font-size:.66rem;color:#3a3a3a;margin-top:1rem;line-height:1.6;}
+  </style>
+</head>
+<body>
+  <div class="dev-wrap">
+    <div class="dev-head">
+      <span class="dev-tag">DEV</span>
+      <span>Sandbox payment — no real money moves</span>
+    </div>
+    <div class="dev-body">
+      <div class="dev-icon">🧪</div>
+      <div class="dev-amount">R{{ amount | int }}{% if kind == 'sub' %}<span>/mo</span>{% endif %}</div>
+      <div class="dev-item">{{ item }}</div>
+      <p class="dev-note">This screen stands in for PayFast while you build. Choose an outcome to test the flow end-to-end.</p>
+
+      <form method="POST" action="{{ url_for('dev_pay_finalize') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="dev-btn dev-btn-success">✓ Simulate successful payment</button>
+      </form>
+      <a href="{{ url_for('payment_cancel') }}" class="dev-btn dev-btn-cancel">✗ Simulate cancelled payment</a>
+
+      <p class="dev-foot">When you're ready to go live, set <strong>PAYFAST_SANDBOX=false</strong> and this screen is replaced by real PayFast automatically — no other changes needed.</p>
+    </div>
+  </div>
+</body>
+</html>

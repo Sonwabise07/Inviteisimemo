@@ -1,0 +1,33 @@
+# Environment
+.env
+*.pyc
+__pycache__/
+*.pyo
+
+# Database (local SQLite only — Render uses PostgreSQL)
+*.db
+*.sqlite3
+
+# Uploads (Render's disk is ephemeral on free tier — back these up locally)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Python
+venv/
+env/
+.venv/
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Claude Code
+.claude/
