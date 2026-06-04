@@ -1,7 +1,12 @@
 <nav class="site-nav" id="site-nav">
-  <a href="{{ url_for('index') }}" class="site-nav__brand">Invitisimemo</a>
 
-  <!-- Desktop links (hidden on mobile) -->
+  <!-- Brand: ✦ mark + wordmark -->
+  <a href="{{ url_for('index') }}" class="site-nav__brand">
+    <span class="site-nav__mark">✦</span>
+    <span class="site-nav__name">Invitisimemo</span>
+  </a>
+
+  <!-- Desktop links -->
   <div class="site-nav__right site-nav__desktop">
     <a href="{{ url_for('about') }}" class="site-nav__link">About</a>
     <a href="{{ url_for('contact') }}" class="site-nav__link">Contact</a>
@@ -18,54 +23,70 @@
     {% endif %}
   </div>
 
-  <!-- Mobile: My Events shortcut + hamburger -->
+  <!-- Mobile: hamburger only -->
   <div class="site-nav__mobile-right">
-    {% if current_user.is_authenticated %}
-    <a href="{{ url_for('dashboard') }}" class="site-nav__link site-nav__link--keep">My Events</a>
-    {% endif %}
     <button class="site-nav__burger" id="nav-burger" aria-label="Menu" onclick="toggleNavMenu()">
       <span></span><span></span><span></span>
     </button>
   </div>
 </nav>
 
-<!-- Mobile dropdown menu -->
+<!-- Full-screen mobile drawer -->
 <div class="site-nav__drawer" id="nav-drawer">
-  <div class="site-nav__drawer-inner">
-    <a href="{{ url_for('about') }}" class="nav-drawer-link">About</a>
-    <a href="{{ url_for('contact') }}" class="nav-drawer-link">Contact</a>
+  <!-- Drawer header -->
+  <div class="site-nav__drawer-head">
+    <a href="{{ url_for('index') }}" class="site-nav__brand" onclick="closeNavMenu()">
+      <span class="site-nav__mark">✦</span>
+      <span class="site-nav__name">Invitisimemo</span>
+    </a>
+    <button class="site-nav__drawer-close" onclick="closeNavMenu()" aria-label="Close menu">✕</button>
+  </div>
+
+  <!-- Links -->
+  <div class="site-nav__drawer-links">
+    <a href="{{ url_for('about') }}" class="nav-drawer-link">About <span>→</span></a>
+    <a href="{{ url_for('contact') }}" class="nav-drawer-link">Contact <span>→</span></a>
     {% if current_user.is_authenticated %}
-      <a href="{{ url_for('dashboard') }}" class="nav-drawer-link nav-drawer-link--highlight">My Events</a>
-      <a href="{{ url_for('account_settings') }}" class="nav-drawer-link">Account</a>
+      <a href="{{ url_for('dashboard') }}" class="nav-drawer-link nav-drawer-link--gold">My Events <span>→</span></a>
+      <a href="{{ url_for('account_settings') }}" class="nav-drawer-link">Account <span>→</span></a>
       {% if current_user.is_admin %}
-        <a href="{{ url_for('admin') }}" class="nav-drawer-link nav-drawer-link--admin">Admin ⚡</a>
+        <a href="{{ url_for('admin') }}" class="nav-drawer-link nav-drawer-link--admin">Admin ⚡ <span>→</span></a>
       {% endif %}
       <a href="{{ url_for('logout') }}" class="nav-drawer-link nav-drawer-link--signout">Sign out</a>
     {% else %}
-      <a href="{{ url_for('login') }}" class="nav-drawer-link">Sign in</a>
-      <a href="{{ url_for('register') }}" class="nav-drawer-link nav-drawer-link--highlight">Get started →</a>
+      <a href="{{ url_for('login') }}" class="nav-drawer-link">Sign in <span>→</span></a>
+    {% endif %}
+  </div>
+
+  <!-- CTA pinned at the bottom -->
+  <div class="site-nav__drawer-footer">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('create') }}" class="site-nav__drawer-cta">+ Create an invitation</a>
+    {% else %}
+      <a href="{{ url_for('register') }}" class="site-nav__drawer-cta">Get started free</a>
+      <p class="site-nav__drawer-cta-sub">No credit card needed · Free to create</p>
     {% endif %}
   </div>
 </div>
 
 <script>
-function toggleNavMenu() {
-  var drawer = document.getElementById('nav-drawer');
-  var burger = document.getElementById('nav-burger');
-  var open = drawer.classList.toggle('open');
-  burger.classList.toggle('open', open);
-  document.body.style.overflow = open ? 'hidden' : '';
+function toggleNavMenu(){
+  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
+  var open=d.classList.toggle('open');
+  b.classList.toggle('open',open);
+  document.body.style.overflow=open?'hidden':'';
 }
-// Close on backdrop click
-document.addEventListener('click', function(e) {
-  var drawer = document.getElementById('nav-drawer');
-  var burger = document.getElementById('nav-burger');
-  if (drawer && drawer.classList.contains('open')) {
-    if (!drawer.contains(e.target) && !burger.contains(e.target)) {
-      drawer.classList.remove('open');
-      burger.classList.remove('open');
-      document.body.style.overflow = '';
-    }
+function closeNavMenu(){
+  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
+  if(d){d.classList.remove('open');}
+  if(b){b.classList.remove('open');}
+  document.body.style.overflow='';
+}
+document.addEventListener('click',function(e){
+  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
+  if(d&&d.classList.contains('open')&&!d.contains(e.target)&&b&&!b.contains(e.target)){
+    closeNavMenu();
   }
 });
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNavMenu();});
 </script>
