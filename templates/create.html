@@ -63,40 +63,75 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
     {% if not edit_mode %}
-    <!-- ════ PRESET PACKS — QUICK START ════ -->
+    <!-- ════ PRESET PACKS — QUICK START (collapsible) ════ -->
     <div class="preset-section" id="preset-section">
-      <div class="preset-header">
-        <div class="preset-title">✦ Start with a vibe</div>
-        <div class="preset-sub">Pick a starter pack and we'll pre-fill design, font, pattern &amp; effect for you. Customize everything after.</div>
-      </div>
-      <div class="preset-filters">
-        <button type="button" class="pf-btn active" data-filter="all"        onclick="filterPresets('all')">All</button>
-        <button type="button" class="pf-btn"        data-filter="birthday"   onclick="filterPresets('birthday')">🎂 Birthday</button>
-        <button type="button" class="pf-btn"        data-filter="wedding"    onclick="filterPresets('wedding')">💍 Wedding</button>
-        <button type="button" class="pf-btn"        data-filter="cultural"   onclick="filterPresets('cultural')">🌿 Cultural</button>
-        <button type="button" class="pf-btn"        data-filter="baby"       onclick="filterPresets('baby')">🍼 Baby</button>
-        <button type="button" class="pf-btn"        data-filter="graduation" onclick="filterPresets('graduation')">🎓 Grad &amp; Matric</button>
-        <button type="button" class="pf-btn"        data-filter="corporate"  onclick="filterPresets('corporate')">💼 Corporate</button>
-        <button type="button" class="pf-btn"        data-filter="celebration"onclick="filterPresets('celebration')">✨ Celebration</button>
-      </div>
-      <div class="preset-grid" id="preset-grid">
-        {% for pack in preset_packs %}
-        <div class="preset-card" data-preset="{{ pack.id }}" data-category="{{ pack.category }}"
-             onclick="applyPreset('{{ pack.id }}')"
-             style="--pack-accent:{{ pack.accent }};">
-          <div class="pc-emoji">{{ pack.emoji }}</div>
-          <div class="pc-name">{{ pack.name }}</div>
-          <div class="pc-tag">{{ pack.vibe }}</div>
-          <div class="pc-dot-row">
-            <span class="pc-dot" style="background:{{ pack.accent }};"></span>
+
+      <!-- ── Collapse toggle header ── -->
+      <div class="preset-collapse-header" id="preset-toggle" onclick="togglePresetSection()">
+        <div class="preset-collapse-left">
+          <span class="preset-collapse-icon">✦</span>
+          <div>
+            <div class="preset-title" style="margin:0;">Start with a vibe</div>
+            <div class="preset-collapse-hint" id="preset-hint">Pick a starter — we'll pre-fill your design, font &amp; effects.</div>
           </div>
         </div>
-        {% endfor %}
+        <div class="preset-collapse-chevron" id="preset-chevron">▲</div>
       </div>
-      <div class="preset-skip">
-        <button type="button" class="preset-skip-btn" onclick="skipPresets()">Start from scratch instead ↓</button>
+
+      <!-- ── Collapsible body ── -->
+      <div class="preset-body" id="preset-body">
+        <div class="preset-filters">
+          <button type="button" class="pf-btn active" data-filter="all"        onclick="filterPresets('all')">All</button>
+          <button type="button" class="pf-btn"        data-filter="birthday"   onclick="filterPresets('birthday')">🎂 Birthday</button>
+          <button type="button" class="pf-btn"        data-filter="wedding"    onclick="filterPresets('wedding')">💍 Wedding</button>
+          <button type="button" class="pf-btn"        data-filter="cultural"   onclick="filterPresets('cultural')">🌿 Cultural</button>
+          <button type="button" class="pf-btn"        data-filter="baby"       onclick="filterPresets('baby')">🍼 Baby</button>
+          <button type="button" class="pf-btn"        data-filter="graduation" onclick="filterPresets('graduation')">🎓 Grad &amp; Matric</button>
+          <button type="button" class="pf-btn"        data-filter="corporate"  onclick="filterPresets('corporate')">💼 Corporate</button>
+          <button type="button" class="pf-btn"        data-filter="celebration"onclick="filterPresets('celebration')">✨ Celebration</button>
+        </div>
+        <div class="preset-grid" id="preset-grid">
+          {% for pack in preset_packs %}
+          <div class="preset-card" data-preset="{{ pack.id }}" data-category="{{ pack.category }}"
+               onclick="applyPreset('{{ pack.id }}')"
+               style="--pack-accent:{{ pack.accent }};">
+            <div class="pc-emoji">{{ pack.emoji }}</div>
+            <div class="pc-name">{{ pack.name }}</div>
+            <div class="pc-tag">{{ pack.vibe }}</div>
+            <div class="pc-dot-row">
+              <span class="pc-dot" style="background:{{ pack.accent }};"></span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="preset-skip">
+          <button type="button" class="preset-skip-btn" onclick="skipPresets()">Start from scratch instead ↓</button>
+        </div>
       </div>
     </div>
+
+    <script>
+    var _presetOpen = true;
+    function togglePresetSection() {
+      _presetOpen = !_presetOpen;
+      var body    = document.getElementById('preset-body');
+      var chevron = document.getElementById('preset-chevron');
+      var hint    = document.getElementById('preset-hint');
+      body.style.maxHeight    = _presetOpen ? body.scrollHeight + 'px' : '0';
+      body.style.opacity      = _presetOpen ? '1' : '0';
+      body.style.pointerEvents= _presetOpen ? '' : 'none';
+      chevron.style.transform = _presetOpen ? '' : 'rotate(180deg)';
+      hint.textContent = _presetOpen
+        ? 'Pick a starter — we\'ll pre-fill your design, font & effects.'
+        : 'Tap to expand and pick a starter vibe.';
+    }
+    // Keep max-height in sync when filter changes (grid height changes)
+    function _syncPresetHeight() {
+      if (!_presetOpen) return;
+      var body = document.getElementById('preset-body');
+      if (body) body.style.maxHeight = body.scrollHeight + 'px';
+    }
+    </script>
     {% endif %}
 
     <div class="form-section">
@@ -1049,11 +1084,16 @@ function applyPreset(id) {
   // Toast
   showPackToast(pack.emoji + ' ' + pack.name + ' applied ✓');
 
+  // Auto-collapse the preset section after picking a vibe
+  if (typeof _presetOpen !== 'undefined' && _presetOpen) {
+    setTimeout(function(){ togglePresetSection(); }, 320);
+  }
+
   // Scroll to the first detail section so they get straight to typing
   setTimeout(function(){
     var sec = document.querySelector('.form-section');
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 280);
+  }, 480);
 }
 
 // Capitalise a slug like 'classic_dark' -> 'Classic Dark'
@@ -1126,6 +1166,8 @@ function filterPresets(cat) {
   document.querySelectorAll('.pf-btn').forEach(function(b){ b.classList.remove('active'); });
   var btn = document.querySelector('[data-filter="' + cat + '"]');
   if (btn) btn.classList.add('active');
+  // Sync collapsible height after card visibility changes
+  setTimeout(function(){ if(typeof _syncPresetHeight==='function') _syncPresetHeight(); }, 50);
 }
 
 function skipPresets() {
