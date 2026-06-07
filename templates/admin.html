@@ -105,7 +105,17 @@
     </div>
   </div>
 
-  <!-- TOP STATS -->
+  <!-- MONEY STATS (top row) -->
+  <div class="stat-grid" style="margin-bottom:.8rem;">
+    <div class="stat-box gold"><div class="n">R{{ '%.0f'|format(revenue_all_time) }}</div><div class="l">Revenue — All Time</div></div>
+    <div class="stat-box green"><div class="n">R{{ '%.0f'|format(revenue_this_month) }}</div><div class="l">Revenue — This Month</div></div>
+    <div class="stat-box blue"><div class="n">R{{ mrr }}</div><div class="l">MRR (est.)</div></div>
+    <div class="stat-box purple"><div class="n">{{ active_subs_count }}</div><div class="l">Active Subscriptions</div></div>
+    <div class="stat-box amber"><div class="n">{{ single_sales }}</div><div class="l">Single-Invite Sales</div></div>
+    <div class="stat-box red"><div class="n">{{ pending_failed }}</div><div class="l">Pending / Failed</div></div>
+  </div>
+
+  <!-- ENGAGEMENT STATS -->
   <div class="stat-grid">
     <div class="stat-box gold"><div class="n">{{ total_events }}</div><div class="l">Total Events</div></div>
     <div class="stat-box green"><div class="n">{{ total_rsvps }}</div><div class="l">Total RSVPs</div></div>
@@ -121,6 +131,7 @@
   <div class="adm-tabs">
     <button class="adm-tab active" onclick="admTab('events',this)">All Events</button>
     <button class="adm-tab" onclick="admTab('analytics',this)">Analytics</button>
+    <button class="adm-tab" onclick="admTab('money',this)">💰 Money</button>
     <button class="adm-tab" onclick="admTab('rsvps',this)">Recent RSVPs</button>
     <button class="adm-tab" onclick="admTab('audit',this)">Audit Log</button>
   </div>
@@ -249,6 +260,107 @@
           </tbody>
         </table>
       </div>
+    </div>
+  </div>
+
+  <!-- MONEY TAB -->
+  <div class="adm-section" id="adm-money">
+
+    <!-- Revenue summary -->
+    <div class="two-col" style="margin-bottom:1.2rem;">
+      <div class="panel">
+        <div class="panel-title accent">Subscription revenue split</div>
+        <div class="bar-row">
+          <span>Subscriptions</span>
+          <div class="bar-track"><div class="bar-fill gold" style="width:{% if sub_payments+single_sales %}{{ ((sub_payments/(sub_payments+single_sales))*100)|round|int }}{% else %}0{% endif %}%;"></div></div>
+          <span style="color:#555;">{{ sub_payments }}</span>
+        </div>
+        <div class="bar-row">
+          <span>Single invites</span>
+          <div class="bar-track"><div class="bar-fill green" style="width:{% if sub_payments+single_sales %}{{ ((single_sales/(sub_payments+single_sales))*100)|round|int }}{% else %}0{% endif %}%;"></div></div>
+          <span style="color:#555;">{{ single_sales }}</span>
+        </div>
+        <div style="font-size:.68rem;color:#444;margin-top:1rem;">
+          Total paid transactions: <strong style="color:#aaa;">{{ sub_payments + single_sales }}</strong>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title accent">Active subscribers</div>
+        {% if sub_users %}
+          {% for u in sub_users[:8] %}
+          {% set is_truly_active = u.sub_status == 'active' and u.sub_expires and u.sub_expires > now_dt %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:.5px solid rgba(255,255,255,.04);">
+            <div>
+              <div style="font-size:.78rem;color:#ccc;">{{ u.name }}</div>
+              <div style="font-size:.66rem;color:#444;">{{ u.email }}</div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge {% if is_truly_active %}b-green{% elif u.sub_status=='expired' %}b-red{% else %}b-blue{% endif %}">
+                {% if is_truly_active %}active{% elif u.sub_status=='expired' %}expired{% else %}{{ u.sub_status }}{% endif %}
+              </span>
+              {% if u.sub_expires %}<div style="font-size:.62rem;color:#444;margin-top:2px;">{{ u.sub_expires.strftime('%d %b %Y') }}</div>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+          {% if sub_users|length > 8 %}<div style="font-size:.68rem;color:#444;margin-top:.6rem;">+{{ sub_users|length - 8 }} more</div>{% endif %}
+        {% else %}
+          <div style="font-size:.78rem;color:#444;padding:.5rem 0;">No subscription users yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Payments table -->
+    <div class="panel" style="padding:0;">
+      <div style="padding:.9rem 1.3rem .4rem;display:flex;align-items:center;justify-content:space-between;">
+        <div class="panel-title accent" style="margin:0;">All Payments</div>
+        <div style="font-size:.66rem;color:#444;">Most recent 50</div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Kind</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Event</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in recent_payments %}
+            <tr>
+              <td style="font-size:.72rem;color:#444;white-space:nowrap;">{{ p.created_at.strftime('%d %b %Y') }}</td>
+              <td>
+                <div style="font-size:.78rem;color:#ccc;">{{ p.user.name if p.user else '—' }}</div>
+                <div style="font-size:.66rem;color:#444;">{{ p.user.email if p.user else '' }}</div>
+              </td>
+              <td>
+                {% if p.kind == 'subscription' %}<span class="badge b-purple">Subscription</span>
+                {% else %}<span class="badge b-blue">Single invite</span>{% endif %}
+              </td>
+              <td style="color:#e8d5a3;font-weight:600;">R{{ '%.0f'|format(p.amount|float) }}</td>
+              <td>
+                {% if p.status == 'complete' %}<span class="badge b-green">Paid</span>
+                {% elif p.status == 'pending' %}<span class="badge b-gold">Pending</span>
+                {% else %}<span class="badge b-red">{{ p.status }}</span>{% endif %}
+              </td>
+              <td style="font-size:.72rem;color:#555;">
+                {% if p.event_id %}
+                  {% set ev = events | selectattr('id','eq',p.event_id) | first %}
+                  {% if ev %}<a href="{{ url_for('invitation', token=ev.token) }}" target="_blank" style="color:#7dd3fc;text-decoration:none;">{{ ev.event_title[:28] }}</a>{% else %}#{{ p.event_id }}{% endif %}
+                {% else %}—{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" style="text-align:center;color:#333;padding:2rem;">No payments recorded yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div style="font-size:.68rem;color:#333;margin-top:.5rem;padding:0 .2rem;">
+      Revenue figures reflect payments with status "complete". Verify against your PayFast dashboard for reconciliation.
     </div>
   </div>
 

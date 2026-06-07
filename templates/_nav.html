@@ -8,6 +8,7 @@
 
   <!-- Desktop links -->
   <div class="site-nav__right site-nav__desktop">
+    <a href="{{ url_for('examples') }}" class="site-nav__link">See Examples</a>
     <a href="{{ url_for('about') }}" class="site-nav__link">About</a>
     <a href="{{ url_for('contact') }}" class="site-nav__link">Contact</a>
     {% if current_user.is_authenticated %}
@@ -44,6 +45,7 @@
 
   <!-- Links -->
   <div class="site-nav__drawer-links">
+    <a href="{{ url_for('examples') }}" class="nav-drawer-link" onclick="closeNavMenu()">See Examples <span>→</span></a>
     <a href="{{ url_for('about') }}" class="nav-drawer-link">About <span>→</span></a>
     <a href="{{ url_for('contact') }}" class="nav-drawer-link">Contact <span>→</span></a>
     {% if current_user.is_authenticated %}

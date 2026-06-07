@@ -144,6 +144,7 @@
   <!-- Desktop links -->
   <div class="lp-nav-links">
     <a class="lp-nav-link" href="#how">How it works</a>
+    <a class="lp-nav-link" href="{{ url_for('examples') }}">See Examples</a>
     <a class="lp-nav-link" href="#pricing">Pricing</a>
     <a class="lp-nav-link" href="{{ url_for('about') }}">About</a>
     <a class="lp-nav-link" href="{{ url_for('contact') }}">Contact</a>
@@ -225,6 +226,7 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') lpCloseMen
     {% endif %}
   </div>
   <p class="hero-note">Build &amp; preview free · Publish from R99/month · Cancel any time</p>
+  <a href="{{ url_for('examples') }}" style="display:inline-block;margin-top:1.4rem;font-size:.78rem;color:#444;text-decoration:none;border-bottom:.5px solid #333;padding-bottom:1px;transition:color .2s,border-color .2s;" onmouseover="this.style.color='#e8d5a3';this.style.borderColor='#e8d5a360';" onmouseout="this.style.color='#444';this.style.borderColor='#333';">See what an invitation looks like first →</a>
 </section>
 
 <section class="strip-section">
@@ -324,6 +326,7 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') lpCloseMen
     <div class="lp-footer-links">
       <a class="lp-footer-link" href="{{ url_for('register') }}">Get started</a>
       <a class="lp-footer-link" href="{{ url_for('login') }}">Sign in</a>
+      <a class="lp-footer-link" href="{{ url_for('examples') }}">See Examples</a>
       <a class="lp-footer-link" href="{{ url_for('about') }}">About</a>
       <a class="lp-footer-link" href="{{ url_for('contact') }}">Contact</a>
       <a class="lp-footer-link" href="{{ url_for('terms') }}">Terms</a>

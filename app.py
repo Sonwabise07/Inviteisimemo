@@ -1189,6 +1189,11 @@ def about():
     return render_template('about.html')
 
 
+@app.route('/examples')
+def examples():
+    return render_template('examples.html')
+
+
 @app.route('/contact', methods=['GET', 'POST'])
 @limiter.limit("5 per minute", methods=["POST"])
 def contact():
@@ -2048,6 +2053,27 @@ def admin():
 
     recent_audit   = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(20).all()
 
+    # ── Money stats ───────────────────────────────────────────────
+    now_dt      = datetime.utcnow()
+    month_start = now_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    all_payments   = Payment.query.order_by(Payment.created_at.desc()).all()
+    paid_payments  = [p for p in all_payments if p.status == 'complete']
+
+    revenue_all_time   = sum(float(p.amount or 0) for p in paid_payments)
+    revenue_this_month = sum(float(p.amount or 0) for p in paid_payments if p.created_at >= month_start)
+    active_subs_count  = User.query.filter(
+        User.sub_status == 'active', User.sub_expires > now_dt
+    ).count()
+    mrr              = active_subs_count * 99
+    single_sales     = sum(1 for p in paid_payments if p.kind == 'single_invite')
+    sub_payments     = sum(1 for p in paid_payments if p.kind == 'subscription')
+    pending_failed   = sum(1 for p in all_payments if p.status in ('pending', 'failed', 'cancelled'))
+    recent_payments  = all_payments[:50]
+
+    sub_users = User.query.filter(
+        User.sub_status.in_(['active', 'expired', 'cancelled'])
+    ).order_by(User.sub_expires.desc()).limit(60).all()
+
     return render_template(
         'admin.html',
         events=events,
@@ -2071,6 +2097,17 @@ def admin():
         popular_types=_popular([e.event_type for e in events]),
         today_str=date.today().isoformat(),
         date=date,
+        # money
+        now_dt=now_dt,
+        revenue_all_time=revenue_all_time,
+        revenue_this_month=revenue_this_month,
+        active_subs_count=active_subs_count,
+        mrr=mrr,
+        single_sales=single_sales,
+        sub_payments=sub_payments,
+        pending_failed=pending_failed,
+        recent_payments=recent_payments,
+        sub_users=sub_users,
     )
 
 

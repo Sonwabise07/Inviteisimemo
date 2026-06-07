@@ -1163,3 +1163,85 @@ body[style*="background:#080808"]{
 .ev-status{display:inline-flex;align-items:center;gap:5px;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 10px;border-radius:20px;}
 .ev-status-draft{background:rgba(245,158,11,.14);color:#f59e0b;}
 .ev-status-live{background:rgba(29,158,117,.15);color:#1d9e75;}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHASE 3 — MOBILE CREATE WIZARD
+   One step per screen on phones; desktop keeps the scroll/accordion.
+   A single full-width column per step makes sideways overflow
+   structurally impossible (fixes the portrait clipping).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hard overflow guards — nothing in the create flow may exceed the viewport */
+@media(max-width:768px){
+  .form-page,.form-wrap,.creator-shell,.creator-main,.create-actions,
+  .form-section,.fsec-body,.preset-section,.preset-grid,
+  .field-row,.design-picker,.pattern-picker,.effect-picker{
+    min-width:0;max-width:100%;box-sizing:border-box;
+  }
+  .creator-shell{grid-template-columns:1fr;}
+}
+
+/* When the wizard is on (toggled by JS on phones) */
+body.wizard-on .creator-guide{display:none;}
+body.wizard-on .form-progress{display:none;}      /* replaced by .wz-top */
+body.wizard-on .float-preview-btn{display:none;}   /* preview lives in the bar */
+body.wizard-on .btn-submit{display:none;}          /* fired from the bar */
+body.wizard-on{padding-bottom:104px;}              /* room for the fixed bar */
+
+body.wizard-on .form-section,
+body.wizard-on #preset-section{display:none;}
+body.wizard-on .form-section.wz-current,
+body.wizard-on #preset-section.wz-current{display:block;animation:wzIn .28s ease;}
+
+/* In the wizard, sections are always-open and not collapsible */
+body.wizard-on .fsec-chevron{display:none;}
+body.wizard-on .fsec-header{cursor:default;min-height:auto;padding-top:4px;}
+body.wizard-on .fsec-body{display:block!important;}
+
+@keyframes wzIn{from{opacity:0;transform:translateX(16px);}to{opacity:1;transform:none;}}
+
+/* Top progress */
+.wz-top{display:none;}
+body.wizard-on .wz-top{
+  display:block;position:sticky;top:52px;z-index:30;
+  padding:10px 0 14px;margin-bottom:4px;
+  background:linear-gradient(to bottom,#080908 72%,rgba(8,9,8,0));
+}
+.wz-top-row{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;gap:12px;}
+.wz-step-label{font-size:.95rem;font-weight:600;color:#f5eee5;letter-spacing:.01em;}
+.wz-step-count{font-size:.7rem;color:#6f675c;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.wz-track{height:6px;border-radius:99px;background:#1c1c18;overflow:hidden;}
+.wz-fill{height:100%;border-radius:99px;width:0;
+  background:linear-gradient(90deg,var(--gold),var(--teal));transition:width .35s ease;}
+
+/* Bottom action bar */
+.wz-bar{display:none;}
+body.wizard-on .wz-bar{
+  display:flex;gap:10px;align-items:center;
+  position:fixed;left:0;right:0;bottom:0;z-index:60;
+  padding:12px 14px calc(12px + env(safe-area-inset-bottom));
+  background:rgba(8,9,8,.93);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.wz-btn{border:1px solid transparent;border-radius:12px;padding:14px 16px;
+  font-size:.9rem;font-family:inherit;cursor:pointer;
+  transition:transform .12s,box-shadow .15s,opacity .15s;}
+.wz-btn:active{transform:translateY(1px);}
+.wz-btn-primary{flex:1 1 auto;min-height:52px;font-weight:600;
+  background:linear-gradient(135deg,var(--gold),#f3dfb4);color:#080908;
+  box-shadow:0 8px 22px rgba(232,213,163,.18);}
+.wz-btn-ghost{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#b7ad9e;}
+.wz-back{flex:0 0 auto;min-width:84px;}
+.wz-eye{flex:0 0 auto;width:52px;text-align:center;font-size:1.1rem;}
+
+@media(max-width:768px){
+  .inv-form,#main-form{min-width:0;max-width:100%;}
+  .preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .design-picker{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .pattern-picker,.effect-picker{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+  .preset-card,.design-opt,.pattern-opt,.effect-opt{min-width:0;}
+  .pc-name,.design-name{overflow-wrap:anywhere;}
+}
+@media(max-width:420px){
+  .preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}

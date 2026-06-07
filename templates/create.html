@@ -58,6 +58,15 @@
     {% for i in range(6) %}<div class="fp-step {% if i==0 %}active{% endif %}" id="fp-{{i}}"></div>{% endfor %}
   </div>
 
+  <!-- Mobile wizard top progress (shown only when wizard is active) -->
+  <div class="wz-top" id="wz-top">
+    <div class="wz-top-row">
+      <span class="wz-step-label" id="wz-step-label">&nbsp;</span>
+      <span class="wz-step-count" id="wz-step-count">&nbsp;</span>
+    </div>
+    <div class="wz-track"><div class="wz-fill" id="wz-fill"></div></div>
+  </div>
+
   <form action="{% if edit_mode %}{{ url_for('edit_event', token=event.token, pin=pin) }}{% else %}{{ url_for('create') }}{% endif %}"
         method="POST" enctype="multipart/form-data" class="inv-form" id="main-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -292,6 +301,14 @@
             </div>
           </div>
         </div>
+        <!-- ── Advanced design controls (hidden by default) ── -->
+        <div style="margin:14px 0 6px;">
+          <button type="button" id="adv-toggle-btn" onclick="toggleAdvanced()" style="background:none;border:none;color:#555;font-size:.72rem;cursor:pointer;padding:0;letter-spacing:.04em;display:flex;align-items:center;gap:6px;">
+            <span id="adv-chevron" style="transition:transform .25s;display:inline-block;">▶</span>
+            Customise the look <span style="color:#333;">(advanced)</span>
+          </button>
+        </div>
+        <div id="adv-controls" style="display:none;">
         <div class="field-row">
           <div class="field">
             <label>Decorations</label>
@@ -393,6 +410,8 @@
             </div>
           </div>
         </div>
+
+        </div><!-- /#adv-controls -->
 
         <div class="live-preview" id="style-preview">
           <div class="live-preview-head"><span>Live style preview</span><span id="preview-pattern-label">{{ event.pattern if event else 'none' }}</span></div>
@@ -524,6 +543,13 @@
   </form>
   </div>
 </div>
+</div>
+
+<!-- ════ MOBILE WIZARD ACTION BAR ════ -->
+<div class="wz-bar" id="wz-bar">
+  <button type="button" class="wz-btn wz-btn-ghost wz-back" id="wz-back" onclick="WZ.back()">← Back</button>
+  <button type="button" class="wz-btn wz-btn-ghost wz-eye" id="wz-eye" onclick="WZ.preview()" title="Full preview" aria-label="Full preview">👁</button>
+  <button type="button" class="wz-btn wz-btn-primary wz-next" id="wz-next" onclick="WZ.next()">Next →</button>
 </div>
 
 <!-- ════ CONFIRMATION MODAL ════ -->
@@ -1005,6 +1031,26 @@ document.querySelectorAll('.effect-opt input').forEach(function(r){
   r.addEventListener('change', function(){ selectEffect(r); });
 });
 
+// ── Advanced design toggle ────────────────────────────────────
+function toggleAdvanced() {
+  var el  = document.getElementById('adv-controls');
+  var chev = document.getElementById('adv-chevron');
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if(chev) chev.style.transform = open ? '' : 'rotate(90deg)';
+}
+// Auto-open advanced controls in edit mode if any advanced field has a non-default value
+(function(){
+  {% if edit_mode and event %}
+  var hasAdv = (
+    '{{ event.decorations }}' !== 'none' ||
+    '{{ event.photo_filter }}' !== 'none' ||
+    parseInt('{{ event.pattern_opacity }}') !== 40
+  );
+  if(hasAdv) toggleAdvanced();
+  {% endif %}
+})();
+
 // ── Prepare submit (shared validation) ───────────────────────
 function prepareSubmit() {
   if(!pinned) {
@@ -1231,6 +1277,144 @@ function confirmSubmit() {
   if (typeof clearAutosave === 'function') clearAutosave();
   document.getElementById('main-form').submit();
 }
+
+// ── PHASE 3: Mobile create wizard ─────────────────────────────
+// One step per screen on phones. Layers on top of the existing
+// sections (sectionComplete / .fsec-body) so desktop is untouched.
+var WZ = (function(){
+  var steps = [], i = 0, active = false;
+  var mq = window.matchMedia('(max-width:768px)');
+
+  function collect(){
+    steps = [];
+    var preset = document.getElementById('preset-section');
+    if(preset) steps.push(preset);
+    document.querySelectorAll('#main-form .form-section').forEach(function(s){ steps.push(s); });
+  }
+  function isPreset(el){ return el && el.id === 'preset-section'; }
+  function bodyOf(el){ return isPreset(el) ? null : el.querySelector('.fsec-body'); }
+  function labelFor(el){
+    if(isPreset(el)) return 'Pick a vibe';
+    var l = el.querySelector('.fsec-label');
+    return l ? (l.textContent || '').replace(/✓.*$/, '').replace(/—.*$/, '').trim() : 'Step';
+  }
+  function isLast(){ return i >= steps.length - 1; }
+
+  function render(){
+    steps.forEach(function(s, idx){
+      s.classList.toggle('wz-current', idx === i);
+    });
+    var cur = steps[i];
+    if(isPreset(cur)){ cur.style.opacity = ''; cur.style.pointerEvents = ''; }
+
+    var lab  = document.getElementById('wz-step-label');
+    var cnt  = document.getElementById('wz-step-count');
+    var fill = document.getElementById('wz-fill');
+    if(lab)  lab.textContent  = labelFor(cur);
+    if(cnt)  cnt.textContent  = 'Step ' + (i + 1) + ' of ' + steps.length;
+    if(fill) fill.style.width = (((i + 1) / steps.length) * 100) + '%';
+
+    var back = document.getElementById('wz-back');
+    var next = document.getElementById('wz-next');
+    if(back) back.style.visibility = (i === 0) ? 'hidden' : 'visible';
+    if(next) next.textContent = isLast()
+      ? '{% if edit_mode %}Save changes{% else %}Generate invitation ✨{% endif %}'
+      : 'Next →';
+
+    // Leaflet renders blank if it was initialised hidden — fix on reveal
+    if(window.map && cur.querySelector && cur.querySelector('#create-map')){
+      setTimeout(function(){ try{ map.invalidateSize(); }catch(e){} }, 60);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function valid(){
+    var b = bodyOf(steps[i]);
+    if(!b) return true;                              // preset step: nothing required
+    if(typeof sectionComplete === 'function' && !sectionComplete(b)){
+      var reqs = b.querySelectorAll('input[required],select[required],textarea[required]');
+      var firstBad = null;
+      Array.prototype.forEach.call(reqs, function(el){
+        var ok = el.disabled || el.type === 'hidden' || (el.value && el.checkValidity());
+        if(!ok){ el.classList.add('user-invalid'); if(!firstBad) firstBad = el; }
+      });
+      if(firstBad) firstBad.focus();
+      if(typeof showPackToast === 'function') showPackToast('Please complete the required fields');
+      return false;
+    }
+    return true;
+  }
+
+  function next(){
+    if(isLast()){ submitFlow(); return; }
+    if(!valid()) return;
+    i++; render(); saveStep();
+  }
+  function back(){ if(i > 0){ i--; render(); saveStep(); } }
+  function preview(){
+    if(typeof openFullPreview === 'function'){ openFullPreview(); return; }
+    var f = document.getElementById('float-preview-btn');
+    if(f && f.href) window.open(f.href, '_blank');
+  }
+  function submitFlow(){
+    try{ localStorage.removeItem(STEP_KEY); }catch(e){}
+    {% if edit_mode %}
+    if(typeof prepareSubmit === 'function'){ if(prepareSubmit()) document.getElementById('main-form').submit(); }
+    else { document.getElementById('main-form').submit(); }
+    {% else %}
+    if(typeof showConfirmModal === 'function') showConfirmModal();
+    {% endif %}
+  }
+
+  var STEP_KEY = 'wz_step_{% if edit_mode %}edit_{{ event.token }}{% else %}new{% endif %}';
+
+  function saveStep(){ try{ localStorage.setItem(STEP_KEY, i); }catch(e){} }
+  function loadStep(){
+    {% if not edit_mode %}
+    try{
+      var saved = parseInt(localStorage.getItem(STEP_KEY));
+      if(!isNaN(saved) && saved > 0 && saved < steps.length) i = saved;
+    }catch(e){}
+    {% endif %}
+  }
+
+  function activate(){
+    if(active) return;
+    collect();
+    if(!steps.length) return;
+    active = true;
+    document.body.classList.add('wizard-on');
+    loadStep();
+    if(i >= steps.length) i = 0;
+    render();
+  }
+  function deactivate(){
+    if(!active) return;
+    active = false;
+    document.body.classList.remove('wizard-on');
+    steps.forEach(function(s){ s.classList.remove('wz-current'); });
+  }
+  function sync(){ if(mq.matches) activate(); else deactivate(); }
+
+  // On the preset step: picking a pack or "start from scratch" advances
+  document.addEventListener('click', function(e){
+    if(!active || !steps[i] || !isPreset(steps[i])) return;
+    if(e.target.closest('.preset-card')){
+      setTimeout(function(){ if(active && isPreset(steps[i])) next(); }, 360);
+    } else if(e.target.closest('.preset-skip-btn')){
+      var p = document.getElementById('preset-section');
+      if(p){ p.style.opacity = ''; p.style.pointerEvents = ''; }
+      next();
+    }
+  });
+
+  if(mq.addEventListener) mq.addEventListener('change', sync);
+  else if(mq.addListener) mq.addListener(sync);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sync);
+  else sync();
+
+  return { next: next, back: back, preview: preview, go: function(n){ i = n; render(); } };
+})();
 </script>
 
 {% if not edit_mode %}
