@@ -1245,3 +1245,21 @@ body.wizard-on .wz-bar{
 @media(max-width:420px){
   .preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PHOTO LOCK — published events
+   When event.is_live=True, photo becomes read-only
+   ═══════════════════════════════════════════════════════════════ */
+
+.photo-locked-notice{
+  display:block;width:100%;padding:12px;margin-bottom:12px;
+  border-radius:8px;background:rgba(60,160,130,.12);border:1px solid rgba(60,160,130,.3);
+  font-size:.9rem;color:#3ca082;font-weight:500;text-align:center;
+}
+
+.photo-preview-placeholder{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;aspect-ratio:4/3;border-radius:8px;
+  background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.1);
+  color:#6f675c;font-size:.95rem;
+}

@@ -303,6 +303,7 @@ class Event(db.Model):
     image_1        = db.Column(db.String(300), default='')
     image_2        = db.Column(db.String(300), default='')
     image_3        = db.Column(db.String(300), default='')
+    gift_count     = db.Column(db.Integer, default=2, nullable=False)
     view_count     = db.Column(db.Integer, default=0)
     is_live        = db.Column(db.Boolean, default=False, nullable=False)
     # True when this single invite was unlocked with a one-off R15 payment
@@ -562,7 +563,16 @@ def upload_url(path: str) -> str:
 
 @app.context_processor
 def inject_upload_helpers():
-    return {'upload_url': upload_url}
+    # Explicitly resolve current_user to ensure it's available even if session is loading
+    # This prevents the nav from being blank due to proxy initialization timing issues
+    user = current_user if current_user.is_authenticated else None
+    return {
+        'upload_url': upload_url,
+        'current_user': current_user,  # Keep the original for any code that uses it
+        'user': user,  # Add explicit user reference (None if anon)
+        'is_authenticated': current_user.is_authenticated if hasattr(current_user, 'is_authenticated') else False,
+        'is_admin': getattr(current_user, 'is_admin', False) if current_user.is_authenticated else False
+    }
 
 
 def save_image(file, token: str, compressed_b64: str = None):
@@ -704,6 +714,13 @@ def _capacity_full(event) -> bool:
     return _yes_count(event) >= event.capacity
 
 
+def _published_required(event):
+    if not event.is_live:
+        return jsonify({'status': 'error',
+                        'message': 'This invite is not yet published.'}), 403
+    return None
+
+
 def _unique_link_token() -> str:
     for _ in range(8):
         token = uuid.uuid4().hex[:12]
@@ -738,6 +755,7 @@ def _invitation_context(event, link=None, existing_rsvp=None):
         capacity_full=_capacity_full(event),
         recent_rsvps=recent,
         guest_name_prefill=guest_name,
+        is_draft_preview=not bool(event.is_live),
     )
 
 
@@ -811,6 +829,11 @@ def _build_event_from_form(f, files, token: str, existing=None):
     ev.whatsapp_group = _clean(f.get('whatsapp_group', ''), 400)
     ev.hashtag        = re.sub(r'[^a-zA-Z0-9_]', '', f.get('hashtag', ''))[:60]
     ev.greeting_lang  = f.get('greeting_lang', 'English')
+    try:
+        gift_count = int(f.get('gift_count') or ev.gift_count or 2)
+    except (TypeError, ValueError):
+        gift_count = 2
+    ev.gift_count = max(2, min(10, gift_count))
     return ev
 
 
@@ -1278,19 +1301,21 @@ def create():
     db.session.add(event)
     db.session.flush()
 
-    for i in range(1, 4):
-        compressed = f.get(f'image_{i}_compressed', '').strip()
-        path = save_image(request.files.get(f'image_{i}'), token,
-                          compressed_b64=compressed or None)
-        if path:
-            setattr(event, f'image_{i}', path)
+    compressed = f.get('image_1_compressed', '').strip()
+    path = save_image(request.files.get('image_1'), token,
+                      compressed_b64=compressed or None)
+    if path:
+        event.image_1 = path
+    event.image_2 = ''
+    event.image_3 = ''
 
     # Video note
     vid_path = save_video(request.files.get('video_note'), token)
     if vid_path:
         event.video_note = vid_path
 
-    for gname, gstore in zip(f.getlist('gift_name'), f.getlist('gift_store')):
+    gift_limit = max(2, min(10, event.gift_count or 2))
+    for gname, gstore in list(zip(f.getlist('gift_name'), f.getlist('gift_store')))[:gift_limit]:
         gname = _clean(gname, 200)
         if gname:
             db.session.add(Gift(event_id=event.id, name=gname,
@@ -1375,8 +1400,10 @@ def preview_draft():
         image_1='',
         image_2='',
         image_3='',
+        gift_count=max(2, min(10, int(f.get('gift_count') or 2))),
         video_note='',
         view_count=0,
+        is_live=False,
         gifts=[],
         rsvps=[],
         links=[],
@@ -1389,6 +1416,7 @@ def preview_draft():
         rsvp_open=False, event_passed=False, capacity_full=False,
         recent_rsvps=[], guest_name_prefill='',
         is_preview=True,
+        is_draft_preview=True,
     )
     return render_template('invitation.html', **ctx)
 
@@ -1407,20 +1435,25 @@ def edit_event(token):
 
     _build_event_from_form(request.form, request.files, token, existing=event)
 
-    for i in range(1, 4):
-        compressed = request.form.get(f'image_{i}_compressed', '').strip()
-        path = save_image(request.files.get(f'image_{i}'), token,
+    if not event.is_live:
+        if request.form.get('delete_image_1') == '1':
+            event.image_1 = ''
+        compressed = request.form.get('image_1_compressed', '').strip()
+        path = save_image(request.files.get('image_1'), token,
                           compressed_b64=compressed or None)
         if path:
-            setattr(event, f'image_{i}', path)
+            event.image_1 = path
+        event.image_2 = ''
+        event.image_3 = ''
 
     new_names = [_clean(n, 200) for n in request.form.getlist('gift_name')
                  if _clean(n, 200)]
-    if new_names:
+    gift_limit = max(2, min(10, event.gift_count or 2))
+    if new_names or request.form.get('gift_count'):
         for g in event.gifts:
             db.session.delete(g)
-        for gname, gstore in zip(request.form.getlist('gift_name'),
-                                  request.form.getlist('gift_store')):
+        for gname, gstore in list(zip(request.form.getlist('gift_name'),
+                                      request.form.getlist('gift_store')))[:gift_limit]:
             gname = _clean(gname, 200)
             if gname:
                 db.session.add(Gift(event_id=event.id, name=gname,
@@ -1462,19 +1495,24 @@ def edit_event_pin(token, pin):
         return render_template('create.html', **ctx)
 
     _build_event_from_form(request.form, request.files, token, existing=event)
-    for i in range(1, 4):
-        compressed = request.form.get(f'image_{i}_compressed', '').strip()
-        path = save_image(request.files.get(f'image_{i}'), token,
+    if not event.is_live:
+        if request.form.get('delete_image_1') == '1':
+            event.image_1 = ''
+        compressed = request.form.get('image_1_compressed', '').strip()
+        path = save_image(request.files.get('image_1'), token,
                           compressed_b64=compressed or None)
         if path:
-            setattr(event, f'image_{i}', path)
+            event.image_1 = path
+        event.image_2 = ''
+        event.image_3 = ''
     new_names = [_clean(n, 200) for n in request.form.getlist('gift_name')
                  if _clean(n, 200)]
-    if new_names:
+    gift_limit = max(2, min(10, event.gift_count or 2))
+    if new_names or request.form.get('gift_count'):
         for g in event.gifts:
             db.session.delete(g)
-        for gname, gstore in zip(request.form.getlist('gift_name'),
-                                  request.form.getlist('gift_store')):
+        for gname, gstore in list(zip(request.form.getlist('gift_name'),
+                                      request.form.getlist('gift_store')))[:gift_limit]:
             gname = _clean(gname, 200)
             if gname:
                 db.session.add(Gift(event_id=event.id, name=gname,
@@ -1500,7 +1538,9 @@ def invitation(token):
             return render_template('invite_draft.html', event=event)
     event.view_count = (event.view_count or 0) + 1
     db.session.commit()
-    return render_template('invitation.html', **_invitation_context(event))
+    return render_template('invitation.html',
+                           **_invitation_context(event),
+                           is_preview=not event.is_live)
 
 
 @app.route('/invite/<token>/<link_token>')
@@ -1529,6 +1569,8 @@ def personalised_invitation(token, link_token):
 @app.route('/invite/<token>/<link_token>/rsvp')
 def personalised_rsvp_status(token, link_token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    if not event.is_live:
+        return render_template('invite_draft.html', event=event)
     link  = InviteLink.query.filter_by(link_token=link_token,
                                        event_id=event.id).first_or_404()
     if not link.rsvp_id:
@@ -2174,6 +2216,9 @@ def admin_users():
 @limiter.limit("8 per minute; 30 per hour")
 def api_rsvp(token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
 
     if not _rsvp_open(event):
         return jsonify({'status': 'closed', 'message': 'RSVP deadline has passed.'}), 200
@@ -2260,6 +2305,9 @@ def api_rsvp(token):
 def api_react(token):
     import hashlib
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
     data  = request.get_json(silent=True) or {}
     emoji = data.get('emoji', '')
     allowed = ['🔥', '❤️', '😍', '🎉', '🥳']
@@ -2283,6 +2331,9 @@ def api_react(token):
 @app.route('/api/reactions/<token>')
 def api_reactions(token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
     return jsonify({'counts': _reaction_counts(event.id)})
 
 
@@ -2299,6 +2350,9 @@ def _reaction_counts(event_id: int) -> dict:
 def api_rsvp_update(token):
     """Allow a guest to update their RSVP via their personalised invite link."""
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
     if not _rsvp_open(event):
         return jsonify({'status': 'closed', 'message': 'RSVP deadline has passed.'}), 200
     data        = request.get_json(silent=True) or {}
@@ -2325,6 +2379,10 @@ def api_rsvp_update(token):
 @limiter.limit("20 per hour")
 def claim_gift(gift_id):
     gift = Gift.query.get_or_404(gift_id)
+    event = Event.query.get_or_404(gift.event_id)
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
     if gift.taken:
         return jsonify({'status': 'error', 'message': 'Already taken.'}), 409
     data = request.get_json(silent=True) or {}
@@ -2509,6 +2567,8 @@ def recent_rsvps(token):
 @app.route('/api/comments/<token>', methods=['GET'])
 def get_comments(token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    if not event.is_live:
+        return jsonify([])
     comments = (GuestComment.query
                 .filter_by(event_id=event.id, approved=True)
                 .order_by(GuestComment.created_at.desc())
@@ -2526,6 +2586,9 @@ def get_comments(token):
 @limiter.limit("5 per minute; 20 per hour")
 def post_comment(token):
     event = Event.query.filter_by(token=token, is_archived=False).first_or_404()
+    blocked = _published_required(event)
+    if blocked:
+        return blocked
     data  = request.get_json(silent=True) or {}
     name  = _clean_name(data.get('name', ''))
     msg   = _clean(data.get('message', ''), 500)

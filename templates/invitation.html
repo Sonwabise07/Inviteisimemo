@@ -30,6 +30,151 @@
   {% endif %}
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap"/>
   <style>
+    /* ===== ADDITIONAL / OVERRIDE STYLES FOR IMPROVED COUNTDOWN & DETAILS ===== */
+    /* Horizontal countdown */
+    .countdown-horizontal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin: 1rem 0;
+    }
+    .cd-item {
+      text-align: center;
+      min-width: 70px;
+    }
+    .cd-card {
+      background: var(--d-surface, #111);
+      border-radius: 20px;
+      padding: 0.8rem 0.2rem;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      border: 1px solid var(--d-border, rgba(255,255,255,0.08));
+    }
+    .cd-num {
+      font-size: 2.5rem;
+      font-weight: 700;
+      font-family: 'Playfair Display', var(--inv-font), monospace;
+      color: var(--accent);
+      line-height: 1;
+      display: block;
+    }
+    .cd-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--d-text3, #666);
+    }
+    .cd-separator {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent);
+      opacity: 0.6;
+      margin-bottom: 1.2rem;
+    }
+    @media (max-width: 560px) {
+      .countdown-horizontal { gap: 0.2rem; }
+      .cd-item { min-width: 55px; }
+      .cd-num { font-size: 1.8rem; }
+      .cd-separator { font-size: 1.4rem; margin-bottom: 0.8rem; }
+      .cd-card { padding: 0.5rem 0.1rem; }
+    }
+
+    /* Improved detail grid */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+    .detail-card {
+      background: var(--d-surface, #111);
+      border-radius: 24px;
+      padding: 1.2rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--d-border, rgba(255,255,255,0.08));
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .detail-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      border-color: var(--accent);
+    }
+    .dc-icon {
+      font-size: 1.6rem;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+    .dc-content {
+      flex: 1;
+    }
+    .dc-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--d-text3, #888);
+      margin-bottom: 0.3rem;
+    }
+    .dc-value {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--d-text1, #fff);
+      line-height: 1.4;
+    }
+    .dc-value.accent {
+      color: var(--accent);
+    }
+    .dc-address {
+      font-size: 0.8rem;
+      color: var(--d-text2, #aaa);
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+    /* Notes card */
+    .notes-card {
+      background: var(--d-surface, #111);
+      border-radius: 24px;
+      padding: 1.2rem;
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+      border-left: 4px solid var(--accent);
+      border: 1px solid var(--d-border);
+    }
+    .notes-icon {
+      font-size: 1.4rem;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    .notes-content {
+      flex: 1;
+    }
+    .notes-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--d-text3);
+      margin-bottom: 0.3rem;
+    }
+    .notes-text {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: var(--d-text1);
+      font-style: italic;
+    }
+
+    @media (max-width: 600px) {
+      .detail-grid { grid-template-columns: 1fr; }
+      .detail-card { padding: 1rem; }
+      .dc-icon { font-size: 1.4rem; }
+      .dc-value { font-size: 0.9rem; }
+    }
+
+    /* Rest of original styles (keep everything else) */
     :root {
       --accent:  {{ event.accent_colour }};
       --accent2: {{ event.accent_colour_2 if event.accent_colour_2 else event.accent_colour }};
@@ -284,82 +429,6 @@
     }
     .pn-msg { font-size: 1rem; line-height: 1.75; font-style: italic; }
 
-    /* ── COUNTDOWN ────────────────────────────────── */
-    .countdown-wrap {
-      display: grid; grid-template-columns: repeat(4,1fr);
-      gap: 10px; margin-top: .5rem;
-    }
-    .cd-unit { text-align: center; }
-    .cd-card {
-      border-radius: 16px; padding: 20px 8px 16px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 8px; position: relative; overflow: hidden;
-    }
-    .cd-card::before {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg,
-        color-mix(in srgb, var(--accent) 12%, transparent),
-        transparent 70%);
-      pointer-events: none;
-    }
-    .cd-num {
-      font-family: 'Playfair Display', var(--inv-font);
-      font-size: clamp(1.8rem,5vw,2.4rem);
-      font-weight: 700; color: var(--accent); line-height: 1;
-      display: block;
-    }
-    .cd-lbl {
-      font-size: .52rem; letter-spacing: .28em;
-      text-transform: uppercase; margin-top: 2px;
-    }
-    .cd-sep {
-      display: flex; align-items: center;
-      font-size: 1.6rem; color: var(--accent);
-      margin-top: -8px; opacity: .4;
-      padding-top: 20px;
-    }
-    .cd-passed {
-      grid-column: 1/-1; text-align: center;
-      padding: 20px; font-size: .88rem;
-      color: var(--accent); letter-spacing: .12em;
-    }
-
-    /* ── DETAIL CARDS ─────────────────────────────── */
-    .detail-cards {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px; margin-top: .5rem;
-    }
-    .detail-card {
-      border-radius: 16px; padding: 18px 16px;
-      display: flex; gap: 14px; align-items: flex-start;
-      transition: transform .2s ease, box-shadow .2s ease;
-      position: relative; overflow: hidden;
-    }
-    .detail-card:hover { transform: translateY(-2px); }
-    .detail-card::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(135deg,
-        color-mix(in srgb, var(--accent) 6%, transparent),
-        transparent 60%);
-      pointer-events: none;
-    }
-    .dc-icon {
-      font-size: 1.3rem; line-height: 1;
-      flex-shrink: 0; margin-top: 2px;
-    }
-    .dc-body { flex: 1; min-width: 0; }
-    .dc-label {
-      font-size: .55rem; letter-spacing: .28em;
-      text-transform: uppercase; margin-bottom: 5px;
-      opacity: .55;
-    }
-    .dc-value { font-size: .92rem; line-height: 1.4; }
-    .dc-value.accent { color: var(--accent); }
-
-    /* Full-width card */
-    .detail-card.full { grid-column: 1/-1; }
-
     /* ── PROGRAMME ─────────────────────────────────── */
     .programme-wrap { margin-top: .5rem; }
     .prog-item {
@@ -379,13 +448,6 @@
       margin-top: 2px;
     }
     .prog-text { font-size: .9rem; line-height: 1.5; }
-
-    /* ── NOTES BOX ────────────────────────────────── */
-    .notes-card {
-      border-radius: 16px; padding: 18px 20px;
-      margin-top: 10px; font-size: .9rem;
-      line-height: 1.7; font-style: italic;
-    }
 
     /* ── CALENDAR ─────────────────────────────────── */
     .cal-strip {
@@ -785,7 +847,11 @@
 {% if is_preview is defined and is_preview %}
 <!-- PREVIEW BANNER -->
 <div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#e8d5a3;color:#080808;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;font-size:.8rem;font-weight:600;box-shadow:0 2px 12px rgba(0,0,0,.4);">
-  <span>👁 Preview mode — this is how your invitation will look</span>
+  {% if is_draft_preview is defined and is_draft_preview %}
+    <span>🔒 Draft preview — guests can't RSVP yet. Publish to enable responses.</span>
+  {% else %}
+    <span>👁 Preview mode — this is how your invitation will look</span>
+  {% endif %}
   <button onclick="window.close()" style="background:#080808;color:#e8d5a3;border:none;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:.75rem;font-weight:600;">✕ Close preview</button>
 </div>
 <div style="height:42px;"></div>
@@ -991,67 +1057,70 @@
       </div>
       {% endif %}
 
-      <!-- COUNTDOWN -->
+      <!-- COUNTDOWN (NEW HORIZONTAL VERSION) -->
       <div class="inv-section" data-reveal>
         <div class="section-header">
           <span class="section-label-new">⏳ &nbsp;Counting down</span>
           <div class="section-line"></div>
         </div>
-        <div class="countdown-wrap" id="cd-row">
-          <div class="cd-unit">
-            <div class="cd-card flip-card"><span class="cd-num" id="cd-d">--</span></div>
-            <div class="cd-lbl">Days</div>
+        <div class="countdown-horizontal" id="cd-row">
+          <div class="cd-item">
+            <div class="cd-card"><span class="cd-num" id="cd-d">--</span></div>
+            <span class="cd-label">DAYS</span>
           </div>
-          <div class="cd-sep">:</div>
-          <div class="cd-unit">
-            <div class="cd-card flip-card"><span class="cd-num" id="cd-h">--</span></div>
-            <div class="cd-lbl">Hours</div>
+          <div class="cd-separator">:</div>
+          <div class="cd-item">
+            <div class="cd-card"><span class="cd-num" id="cd-h">--</span></div>
+            <span class="cd-label">HOURS</span>
           </div>
-          <div class="cd-sep">:</div>
-          <div class="cd-unit">
-            <div class="cd-card flip-card"><span class="cd-num" id="cd-m">--</span></div>
-            <div class="cd-lbl">Mins</div>
+          <div class="cd-separator">:</div>
+          <div class="cd-item">
+            <div class="cd-card"><span class="cd-num" id="cd-m">--</span></div>
+            <span class="cd-label">MINS</span>
           </div>
-          <div class="cd-sep">:</div>
-          <div class="cd-unit">
-            <div class="cd-card flip-card"><span class="cd-num" id="cd-s">--</span></div>
-            <div class="cd-lbl">Secs</div>
+          <div class="cd-separator">:</div>
+          <div class="cd-item">
+            <div class="cd-card"><span class="cd-num" id="cd-s">--</span></div>
+            <span class="cd-label">SECS</span>
           </div>
         </div>
       </div>
 
-      <!-- DETAILS -->
+      <!-- DETAILS (IMPROVED GRID) -->
       <div class="inv-section" data-reveal>
         <div class="section-header">
           <span class="section-label-new">✨ &nbsp;Event details</span>
           <div class="section-line"></div>
         </div>
-        <div class="detail-cards">
+        <div class="detail-grid">
           <div class="detail-card">
             <div class="dc-icon">📅</div>
-            <div class="dc-body">
+            <div class="dc-content">
               <div class="dc-label">Date</div>
-              <div class="dc-value accent">{{ event.event_date }}</div>
+              <div class="dc-value">{{ event.event_date }}</div>
             </div>
           </div>
           <div class="detail-card">
-            <div class="dc-icon">🕐</div>
-            <div class="dc-body">
+            <div class="dc-icon">⏰</div>
+            <div class="dc-content">
               <div class="dc-label">Time</div>
               <div class="dc-value">{{ event.event_time }}</div>
             </div>
           </div>
           <div class="detail-card">
             <div class="dc-icon">📍</div>
-            <div class="dc-body">
+            <div class="dc-content">
               <div class="dc-label">Venue</div>
               <div class="dc-value">{{ event.venue_name }}</div>
+              {% if event.venue_address %}
+              <div class="dc-address">{{ event.venue_address }}</div>
+              {% endif %}
             </div>
           </div>
           {% if event.dress_code %}
           <div class="detail-card">
             <div class="dc-icon">👗</div>
-            <div class="dc-body">
+            <div class="dc-content">
               <div class="dc-label">Dress code</div>
               <div class="dc-value accent">{{ event.dress_code }}</div>
             </div>
@@ -1059,8 +1128,8 @@
           {% endif %}
           {% if event.theme %}
           <div class="detail-card">
-            <div class="dc-icon">🎨</div>
-            <div class="dc-body">
+            <div class="dc-icon">🎭</div>
+            <div class="dc-content">
               <div class="dc-label">Theme</div>
               <div class="dc-value">{{ event.theme }}</div>
             </div>
@@ -1068,24 +1137,26 @@
           {% endif %}
           {% if event.colour_palette %}
           <div class="detail-card">
-            <div class="dc-icon">🎭</div>
-            <div class="dc-body">
+            <div class="dc-icon">🎨</div>
+            <div class="dc-content">
               <div class="dc-label">Colour palette</div>
               <div class="dc-value">{{ event.colour_palette }}</div>
             </div>
           </div>
           {% endif %}
-          {% if event.extra_notes %}
-          <div class="detail-card full">
-            <div class="dc-icon">📝</div>
-            <div class="dc-body">
-              <div class="dc-label">Notes from the host</div>
-              <div class="dc-value" style="font-style:italic;">{{ event.extra_notes }}</div>
-            </div>
-          </div>
-          {% endif %}
         </div>
-        <!-- Calendar -->
+
+        {% if event.extra_notes %}
+        <div class="notes-card">
+          <div class="notes-icon">📝</div>
+          <div class="notes-content">
+            <div class="notes-label">Notes from the host</div>
+            <div class="notes-text">{{ event.extra_notes }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Calendar buttons -->
         <div class="cal-strip" style="margin-top:12px;">
           <a id="cal-google" class="cal-btn" target="_blank">+ Google Calendar</a>
           <a id="cal-ics" class="cal-btn" download="event.ics">+ Download .ics</a>
@@ -1137,7 +1208,6 @@
               <div class="waveform-bar"></div><div class="waveform-bar"></div>
             </div>
             <div class="music-status" id="mstatus">Tap ▶ to play</div>
-            <!-- Hidden bar for JS compatibility -->
             <div style="display:none;"><div id="mbar"></div></div>
           </div>
           <button class="play-btn" id="playbtn" onclick="toggleMusic()">▶</button>
@@ -1265,6 +1335,10 @@
             <div class="sicon" id="sicon">🎉</div>
             <div class="smsg" id="smsg">You're confirmed!</div>
             <div class="ssub" id="ssub">Check your email — a confirmation is on its way.</div>
+            <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,.1);">
+              <p style="font-size:.9rem;margin-bottom:12px;">✨ Ready to create your own beautiful invite?</p>
+              <a href="/register" style="display:inline-block;padding:12px 24px;background:var(--accent,#e8d5a3);color:#080808;border-radius:6px;text-decoration:none;font-weight:600;font-size:.9rem;">Create an invitation →</a>
+            </div>
           </div>
           <div id="rui">
             {% if not rsvp_open %}
@@ -1291,12 +1365,13 @@
               <select class="rinput" id="rplus-count" style="display:none;">
                 <option value="0">Just me</option>
                 <option value="1">+ 1 guest</option>
-                <option value="2">+ 2 guests</option>
-                <option value="3">+ 3 guests</option>
-                <option value="4">+ 4 guests</option>
               </select>
-              <input class="rinput" type="text"  id="rplus"    placeholder="Guest name(s) — optional" style="display:none;"/>
-              <button class="rsub" onclick="submitR()">Confirm my RSVP →</button>
+              <input class="rinput" id="rplus" placeholder="Guest name (required if +1)" style="display:none;" />
+              {% if is_draft_preview is defined and is_draft_preview %}
+                <button class="rsub" style="opacity:.6;cursor:not-allowed;" disabled onclick="alert('This is a draft preview. Publish your invitation to allow RSVPs.'); return false;">RSVP disabled (draft)</button>
+              {% else %}
+                <button class="rsub" onclick="submitR()">Confirm my RSVP →</button>
+              {% endif %}
               <p style="font-size:.65rem;text-align:center;margin-top:10px;line-height:1.6;opacity:.35;">Your name and RSVP status are shared with the host only. Your email is used solely for event updates.</p>
             </div>
             {% endif %}

@@ -4,399 +4,565 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>See It In Action — Invitisimemo</title>
-  <meta name="description" content="See what Invitisimemo invitations look like. Live, interactive examples of Umemulo, Wedding, Birthday and more — built for South Africa."/>
+  <meta name="description" content="See exactly what your invitation will look like. Interactive demos of Wedding, Umemulo, Birthday and more — built for South Africa."/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/designs.css') }}"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{background:#080808;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;overflow-x:hidden;}
-
-    /* ── PAGE WRAPPER ── */
-    .ex-page{max-width:1100px;margin:0 auto;padding:0 1.5rem 5rem;}
-
-    /* ── HERO ── */
-    .ex-hero{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center;padding:4rem 0 3rem;}
-    @media(max-width:720px){.ex-hero{grid-template-columns:1fr;gap:2rem;text-align:center;padding:2.5rem 0 2rem;}}
-    .ex-hero-eyebrow{font-size:.65rem;letter-spacing:.18em;text-transform:uppercase;color:#e8d5a3;margin-bottom:1rem;}
-    .ex-hero-title{font-family:Georgia,serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:400;line-height:1.18;margin-bottom:1rem;color:#fff;}
-    .ex-hero-title span{color:#e8d5a3;}
-    .ex-hero-sub{font-size:.92rem;color:#555;line-height:1.75;margin-bottom:2rem;max-width:440px;}
-    @media(max-width:720px){.ex-hero-sub{margin-left:auto;margin-right:auto;}}
-    .ex-hero-ctas{display:flex;gap:10px;flex-wrap:wrap;}
-    @media(max-width:720px){.ex-hero-ctas{justify-content:center;}}
-    .ex-btn-main{padding:14px 28px;background:#e8d5a3;color:#080808;border-radius:8px;font-size:.85rem;font-weight:700;text-decoration:none;transition:opacity .2s;}
-    .ex-btn-main:hover{opacity:.88;}
-    .ex-btn-ghost{padding:14px 28px;background:transparent;color:#888;border:.5px solid rgba(255,255,255,.12);border-radius:8px;font-size:.85rem;text-decoration:none;transition:color .2s,border-color .2s;}
-    .ex-btn-ghost:hover{color:#fff;border-color:rgba(255,255,255,.3);}
-
-    /* ── PHONE MOCKUP ── */
-    .phone-stage{display:flex;flex-direction:column;align-items:center;gap:1rem;}
-    .phone-frame{
-      width:260px;height:520px;
-      background:#0a0a0a;
-      border:2px solid rgba(255,255,255,.14);
-      border-radius:38px;
-      box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.04),inset 0 0 0 1px rgba(0,0,0,.5);
-      overflow:hidden;
-      position:relative;
+    /* Additional styles for the examples page only */
+    .ex-container {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
     }
-    .phone-notch{
-      position:absolute;top:0;left:50%;transform:translateX(-50%);
-      width:90px;height:26px;background:#0a0a0a;border-radius:0 0 14px 14px;z-index:10;
-      border:.5px solid rgba(255,255,255,.08);border-top:none;
+    .ex-hero {
+      text-align: center;
+      margin-bottom: 3rem;
     }
-    .phone-screen{width:100%;height:100%;position:relative;overflow:hidden;}
-
-    /* Sample invite cards */
-    .inv-card{
-      position:absolute;inset:0;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      padding:28px 16px 16px;text-align:center;
-      opacity:0;transition:opacity .8s ease;
-      pointer-events:none;
+    .ex-hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 400;
+      color: #fff;
     }
-    .inv-card.active{opacity:1;pointer-events:auto;}
-
-    /* Card 1 — Umemulo (lobola_red style) */
-    .inv-card-1{background:linear-gradient(160deg,#1a0400 0%,#2e0a06 60%,#1a0400 100%);}
-    .inv-card-1 .ic-kicker{color:#e8d5a3;font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.5rem;}
-    .inv-card-1 .ic-title{font-family:Georgia,serif;font-size:1.25rem;color:#fff;font-weight:400;line-height:1.3;margin-bottom:.4rem;}
-    .inv-card-1 .ic-meta{font-size:.62rem;color:#e8d5a370;line-height:1.6;}
-    .inv-card-1 .ic-divider{width:40px;height:1px;background:linear-gradient(90deg,transparent,#e8d5a380,transparent);margin:.7rem auto;}
-    .inv-card-1 .ic-rsvp{display:inline-block;padding:7px 18px;border:.5px solid #e8d5a340;border-radius:20px;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:#e8d5a3;margin-top:.6rem;}
-    .inv-card-1 .ic-pattern{position:absolute;inset:0;background:repeating-linear-gradient(135deg,#e8d5a308 0,#e8d5a308 2px,transparent 2px,transparent 18px);pointer-events:none;}
-    .inv-card-1 .ic-emoji{font-size:1.8rem;margin-bottom:.4rem;}
-
-    /* Card 2 — Wedding (blanc style) */
-    .inv-card-2{background:linear-gradient(160deg,#f7f5f0 0%,#eeece6 100%);color:#1a1a1a;}
-    .inv-card-2 .ic-kicker{color:#9a7a4a;font-size:.52rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.5rem;}
-    .inv-card-2 .ic-title{font-family:Georgia,serif;font-size:1.2rem;color:#1a1a1a;font-weight:400;line-height:1.3;margin-bottom:.4rem;}
-    .inv-card-2 .ic-meta{font-size:.6rem;color:#66635a;line-height:1.6;}
-    .inv-card-2 .ic-divider{width:50px;height:1px;background:linear-gradient(90deg,transparent,#c4a76080,transparent);margin:.7rem auto;}
-    .inv-card-2 .ic-rsvp{display:inline-block;padding:7px 18px;border:.5px solid #c4a76060;border-radius:20px;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:#9a7a4a;margin-top:.6rem;}
-    .inv-card-2 .ic-pattern{position:absolute;inset:0;background:repeating-linear-gradient(0deg,#c4a76008 0,#c4a76008 1px,transparent 1px,transparent 6px);pointer-events:none;}
-    .inv-card-2 .ic-emoji{font-size:1.8rem;margin-bottom:.4rem;}
-
-    /* Card 3 — Neon Birthday (neon_nights style) */
-    .inv-card-3{background:#020208;}
-    .inv-card-3 .ic-kicker{color:#00ff99;font-size:.52rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.5rem;text-shadow:0 0 12px #00ff9960;}
-    .inv-card-3 .ic-title{font-family:'Helvetica Neue',sans-serif;font-size:1.2rem;color:#fff;font-weight:700;line-height:1.3;margin-bottom:.4rem;text-shadow:0 0 20px #00ff9920;}
-    .inv-card-3 .ic-meta{font-size:.6rem;color:#444;line-height:1.6;}
-    .inv-card-3 .ic-divider{width:40px;height:1px;background:linear-gradient(90deg,transparent,#00ff9960,transparent);margin:.7rem auto;}
-    .inv-card-3 .ic-rsvp{display:inline-block;padding:7px 18px;border:.5px solid #00ff9940;border-radius:20px;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:#00ff99;margin-top:.6rem;}
-    .inv-card-3 .ic-pattern{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,#00ff9908 0,transparent 50%),radial-gradient(ellipse at 70% 80%,#c084fc08 0,transparent 50%);pointer-events:none;}
-    .inv-card-3 .ic-emoji{font-size:1.8rem;margin-bottom:.4rem;}
-
-    /* Card 4 — Kente Gold / Lobola */
-    .inv-card-4{background:linear-gradient(160deg,#0e0800 0%,#1c1000 60%,#0e0800 100%);}
-    .inv-card-4 .ic-kicker{color:#fbbf24;font-size:.52rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.5rem;}
-    .inv-card-4 .ic-title{font-family:Georgia,serif;font-size:1.2rem;color:#fff;font-weight:400;line-height:1.3;margin-bottom:.4rem;}
-    .inv-card-4 .ic-meta{font-size:.6rem;color:#fbbf2450;line-height:1.6;}
-    .inv-card-4 .ic-divider{width:40px;height:1px;background:linear-gradient(90deg,transparent,#fbbf2480,transparent);margin:.7rem auto;}
-    .inv-card-4 .ic-rsvp{display:inline-block;padding:7px 18px;border:.5px solid #fbbf2440;border-radius:20px;font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;color:#fbbf24;margin-top:.6rem;}
-    .inv-card-4 .ic-pattern{position:absolute;inset:0;background:repeating-linear-gradient(60deg,#fbbf2408 0,#fbbf2408 1px,transparent 1px,transparent 12px),repeating-linear-gradient(-60deg,#fbbf2408 0,#fbbf2408 1px,transparent 1px,transparent 12px);pointer-events:none;}
-    .inv-card-4 .ic-emoji{font-size:1.8rem;margin-bottom:.4rem;}
-
-    /* Dots */
-    .phone-dots{display:flex;gap:7px;margin-top:.6rem;}
-    .phone-dot{width:6px;height:6px;border-radius:50%;background:#333;transition:background .3s,transform .3s;cursor:pointer;}
-    .phone-dot.active{background:#e8d5a3;transform:scale(1.25);}
-
-    /* Pause badge */
-    .phone-paused-badge{
-      position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
-      background:rgba(0,0,0,.7);color:#e8d5a3;font-size:.6rem;letter-spacing:.1em;
-      padding:4px 10px;border-radius:20px;opacity:0;transition:opacity .3s;
-      pointer-events:none;white-space:nowrap;
+    .ex-hero h1 span {
+      color: var(--accent, #e8d5a3);
     }
-    .phone-frame:hover .phone-paused-badge,
-    .phone-frame:focus-within .phone-paused-badge{opacity:1;}
-
-    /* ── DIVIDER ── */
-    .ex-divider{height:.5px;background:rgba(255,255,255,.05);margin:3rem 0;}
-
-    /* ── FEATURE STRIP ── */
-    .feat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:3rem;}
-    @media(max-width:640px){.feat-strip{grid-template-columns:1fr 1fr;}}
-    @media(max-width:400px){.feat-strip{grid-template-columns:1fr;}}
-    .feat-item{background:#0f0f0f;border:.5px solid rgba(255,255,255,.06);border-radius:12px;padding:1.2rem 1rem;}
-    .feat-icon{font-size:1.3rem;margin-bottom:.5rem;}
-    .feat-name{font-size:.85rem;font-weight:600;color:#e0e0e0;margin-bottom:.3rem;}
-    .feat-desc{font-size:.74rem;color:#444;line-height:1.55;}
-
-    /* ── SA CALLOUT ── */
-    .sa-callout{background:linear-gradient(135deg,rgba(232,213,163,.05),rgba(232,213,163,.02));border:.5px solid rgba(232,213,163,.14);border-radius:18px;padding:2.5rem 2rem;text-align:center;margin-bottom:3rem;}
-    .sa-callout-eyebrow{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#e8d5a3;margin-bottom:.8rem;}
-    .sa-callout-title{font-family:Georgia,serif;font-size:1.6rem;color:#fff;margin-bottom:.7rem;}
-    .sa-callout-sub{font-size:.85rem;color:#555;line-height:1.7;max-width:520px;margin:0 auto 1.4rem;}
-    .sa-tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
-    .sa-tag{font-size:.7rem;padding:5px 12px;background:rgba(232,213,163,.07);border:.5px solid rgba(232,213,163,.15);border-radius:20px;color:#e8d5a3;}
-
-    /* ── PRICING ── */
-    .pricing-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:3rem;}
-    @media(max-width:580px){.pricing-row{grid-template-columns:1fr;}}
-    .price-card{background:#111;border:.5px solid rgba(255,255,255,.08);border-radius:16px;padding:1.8rem 1.5rem;position:relative;overflow:hidden;}
-    .price-card.featured{border-color:rgba(232,213,163,.25);}
-    .price-card.featured::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#e8d5a3,transparent);}
-    .price-card-badge{display:inline-block;font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;background:rgba(232,213,163,.1);color:#e8d5a3;border:.5px solid rgba(232,213,163,.25);border-radius:20px;padding:3px 10px;margin-bottom:1rem;}
-    .price-amount{font-size:2.8rem;font-weight:700;color:#fff;line-height:1;}
-    .price-cur{font-size:1.1rem;color:#666;vertical-align:super;font-weight:400;}
-    .price-period{font-size:.75rem;color:#444;margin-top:.3rem;margin-bottom:1rem;}
-    .price-desc{font-size:.8rem;color:#555;line-height:1.6;margin-bottom:1.2rem;}
-    .price-list{list-style:none;font-size:.78rem;color:#666;display:flex;flex-direction:column;gap:.4rem;}
-    .price-list li::before{content:'✓ ';color:#1d9e75;}
-
-    /* ── BOTTOM CTA ── */
-    .ex-cta-block{text-align:center;padding:2rem 0 1rem;}
-    .ex-cta-title{font-family:Georgia,serif;font-size:1.8rem;color:#fff;margin-bottom:.6rem;}
-    .ex-cta-sub{font-size:.88rem;color:#444;margin-bottom:1.8rem;}
-    .ex-cta-note{font-size:.72rem;color:#333;margin-top:.8rem;}
-
-    /* ── SECTION LABEL ── */
-    .ex-section-eyebrow{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:#e8d5a3;margin-bottom:.6rem;}
-    .ex-section-title{font-family:Georgia,serif;font-size:1.6rem;color:#fff;margin-bottom:.4rem;}
-    .ex-section-sub{font-size:.85rem;color:#444;line-height:1.7;margin-bottom:2rem;max-width:560px;}
+    .ex-hero p {
+      font-size: 1.1rem;
+      color: #aaa;
+      max-width: 680px;
+      margin: 1rem auto;
+    }
+    /* Tab bar */
+    .demo-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .demo-tab {
+      background: #111;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 40px;
+      padding: 0.7rem 1.8rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #ccc;
+    }
+    .demo-tab.active {
+      background: var(--accent, #e8d5a3);
+      color: #080808;
+      border-color: var(--accent, #e8d5a3);
+    }
+    .demo-tab:hover:not(.active) {
+      background: rgba(255,255,255,0.05);
+      border-color: rgba(255,255,255,0.2);
+    }
+    /* Demo invitation container – uses same styling as real invitation.html */
+    .demo-invite {
+      background: #080808;
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+      margin-bottom: 3rem;
+    }
+    .invite-preview {
+      max-width: 100%;
+      margin: 0 auto;
+      position: relative;
+    }
+    /* Design gallery */
+    .design-gallery {
+      margin-top: 4rem;
+    }
+    .gallery-title {
+      font-size: 1.8rem;
+      font-family: 'Playfair Display', Georgia, serif;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #fff;
+    }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+    .design-card {
+      background: #0f0f0f;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: transform 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+    .design-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent, #e8d5a3);
+    }
+    .design-thumb {
+      height: 160px;
+      background-size: cover;
+      background-position: center;
+      position: relative;
+    }
+    .design-thumb::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 50%);
+    }
+    .design-info {
+      padding: 1rem;
+    }
+    .design-name {
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .design-desc {
+      font-size: 0.7rem;
+      color: #888;
+    }
+    .design-badge {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.6rem;
+      padding: 0.2rem 0.6rem;
+      background: rgba(232,213,163,0.15);
+      border-radius: 20px;
+      color: var(--accent, #e8d5a3);
+    }
+    /* Simulated RSVP – no backend, just demo */
+    .demo-rsvp-message {
+      background: var(--accent, #e8d5a3);
+      color: #080808;
+      padding: 0.8rem;
+      border-radius: 12px;
+      text-align: center;
+      margin-top: 1rem;
+      font-weight: 500;
+    }
+    /* Ensure leaflet map looks good */
+    .leaflet-container {
+      border-radius: 12px;
+    }
+    @media (max-width: 640px) {
+      .demo-tab { padding: 0.5rem 1.2rem; font-size: 0.8rem; }
+      .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
-<body>
+<body style="background:#080808;">
 {% include '_nav.html' %}
 
-<div class="ex-page">
-
-  <!-- ══ HERO ══ -->
+<div class="ex-container">
   <div class="ex-hero">
-    <div class="ex-hero-left">
-      <div class="ex-hero-eyebrow">See it live</div>
-      <h1 class="ex-hero-title">Your invitation,<br/><span>before you pay a cent</span></h1>
-      <p class="ex-hero-sub">Watch real Invitisimemo invitations cycle through the phone on the right. This is exactly what your guests will see — on their phones, via WhatsApp.</p>
-      <div class="ex-hero-ctas">
-        <a href="{{ url_for('create') }}" class="ex-btn-main">Create yours →</a>
-        <a href="{{ url_for('register') }}" class="ex-btn-ghost">Free to build</a>
-      </div>
-    </div>
-    <div class="phone-stage">
-      <div class="phone-frame" id="phone-frame">
-        <div class="phone-notch"></div>
-        <div class="phone-screen">
-
-          <!-- Invite 1: Umemulo -->
-          <div class="inv-card inv-card-1 active" id="card-0">
-            <div class="ic-pattern"></div>
-            <div class="ic-emoji">🌿</div>
-            <div class="ic-kicker">Umemulo Ceremony</div>
-            <div class="ic-title">Nandi's Coming of Age Celebration</div>
-            <div class="ic-divider"></div>
-            <div class="ic-meta">Saturday · 15 March 2025<br/>Meadowlands, Soweto · 11:00</div>
-            <div class="ic-rsvp">RSVP Now</div>
-          </div>
-
-          <!-- Invite 2: Wedding -->
-          <div class="inv-card inv-card-2" id="card-1">
-            <div class="ic-pattern"></div>
-            <div class="ic-emoji">💍</div>
-            <div class="ic-kicker">Wedding Invitation</div>
-            <div class="ic-title">Lethabo & Thandeka<br/>Request Your Presence</div>
-            <div class="ic-divider"></div>
-            <div class="ic-meta">22 June 2025 · 14:00<br/>The Forum, Bryanston</div>
-            <div class="ic-rsvp">Confirm Attendance</div>
-          </div>
-
-          <!-- Invite 3: Neon Birthday -->
-          <div class="inv-card inv-card-3" id="card-2">
-            <div class="ic-pattern"></div>
-            <div class="ic-emoji">🎉</div>
-            <div class="ic-kicker">Birthday Party</div>
-            <div class="ic-title">Zara Turns 30</div>
-            <div class="ic-divider"></div>
-            <div class="ic-meta">Saturday · 5 April 2025<br/>Club Ayepyep · Doors 20:00</div>
-            <div class="ic-rsvp">I'm Coming</div>
-          </div>
-
-          <!-- Invite 4: Lobola -->
-          <div class="inv-card inv-card-4" id="card-3">
-            <div class="ic-pattern"></div>
-            <div class="ic-emoji">🤝</div>
-            <div class="ic-kicker">Lobola Ceremony</div>
-            <div class="ic-title">Mokoena & Dube Families</div>
-            <div class="ic-divider"></div>
-            <div class="ic-meta">Friday · 7 February 2025<br/>Pretoria North · 09:00</div>
-            <div class="ic-rsvp">Confirm RSVP</div>
-          </div>
-
-        </div>
-        <div class="phone-paused-badge">Tap to pause / resume</div>
-      </div>
-      <div class="phone-dots" id="phone-dots">
-        <div class="phone-dot active" onclick="goCard(0)"></div>
-        <div class="phone-dot" onclick="goCard(1)"></div>
-        <div class="phone-dot" onclick="goCard(2)"></div>
-        <div class="phone-dot" onclick="goCard(3)"></div>
-      </div>
-      <div style="font-size:.62rem;color:#333;letter-spacing:.06em;text-align:center;">← Tap dots to browse</div>
-    </div>
+    <h1>Your invitation, <span>exactly as guests see it</span></h1>
+    <p>Click through real, interactive demos. Watch the countdown tick, RSVP, browse the gift list, and explore the map — just like your guests will.</p>
   </div>
 
-  <div class="ex-divider"></div>
-
-  <!-- ══ FEATURES ══ -->
-  <div style="margin-bottom:2rem;">
-    <div class="ex-section-eyebrow">What's inside every invite</div>
-    <div class="ex-section-title">Everything your guests need — one link</div>
-    <div class="ex-section-sub">No app to download, no login for guests. They tap your WhatsApp link and the invitation opens instantly in their browser.</div>
+  <!-- Tab bar for different event demos -->
+  <div class="demo-tabs">
+    <div class="demo-tab active" data-demo="wedding">💍 Wedding Elegance</div>
+    <div class="demo-tab" data-demo="umemulo">🌿 Umemulo Ceremony</div>
+    <div class="demo-tab" data-demo="birthday">🎉 Neon Birthday</div>
   </div>
 
-  <div class="feat-strip">
-    <div class="feat-item">
-      <div class="feat-icon">🔗</div>
-      <div class="feat-name">Personalised links</div>
-      <div class="feat-desc">Send each guest their own link. See who opened, who hasn't — by name.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">💬</div>
-      <div class="feat-name">One-tap WhatsApp share</div>
-      <div class="feat-desc">Share to a single contact, a group, or your whole status with one tap.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">✅</div>
-      <div class="feat-name">Live RSVP tracker</div>
-      <div class="feat-desc">Attending, not attending, waitlist — updated in real time. CSV export for your headcount.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">⏱️</div>
-      <div class="feat-name">Live countdown</div>
-      <div class="feat-desc">A countdown clock on the invite keeps excitement building right up to the day.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🎁</div>
-      <div class="feat-name">Gift registry</div>
-      <div class="feat-desc">Guests claim gifts directly on the invite — no spreadsheet, no awkward guessing.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">📍</div>
-      <div class="feat-name">Tap-to-navigate map</div>
-      <div class="feat-desc">Pin the venue and guests open it directly in Google Maps or Waze.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🎵</div>
-      <div class="feat-name">Background music</div>
-      <div class="feat-desc">Add a YouTube song that plays when your guest opens the invite.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">📸</div>
-      <div class="feat-name">Photo gallery</div>
-      <div class="feat-desc">Up to 3 photos in the hero — for the guest of honour or the vibe.</div>
-    </div>
-    <div class="feat-item">
-      <div class="feat-icon">🔒</div>
-      <div class="feat-name">PIN-protected management</div>
-      <div class="feat-desc">Edit your invite after it's shared. Your link never changes.</div>
-    </div>
+  <!-- Demo invitation container – will be filled with JavaScript using real invitation structure -->
+  <div id="demo-invite-container" class="demo-invite"></div>
+
+  <!-- Design gallery: shows all available themes with preview -->
+  <div class="design-gallery">
+    <h2 class="gallery-title">Choose from 20+ stunning designs</h2>
+    <div class="gallery-grid" id="design-grid"></div>
+    <p style="text-align: center; margin-top: 2rem; color: #666;">Each design automatically adapts to your event type, photos, and accent colours.</p>
   </div>
-
-  <div class="ex-divider"></div>
-
-  <!-- ══ SA ANGLE ══ -->
-  <div class="sa-callout">
-    <div class="sa-callout-eyebrow">Built for South Africa</div>
-    <h2 class="sa-callout-title">Nobody global does this like we do</h2>
-    <p class="sa-callout-sub">Invitisimemo was built specifically for SA celebrations — the ones Google Calendar and Evite have never heard of. If your event has a name that matters, your invitation should too.</p>
-    <div class="sa-tags">
-      <span class="sa-tag">Umemulo</span>
-      <span class="sa-tag">Lobola Ceremony</span>
-      <span class="sa-tag">Umgidi</span>
-      <span class="sa-tag">Umkhosi woMhlanga</span>
-      <span class="sa-tag">Imbeleko</span>
-      <span class="sa-tag">Matric Farewell</span>
-      <span class="sa-tag">Matric Rage</span>
-      <span class="sa-tag">Stokvel Social</span>
-      <span class="sa-tag">Kitchen Tea</span>
-      <span class="sa-tag">Gender Reveal</span>
-      <span class="sa-tag">Ndebele Pride</span>
-      <span class="sa-tag">Kente Gold</span>
-    </div>
-  </div>
-
-  <!-- ══ PRICING ══ -->
-  <div style="margin-bottom:1.5rem;">
-    <div class="ex-section-eyebrow">Plain-terms pricing</div>
-    <div class="ex-section-title">Pay when you publish. Not before.</div>
-    <div class="ex-section-sub">Build and preview your invite completely free. Only pay when you're happy and ready to share.</div>
-  </div>
-
-  <div class="pricing-row">
-    <div class="price-card">
-      <div class="price-card-badge">One event</div>
-      <div class="price-amount"><span class="price-cur">R</span>15</div>
-      <div class="price-period">once off · one invite</div>
-      <div class="price-desc">Perfect for a single event. Pay once, invite stays live until the event is done.</div>
-      <ul class="price-list">
-        <li>Unlimited RSVPs</li>
-        <li>All design styles</li>
-        <li>WhatsApp share</li>
-        <li>Gift registry</li>
-        <li>Edit after publishing</li>
-      </ul>
-    </div>
-    <div class="price-card featured">
-      <div class="price-card-badge">Best value</div>
-      <div class="price-amount"><span class="price-cur">R</span>99</div>
-      <div class="price-period">per month · cancel anytime</div>
-      <div class="price-desc">7 invites pays for itself. For event planners, big families, and anyone who celebrates often.</div>
-      <ul class="price-list">
-        <li>Unlimited events</li>
-        <li>Everything in single</li>
-        <li>Personalised guest links</li>
-        <li>CSV export</li>
-        <li>Priority support</li>
-      </ul>
-    </div>
-  </div>
-
-  <div style="text-align:center;font-size:.72rem;color:#333;margin-bottom:3rem;">
-    Payments secured by PayFast · Proudly South African · Cancel your subscription anytime
-  </div>
-
-  <!-- ══ BOTTOM CTA ══ -->
-  <div class="ex-cta-block">
-    <div class="ex-cta-title">Ready to make yours?</div>
-    <div class="ex-cta-sub">Free to build — takes about 4 minutes.</div>
-    <a href="{{ url_for('create') }}" class="ex-btn-main" style="font-size:.92rem;padding:16px 36px;">Create your invitation →</a>
-    <div class="ex-cta-note">No credit card needed to start.</div>
-  </div>
-
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ── Animated phone mockup ──────────────────────────────────────
-(function(){
-  var cards  = document.querySelectorAll('.inv-card');
-  var dots   = document.querySelectorAll('.phone-dot');
-  var frame  = document.getElementById('phone-frame');
-  var cur    = 0, paused = false, timer;
+  // Demo data for three events (mimics the real invitation.html context)
+  const demos = {
+    wedding: {
+      event: {
+        token: 'demo_wedding',
+        design: 'blanc',
+        accent_colour: '#e8d5a3',
+        accent_colour_2: '#c4b5fd',
+        event_title: 'Lethabo & Thandeka',
+        event_type: 'Wedding',
+        host_name: 'Lethabo & Thandeka',
+        event_date: 'Saturday, 28 June 2025',
+        event_date_iso: '2025-06-28',
+        event_time: '14:00',
+        venue_name: 'The Forum, Bryanston',
+        venue_address: 'The Forum, Bryanston, Johannesburg',
+        venue_lat: -26.0708,
+        venue_lng: 28.0432,
+        dress_code: 'Formal / Traditional Attire',
+        theme: 'Elegant Garden',
+        colour_palette: 'Blush & Gold',
+        extra_notes: 'Please arrive by 13:45 for the ceremony. A cash bar will be available.',
+        music_url: '', // no music for simplicity
+        music_title: '',
+        music_artist: '',
+        programme: '14:00 – Ceremony\n14:45 – Drinks reception\n15:30 – Dinner & speeches\n18:00 – Dancing',
+        whatsapp_group: '',
+        hashtag: 'LethaboAndThandeka2025',
+        gift_count: 3,
+        gifts: [
+          { id: 1, name: 'Le Creuset Cookware Set', store: 'Yuppiechef', taken: false, taken_by: '' },
+          { id: 2, name: 'Dinner Voucher – The Test Kitchen', store: '', taken: false, taken_by: '' },
+          { id: 3, name: 'Cash Contribution to Honeymoon', store: '', taken: false, taken_by: '' }
+        ],
+        is_live: true,
+        view_count: 0,
+        image_1: '',
+        image_2: '',
+        image_3: '',
+        photo_filter: 'none',
+        pattern: 'fine_grid',
+        pattern_opacity: 30,
+        font: 'Cormorant',
+        decorations: 'flowers',
+        effect: 'none',
+        rsvp_deadline: '',
+        capacity: 120,
+        save_the_date: false,
+        is_archived: false,
+        single_paid: false,
+        user_id: null,
+        host_email: 'demo@invitisimemo.com',
+        host_pin: '1234',
+        guest_name: '',
+        venue_lat: -26.0708, venue_lng: 28.0432,
+        spotify_url: ''
+      },
+      rsvps: [],
+      yes_count: 78,
+      no_count: 4,
+      rsvp_open: true,
+      event_passed: false,
+      capacity_full: false,
+      recent_rsvps: [{ name: 'Naledi', time: new Date().toISOString() }, { name: 'Siya', time: new Date().toISOString() }],
+      link: null,
+      existing_rsvp: null,
+      is_draft_preview: false
+    },
+    umemulo: {
+      event: {
+        token: 'demo_umemulo',
+        design: 'lobola_red',
+        accent_colour: '#c0282d',
+        accent_colour_2: '#e07070',
+        event_title: 'Nandi’s Umemulo Celebration',
+        event_type: 'Umemulo',
+        host_name: 'The Dube Family',
+        event_date: 'Saturday, 16 August 2025',
+        event_date_iso: '2025-08-16',
+        event_time: '09:00',
+        venue_name: 'Dube Family Homestead, KwaMashu',
+        venue_address: 'KwaMashu, Durban',
+        venue_lat: -29.7447,
+        venue_lng: 31.0139,
+        dress_code: 'Traditional / IsiZulu attire',
+        theme: 'Zulu Heritage',
+        colour_palette: 'Red, White & Gold',
+        extra_notes: 'Ceremony starts at 09:00 sharp. Please bring your ID for traditional protocols.',
+        music_url: '',
+        programme: '09:00 – Arrival of families\n10:00 – Umemulo ceremony\n12:00 – Gift giving & lunch\n14:00 – Dancing & celebrations',
+        whatsapp_group: '',
+        hashtag: 'NandiUmemulo2025',
+        gift_count: 2,
+        gifts: [
+          { id: 10, name: 'Traditional beads & blanket', store: 'KwaMashu Market', taken: false, taken_by: '' },
+          { id: 11, name: 'Cash contribution to education fund', store: '', taken: false, taken_by: '' }
+        ],
+        is_live: true,
+        view_count: 0,
+        image_1: '',
+        pattern: 'zulu_beads',
+        pattern_opacity: 45,
+        font: 'Cinzel',
+        decorations: 'both',
+        effect: 'none',
+        capacity: 80,
+        save_the_date: false,
+        venue_lat: -29.7447, venue_lng: 31.0139,
+        extra: ''
+      },
+      rsvps: [],
+      yes_count: 52,
+      no_count: 3,
+      rsvp_open: true,
+      event_passed: false,
+      capacity_full: false,
+      recent_rsvps: [{ name: 'Thabo', time: new Date().toISOString() }],
+      link: null,
+      existing_rsvp: null,
+      is_draft_preview: false
+    },
+    birthday: {
+      event: {
+        token: 'demo_birthday',
+        design: 'neon_nights',
+        accent_colour: '#00ff88',
+        accent_colour_2: '#00cc66',
+        event_title: 'Zara’s 30th Neon Bash',
+        event_type: 'Birthday Party',
+        host_name: 'Zara & Friends',
+        event_date: 'Saturday, 20 September 2025',
+        event_date_iso: '2025-09-20',
+        event_time: '20:00',
+        venue_name: 'Club Ayepyep, Sandton',
+        venue_address: 'Sandton, Johannesburg',
+        venue_lat: -26.1076,
+        venue_lng: 28.0567,
+        dress_code: 'Neon / All White',
+        theme: 'Neon Nights',
+        colour_palette: 'Black & Neon Green',
+        extra_notes: 'Doors open at 20:00. Please bring your own glow sticks!',
+        music_url: '',
+        programme: '20:00 – Doors open\n21:00 – Birthday toast\n22:00 – DJ set\n00:00 – Surprise act',
+        whatsapp_group: '',
+        hashtag: 'ZaraTurns30',
+        gift_count: 3,
+        gifts: [
+          { id: 20, name: 'Premium bottle service package', store: '', taken: false, taken_by: '' },
+          { id: 21, name: 'Designer sunglasses', store: 'Sunglass Hut', taken: false, taken_by: '' },
+          { id: 22, name: 'Cash for birthday trip', store: '', taken: false, taken_by: '' }
+        ],
+        is_live: true,
+        view_count: 0,
+        image_1: '',
+        pattern: 'dot_matrix',
+        pattern_opacity: 20,
+        font: 'Montserrat',
+        decorations: 'balloons',
+        effect: 'glitter',
+        capacity: 150,
+        save_the_date: false,
+        venue_lat: -26.1076, venue_lng: 28.0567
+      },
+      rsvps: [],
+      yes_count: 89,
+      no_count: 12,
+      rsvp_open: true,
+      event_passed: false,
+      capacity_full: false,
+      recent_rsvps: [{ name: 'Lebo', time: new Date().toISOString() }, { name: 'Tshepo', time: new Date().toISOString() }],
+      link: null,
+      existing_rsvp: null,
+      is_draft_preview: false
+    }
+  };
 
-  function show(n){
-    cards.forEach(function(c,i){ c.classList.toggle('active', i === n); });
-    dots.forEach(function(d,i){ d.classList.toggle('active', i === n); });
-    cur = n;
+  // Map design names to preview background colors for the gallery
+  const designList = [
+    { name: 'Classic Dark', desc: 'Black & gold – timeless', thumb: 'linear-gradient(135deg,#0a0a0a,#1f1b14)' },
+    { name: 'Celestial', desc: 'Deep purple & stars', thumb: 'linear-gradient(135deg,#060414,#2a1a5e)' },
+    { name: 'Blanc', desc: 'Clean white & refined', thumb: 'linear-gradient(135deg,#f8f5ef,#e8e0d0)' },
+    { name: 'Ubuntu', desc: 'Forest green & gold', thumb: 'linear-gradient(135deg,#071208,#1f3a1f)' },
+    { name: 'Blush Romance', desc: 'Pink & rose gold', thumb: 'linear-gradient(135deg,#fdf4f5,#ffd9e0)' },
+    { name: 'Ocean Dusk', desc: 'Deep navy & teal', thumb: 'linear-gradient(135deg,#040d1a,#0f2a44)' },
+    { name: 'Ndebele Fire', desc: 'Bold red & geometric', thumb: 'linear-gradient(135deg,#0e0202,#3a0a0a)' },
+    { name: 'Kalahari Sun', desc: 'Terracotta & sand', thumb: 'linear-gradient(135deg,#fdf6ec,#e8c8a0)' },
+    { name: 'Amethyst', desc: 'Purple & silver', thumb: 'linear-gradient(135deg,#0a0514,#2c1a5e)' },
+    { name: 'Neon Nights', desc: 'Electric glow', thumb: 'linear-gradient(135deg,#030308,#0a1f2a)' },
+    { name: 'Afrofuturism', desc: 'Violet & cosmic', thumb: 'linear-gradient(135deg,#06020f,#2a1f5e)' },
+    { name: 'Kente Gold', desc: 'Bold gold & black', thumb: 'linear-gradient(135deg,#0a0700,#3a2a00)' },
+    { name: 'Galaxy Dream', desc: 'Space & nebula', thumb: 'linear-gradient(135deg,#02020f,#1a1a5e)' },
+    { name: 'Safari Dusk', desc: 'Amber & burnt orange', thumb: 'linear-gradient(135deg,#0e0800,#4a2a00)' },
+    { name: 'Boho Dream', desc: 'Warm terracotta', thumb: 'linear-gradient(135deg,#fdf6ee,#e8c8a0)' },
+    { name: 'Editorial Black', desc: 'Stark B&W', thumb: 'linear-gradient(135deg,#000,#222)' },
+    { name: 'Ocean Deep', desc: 'Deep teal', thumb: 'linear-gradient(135deg,#020d16,#0a3a5e)' }
+  ];
+
+  // Helper: render a full invitation from demo data (uses invitation.html structure dynamically)
+  function renderInvite(demoKey) {
+    const data = demos[demoKey];
+    const ev = data.event;
+    const designClass = `design-${ev.design}`;
+    const html = `
+      <div class="invite-preview ${designClass}" style="background: var(--d-bg, #080808);">
+        <div id="demo-inv-content" style="padding: 1.5rem 1rem 2rem;">
+          <div class="inv-body" style="max-width:720px; margin:0 auto;">
+            <!-- Hero -->
+            <div class="hero" style="text-align: center; margin-bottom: 2rem;">
+              <div class="hero-badge" style="color: var(--accent); border-color: var(--accent);">${ev.event_type}</div>
+              <h1 class="hero-title" style="font-family:'Playfair Display',serif;">${ev.event_title}</h1>
+              <p class="hero-meta">${ev.event_date} · ${ev.venue_name}</p>
+              <div class="hero-divider" style="width:40px;height:1px;background:var(--accent);margin:1rem auto;"></div>
+              <p class="hero-host">Hosted by ${ev.host_name}</p>
+            </div>
+            <!-- Countdown (simulated static) -->
+            <div class="inv-section" data-reveal>
+              <div class="section-header"><span class="section-label-new">⏳ Counting down</span><div class="section-line"></div></div>
+              <div class="countdown-wrap" style="display:flex; gap:10px; justify-content:center;">
+                <div class="cd-unit"><div class="cd-card"><span class="cd-num">42</span></div><div class="cd-lbl">Days</div></div>
+                <div class="cd-sep">:</div>
+                <div class="cd-unit"><div class="cd-card"><span class="cd-num">08</span></div><div class="cd-lbl">Hours</div></div>
+                <div class="cd-sep">:</div>
+                <div class="cd-unit"><div class="cd-card"><span class="cd-num">22</span></div><div class="cd-lbl">Mins</div></div>
+                <div class="cd-sep">:</div>
+                <div class="cd-unit"><div class="cd-card"><span class="cd-num">15</span></div><div class="cd-lbl">Secs</div></div>
+              </div>
+            </div>
+            <!-- Details -->
+            <div class="inv-section" data-reveal>
+              <div class="section-header"><span class="section-label-new">✨ Event details</span><div class="section-line"></div></div>
+              <div class="detail-cards" style="display:grid; gap:10px;">
+                <div class="detail-card"><div class="dc-icon">📅</div><div class="dc-body"><div class="dc-label">Date</div><div class="dc-value">${ev.event_date}</div></div></div>
+                <div class="detail-card"><div class="dc-icon">🕐</div><div class="dc-body"><div class="dc-label">Time</div><div class="dc-value">${ev.event_time}</div></div></div>
+                <div class="detail-card"><div class="dc-icon">📍</div><div class="dc-body"><div class="dc-label">Venue</div><div class="dc-value">${ev.venue_name}</div></div></div>
+                ${ev.dress_code ? `<div class="detail-card"><div class="dc-icon">👗</div><div class="dc-body"><div class="dc-label">Dress code</div><div class="dc-value">${ev.dress_code}</div></div></div>` : ''}
+                ${ev.theme ? `<div class="detail-card"><div class="dc-icon">🎨</div><div class="dc-body"><div class="dc-label">Theme</div><div class="dc-value">${ev.theme}</div></div></div>` : ''}
+                ${ev.extra_notes ? `<div class="detail-card full"><div class="dc-icon">📝</div><div class="dc-body"><div class="dc-label">Notes</div><div class="dc-value">${ev.extra_notes}</div></div></div>` : ''}
+              </div>
+              <div class="cal-strip" style="display:flex; gap:8px; margin-top:12px;">
+                <a class="cal-btn" style="border:1px solid var(--accent); padding:8px; border-radius:12px; text-decoration:none; color:var(--accent);">+ Google Calendar</a>
+                <a class="cal-btn" style="border:1px solid var(--accent); padding:8px; border-radius:12px; text-decoration:none; color:var(--accent);">+ Download .ics</a>
+              </div>
+            </div>
+            <!-- Programme -->
+            ${ev.programme ? `<div class="inv-section" data-reveal><div class="section-header"><span class="section-label-new">📋 Programme</span><div class="section-line"></div></div><div class="programme-wrap">${ev.programme.split('\n').map(line => `<div class="prog-item"><div class="prog-dot"></div><div class="prog-text">${line}</div></div>`).join('')}</div></div>` : ''}
+            <!-- Map -->
+            <div class="inv-section" data-reveal>
+              <div class="section-header"><span class="section-label-new">📍 Venue & directions</span><div class="section-line"></div></div>
+              <div class="map-wrap" id="demo-map" style="height:200px; border-radius:12px; overflow:hidden;"></div>
+              <div class="map-actions" style="display:flex; gap:1px; margin-top:0;">
+                <a class="map-link" href="#" style="flex:1; text-align:center; padding:8px;">Google Maps →</a>
+                <a class="map-link" href="#" style="flex:1; text-align:center; padding:8px;">Maps app →</a>
+              </div>
+            </div>
+            <!-- Gifts -->
+            <div class="inv-section" data-reveal>
+              <div class="section-header"><span class="section-label-new">🎁 Gift ideas</span><div class="section-line"></div></div>
+              <div class="gifts-grid" style="display:grid; gap:10px;">
+                ${ev.gifts.map(g => `<div class="gift-card" data-gift-id="${g.id}"><div class="gift-name">${g.name}</div>${g.store ? `<div class="gift-store">${g.store}</div>` : ''}<span class="gift-badge open" style="cursor:pointer; background:rgba(var(--accent-rgb,232,213,163),0.1); padding:4px 8px; border-radius:20px;">Available — claim it ✓</span></div>`).join('')}
+              </div>
+            </div>
+            <!-- RSVP demo (simulated) -->
+            <div class="inv-section" data-reveal>
+              <div class="section-header"><span class="section-label-new">💌 Your RSVP</span><div class="section-line"></div></div>
+              <div class="rsvp-card" style="background: var(--d-surface, #111); border-radius: 20px; padding: 1.5rem;">
+                <div id="demo-rsvp-area">
+                  <div class="rsvp-q">Will you be joining us?</div>
+                  <div class="rsvp-btns" style="display:flex; gap:10px;">
+                    <button class="rbtn yes" onclick="simulateRSVP('yes', this)">🎉 Yes, I'll be there!</button>
+                    <button class="rbtn no" onclick="simulateRSVP('no', this)">💔 Can't make it</button>
+                  </div>
+                  <div id="demo-rsvp-response" style="margin-top: 1rem;"></div>
+                </div>
+                <div class="rsvp-privacy" style="font-size:0.7rem; text-align:center; margin-top:1rem;">🔒 Your RSVP is shared only with the event host.</div>
+              </div>
+            </div>
+            <!-- Comments wall demo -->
+            <div class="inv-section comments-section" data-reveal>
+              <div class="comments-title">💬 Leave a message for ${ev.host_name.split(' ')[0]}</div>
+              <div class="comment-form">
+                <input type="text" id="demo-comment-name" placeholder="Your name" maxlength="60" style="background:var(--d-surface2, #222); border:1px solid #333; padding:0.8rem; border-radius:12px; width:100%;">
+                <textarea id="demo-comment-msg" placeholder="Write something lovely..." rows="2" style="background:var(--d-surface2, #222); border:1px solid #333; padding:0.8rem; border-radius:12px; width:100%;"></textarea>
+                <button class="comment-submit" onclick="addDemoComment()" style="background: var(--accent); color:#080808; border:none; padding:0.6rem 1.2rem; border-radius:12px; cursor:pointer;">Post message</button>
+              </div>
+              <div class="comment-list" id="demo-comments-list">
+                <div class="comment-item"><div class="comment-name">Lerato</div><div class="comment-msg">Can't wait to celebrate with you! 🎉</div><div class="comment-time">2 days ago</div></div>
+              </div>
+            </div>
+            <!-- Hashtag -->
+            ${ev.hashtag ? `<div class="hashtag-banner" style="text-align:center; margin-top:2rem;">Share your memories with <span>#${ev.hashtag}</span></div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+    const container = document.getElementById('demo-invite-container');
+    container.innerHTML = html;
+
+    // Initialize map after DOM update
+    setTimeout(() => {
+      const mapDiv = document.getElementById('demo-map');
+      if (mapDiv && window.L) {
+        const lat = ev.venue_lat, lng = ev.venue_lng;
+        const map = L.map(mapDiv).setView([lat, lng], 14);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '' }).addTo(map);
+        L.marker([lat, lng]).bindPopup(ev.venue_name).openPopup();
+      }
+    }, 100);
   }
-  function next(){ show((cur + 1) % cards.length); }
-  function startTimer(){ timer = setInterval(next, 4000); }
-  function stopTimer(){ clearInterval(timer); }
 
-  startTimer();
+  // Simulated RSVP for demo
+  window.simulateRSVP = function(answer, btn) {
+    const container = document.getElementById('demo-rsvp-area');
+    const responseDiv = document.getElementById('demo-rsvp-response');
+    if (responseDiv) {
+      responseDiv.innerHTML = `<div class="demo-rsvp-message">${answer === 'yes' ? '🎉 You’re confirmed! (This is a demo — real RSVPs go to the host’s dashboard.)' : '💔 Sorry to miss you — your response has been recorded (demo mode).'}</div>`;
+      // Disable buttons after demo
+      const btns = container.querySelectorAll('.rbtn');
+      btns.forEach(b => b.style.opacity = '0.5');
+    }
+  };
 
-  // Tap/click anywhere on the phone to pause/resume
-  frame.addEventListener('click', function(){
-    paused = !paused;
-    if(paused){ stopTimer(); }
-    else { startTimer(); }
+  // Add demo comment
+  window.addDemoComment = function() {
+    const name = document.getElementById('demo-comment-name').value.trim();
+    const msg = document.getElementById('demo-comment-msg').value.trim();
+    if (!name || !msg) return;
+    const list = document.getElementById('demo-comments-list');
+    const newComment = document.createElement('div');
+    newComment.className = 'comment-item';
+    newComment.innerHTML = `<div class="comment-name">${escapeHtml(name)}</div><div class="comment-msg">${escapeHtml(msg)}</div><div class="comment-time">Just now</div>`;
+    list.prepend(newComment);
+    document.getElementById('demo-comment-name').value = '';
+    document.getElementById('demo-comment-msg').value = '';
+  };
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  // Tab switching
+  document.querySelectorAll('.demo-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const demo = tab.dataset.demo;
+      document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderInvite(demo);
+    });
   });
-  // Pause on hover (desktop)
-  frame.addEventListener('mouseenter', function(){ if(!paused){ stopTimer(); } });
-  frame.addEventListener('mouseleave', function(){ if(!paused){ startTimer(); } });
 
-  // Expose for dot clicks
-  window.goCard = function(n){ show(n); stopTimer(); paused = true; };
-})();
+  // Build design gallery
+  const galleryGrid = document.getElementById('design-grid');
+  if (galleryGrid) {
+    designList.forEach(d => {
+      const card = document.createElement('div');
+      card.className = 'design-card';
+      card.innerHTML = `
+        <div class="design-thumb" style="background: ${d.thumb};"></div>
+        <div class="design-info">
+          <div class="design-name">${d.name}</div>
+          <div class="design-desc">${d.desc}</div>
+          <div class="design-badge">View example</div>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        // For simplicity, just scroll to demo and highlight first tab
+        document.querySelector('.demo-tab').click();
+        window.scrollTo({ top: 300, behavior: 'smooth' });
+      });
+      galleryGrid.appendChild(card);
+    });
+  }
+
+  // Render default demo (wedding)
+  renderInvite('wedding');
 </script>
 </body>
 </html>

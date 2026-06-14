@@ -480,21 +480,43 @@
           </div>
           {% endif %}
         </div>
-        <div class="field-note" style="margin-top:12px;">Upload up to 3 photos — they appear in the invitation hero.</div>
-        <div class="photo-row">
-          {% for i in range(1,4) %}
-          <div class="photo-slot" id="slot{{ i }}">
-            <label class="photo-label" for="img{{ i }}" id="lbl{{ i }}">
-              <div class="photo-plus">{% if edit_mode and event and event['image_'+i|string] %}✓{% else %}+{% endif %}</div>
-              <div>Photo {{ i }}</div>
-            </label>
-            <input type="file" id="img{{ i }}" name="image_{{ i }}" accept=".jpg,.jpeg,.png,.webp" onchange="compressAndPreview(this,'prev{{ i }}','lbl{{ i }}','compressed_{{ i }}','msg{{ i }}')"/>
-            <input type="hidden" id="compressed_{{ i }}" name="image_{{ i }}_compressed"/>
-            <div class="photo-compress-msg" id="msg{{ i }}"></div>
-            <img id="prev{{ i }}" class="photo-preview hidden"/>
+        <div class="field-note" style="margin-top:12px;">Upload 1 hero photo for this invitation.</div>
+        {% if edit_mode and event and event.is_live %}
+          {% if event.image_1 %}
+          <div class="photo-readonly">
+            <img src="{{ upload_url(event.image_1) }}" alt="Invitation photo"/>
+            <span>Photo is locked after publishing.</span>
           </div>
-          {% endfor %}
+          {% else %}
+          <p class="field-note">No photo was added before publishing.</p>
+          {% endif %}
+        {% else %}
+        <div class="photo-row photo-row-single">
+          <div class="photo-slot" id="slot1">
+            {% if edit_mode and event and event.is_live %}
+              <!-- Photo is locked (event is published) — show read-only view -->
+              <div class="photo-locked-notice">🔒 Photo is locked (published)</div>
+              {% if event.image_1 %}
+                <img id="prev1" class="photo-preview" src="{{ upload_url(event.image_1) }}"/>
+              {% else %}
+                <div class="photo-preview-placeholder">No photo</div>
+              {% endif %}
+            {% else %}
+              <!-- Photo upload available (draft or new event) -->
+              <label class="photo-label" for="img1" id="lbl1">
+                <div class="photo-plus">{% if edit_mode and event and event.image_1 %}✓{% else %}+{% endif %}</div>
+                <div>Hero photo</div>
+              </label>
+              <input type="file" id="img1" name="image_1" accept=".jpg,.jpeg,.png,.webp" onchange="compressAndPreview(this,'prev1','lbl1','compressed_1','msg1')"/>
+              <input type="hidden" id="compressed_1" name="image_1_compressed"/>
+              <input type="hidden" id="delete_image_1" name="delete_image_1" value="0"/>
+              <div class="photo-compress-msg" id="msg1"></div>
+              <img id="prev1" class="photo-preview{% if not (edit_mode and event and event.image_1) %} hidden{% endif %}" {% if edit_mode and event and event.image_1 %}src="{{ upload_url(event.image_1) }}"{% endif %}/>
+              <button type="button" class="photo-delete{% if not (edit_mode and event and event.image_1) %} hidden{% endif %}" id="delete-photo-btn" onclick="deletePhoto()">Remove photo</button>
+            {% endif %}
+          </div>
         </div>
+        {% endif %}
       </div>
     </div>
 
@@ -504,7 +526,29 @@
         <span class="fsec-chevron">▼</span>
       </div>
       <div class="fsec-body">
-        <p class="field-note">Guests can claim gifts directly on the invitation. Add as many as you like.</p>
+        <p class="field-note">Choose 2 to 10 gift options. Claimed gifts stay visible on the invitation.</p>
+        
+        <!-- Gift count selector -->
+        <div class="field" style="margin-bottom:16px;">
+          <label style="display:block;margin-bottom:8px;font-weight:500;font-size:.95rem;">How many gift options?</label>
+          <select name="gift_count" id="gift-count-sel" style="width:100%;padding:12px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#f5eee5;font-size:.95rem;cursor:pointer;">
+            {% for i in range(1, 11) %}
+              <option value="{{ i }}" {% if edit_mode and event and event.gift_count == i %}selected{% elif not edit_mode and i == 2 %}selected{% endif %}>{{ i }} gift{% if i != 1 %}s{% endif %}</option>
+            {% endfor %}
+          </select>
+          <p class="field-note" style="margin-top:8px;">Start with 1 and add more as you like.</p>
+        </div>
+        
+        <!-- Gift input rows -->
+        <div class="field" style="margin-bottom:12px;">
+          <label>How many gift options?</label>
+          {% set selected_gift_count = (event.gift_count if edit_mode and event and event.gift_count else ([event.gifts|length, 2]|max if edit_mode and event else 2)) %}
+          <select name="gift_count" id="gift-count" onchange="syncGiftRows()">
+            {% for n in range(2, 11) %}
+            <option value="{{ n }}" {% if selected_gift_count == n %}selected{% endif %}>{{ n }}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div id="gift-rows">
           {% if edit_mode and event and event.gifts %}
             {% for g in event.gifts %}
@@ -949,6 +993,11 @@ function toggleCustom(field) {
 function compressAndPreview(input, prevId, lblId, compressedId, msgId) {
   var file = input.files && input.files[0];
   if(!file) return;
+  if(input.files && input.files.length > 1){
+    input.value = '';
+    alert('Only 1 photo per invite.');
+    return;
+  }
   var msg = document.getElementById(msgId);
   msg.style.display = 'block';
   msg.className = 'photo-compress-msg';
@@ -976,6 +1025,8 @@ function compressAndPreview(input, prevId, lblId, compressedId, msgId) {
       var p = document.getElementById(prevId);
       p.src = compressed; p.classList.remove('hidden');
       var l = document.getElementById(lblId); if(l) l.style.display='none';
+      var delBtn = document.getElementById('delete-photo-btn'); if(delBtn) delBtn.classList.remove('hidden');
+      var delField = document.getElementById('delete_image_1'); if(delField) delField.value = '0';
 
       // Store compressed base64 in hidden field
       document.getElementById(compressedId).value = compressed;
@@ -991,8 +1042,28 @@ function compressAndPreview(input, prevId, lblId, compressedId, msgId) {
   reader.readAsDataURL(file);
 }
 
+function deletePhoto(){
+  var img = document.getElementById('prev1');
+  var lbl = document.getElementById('lbl1');
+  var file = document.getElementById('img1');
+  var compressed = document.getElementById('compressed_1');
+  var del = document.getElementById('delete_image_1');
+  var btn = document.getElementById('delete-photo-btn');
+  if(img){ img.src = ''; img.classList.add('hidden'); }
+  if(lbl){ lbl.style.display = ''; }
+  if(file){ file.value = ''; }
+  if(compressed){ compressed.value = ''; }
+  if(del){ del.value = '1'; }
+  if(btn){ btn.classList.add('hidden'); }
+}
+
 // ── Gift rows ─────────────────────────────────────────────────
 function addGiftRow(name,store){
+  var rows = document.querySelectorAll('#gift-rows .gift-row');
+  if(rows.length >= 10){
+    alert('You can add up to 10 gift options.');
+    return;
+  }
   var row=document.createElement('div'); row.className='gift-row';
   row.innerHTML='<input type="text" name="gift_name" placeholder="Gift name" value="'+(name||'')+'" class="gift-input"/>'+
     '<input type="text" name="gift_store" placeholder="Store (optional)" value="'+(store||'')+'" class="gift-input gift-store-input"/>'+

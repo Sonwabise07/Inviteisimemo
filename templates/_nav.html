@@ -11,7 +11,7 @@
     <a href="{{ url_for('examples') }}" class="site-nav__link">See Examples</a>
     <a href="{{ url_for('about') }}" class="site-nav__link">About</a>
     <a href="{{ url_for('contact') }}" class="site-nav__link">Contact</a>
-    {% if current_user.is_authenticated %}
+    {% if current_user and current_user.is_authenticated %}
       <a href="{{ url_for('dashboard') }}" class="site-nav__link">My Events</a>
       <a href="{{ url_for('account_settings') }}" class="site-nav__link">Account</a>
       {% if current_user.is_admin %}
@@ -26,7 +26,7 @@
 
   <!-- Mobile: hamburger only -->
   <div class="site-nav__mobile-right">
-    <button class="site-nav__burger" id="nav-burger" aria-label="Menu" onclick="toggleNavMenu()">
+    <button class="site-nav__burger" id="nav-burger" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
   </div>
@@ -36,19 +36,19 @@
 <div class="site-nav__drawer" id="nav-drawer">
   <!-- Drawer header -->
   <div class="site-nav__drawer-head">
-    <a href="{{ url_for('index') }}" class="site-nav__brand" onclick="closeNavMenu()">
+    <a href="{{ url_for('index') }}" class="site-nav__brand" id="drawer-brand-link">
       <span class="site-nav__mark">✦</span>
       <span class="site-nav__name">Invitisimemo</span>
     </a>
-    <button class="site-nav__drawer-close" onclick="closeNavMenu()" aria-label="Close menu">✕</button>
+    <button class="site-nav__drawer-close" id="drawer-close-btn" aria-label="Close menu">✕</button>
   </div>
 
   <!-- Links -->
   <div class="site-nav__drawer-links">
-    <a href="{{ url_for('examples') }}" class="nav-drawer-link" onclick="closeNavMenu()">See Examples <span>→</span></a>
+    <a href="{{ url_for('examples') }}" class="nav-drawer-link">See Examples <span>→</span></a>
     <a href="{{ url_for('about') }}" class="nav-drawer-link">About <span>→</span></a>
     <a href="{{ url_for('contact') }}" class="nav-drawer-link">Contact <span>→</span></a>
-    {% if current_user.is_authenticated %}
+    {% if current_user and current_user.is_authenticated %}
       <a href="{{ url_for('dashboard') }}" class="nav-drawer-link nav-drawer-link--gold">My Events <span>→</span></a>
       <a href="{{ url_for('account_settings') }}" class="nav-drawer-link">Account <span>→</span></a>
       {% if current_user.is_admin %}
@@ -62,7 +62,7 @@
 
   <!-- CTA pinned at the bottom -->
   <div class="site-nav__drawer-footer">
-    {% if current_user.is_authenticated %}
+    {% if current_user and current_user.is_authenticated %}
       <a href="{{ url_for('create') }}" class="site-nav__drawer-cta">+ Create an invitation</a>
     {% else %}
       <a href="{{ url_for('register') }}" class="site-nav__drawer-cta">Get started free</a>
@@ -71,24 +71,103 @@
   </div>
 </div>
 
-<script>
-function toggleNavMenu(){
-  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
-  var open=d.classList.toggle('open');
-  b.classList.toggle('open',open);
-  document.body.style.overflow=open?'hidden':'';
-}
-function closeNavMenu(){
-  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
-  if(d){d.classList.remove('open');}
-  if(b){b.classList.remove('open');}
-  document.body.style.overflow='';
-}
-document.addEventListener('click',function(e){
-  var d=document.getElementById('nav-drawer'),b=document.getElementById('nav-burger');
-  if(d&&d.classList.contains('open')&&!d.contains(e.target)&&b&&!b.contains(e.target)){
-    closeNavMenu();
+<!-- Additional CSS to guarantee drawer visibility on mobile -->
+<style>
+  /* Force drawer content to be visible when 'open' class is present */
+  .site-nav__drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 400px;
+    background: #0a0c10;     /* match your theme */
+    z-index: 1050;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    visibility: hidden;      /* hidden when closed */
   }
-});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNavMenu();});
+  .site-nav__drawer.open {
+    transform: translateX(0);
+    visibility: visible;
+    opacity: 1;
+  }
+  /* No extra max-height restrictions */
+  .site-nav__drawer-links,
+  .site-nav__drawer-footer {
+    flex-shrink: 0;
+  }
+</style>
+
+<script>
+  (function() {
+    'use strict';
+
+    // DOM elements
+    var drawer = document.getElementById('nav-drawer');
+    var burger = document.getElementById('nav-burger');
+    var closeBtn = document.getElementById('drawer-close-btn');
+    var brandLink = document.getElementById('drawer-brand-link');
+
+    // Guard: if essential elements are missing, exit
+    if (!drawer || !burger) return;
+
+    // Helper: force repaint (critical for mobile browsers)
+    function forceRepaint(el) {
+      void el.offsetHeight;
+    }
+
+    function openDrawer() {
+      if (drawer.classList.contains('open')) return;
+      drawer.classList.add('open');
+      burger.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      forceRepaint(drawer);   // ensures CSS transition runs immediately
+    }
+
+    function closeDrawer() {
+      if (!drawer.classList.contains('open')) return;
+      drawer.classList.remove('open');
+      burger.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function toggleDrawer(e) {
+      e.stopPropagation();
+      if (drawer.classList.contains('open')) {
+        closeDrawer();
+      } else {
+        openDrawer();
+      }
+    }
+
+    // Event listeners (no inline onclick)
+    burger.addEventListener('click', toggleDrawer);
+    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if (brandLink) brandLink.addEventListener('click', closeDrawer);
+
+    // Close when clicking outside the drawer
+    document.addEventListener('click', function(e) {
+      if (drawer.classList.contains('open') &&
+          !drawer.contains(e.target) &&
+          !burger.contains(e.target)) {
+        closeDrawer();
+      }
+    });
+
+    // Close on ESC key
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeDrawer();
+    });
+
+    // Close drawer when any navigation link inside the drawer is clicked
+    var drawerLinks = document.querySelectorAll('.nav-drawer-link');
+    for (var i = 0; i < drawerLinks.length; i++) {
+      drawerLinks[i].addEventListener('click', closeDrawer);
+    }
+  })();
 </script>
